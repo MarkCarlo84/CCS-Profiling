@@ -9,12 +9,9 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call([
-            DepartmentSeeder::class,
-            FacultySeeder::class,
-            StudentSeeder::class,
-            InstructionSeeder::class,   // creates courses + curricula + syllabi + lessons
-            SchedulingSeeder::class,    // creates rooms + sections + schedules (depends on courses + faculties)
-            EventSeeder::class,         // creates events + participants (depends on students + faculties)
+            UserSeeder::class,     // admin@ccs.edu.ph / admin1234
+            FacultySeeder::class,  // creates faculties
+            StudentSeeder::class,  // creates students + all related data
         ]);
     }
 }

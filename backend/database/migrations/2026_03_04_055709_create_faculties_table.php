@@ -10,20 +10,14 @@ return new class extends Migration
     {
         Schema::create('faculties', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('department_id')->constrained()->onDelete('cascade');
-            $table->string('employee_number', 50)->unique();
+            $table->string('faculty_id', 50)->nullable()->unique();
             $table->string('first_name');
             $table->string('last_name');
             $table->string('middle_name')->nullable();
-            $table->string('position');          // e.g. Instructor I, Professor III
-            $table->enum('employment_type', ['full_time', 'part_time', 'contractual'])->default('full_time');
-            $table->string('specialization')->nullable();
-            $table->string('highest_education')->nullable(); // BS CS, MSIT, PhD
+            $table->string('department')->nullable();
+            $table->string('position');
             $table->string('email')->nullable();
-            $table->string('phone', 30)->nullable();
-            $table->date('date_hired')->nullable();
-            $table->enum('status', ['active', 'inactive', 'on_leave'])->default('active');
-            $table->text('remarks')->nullable();
+            $table->string('contact_number', 30)->nullable();
             $table->timestamps();
         });
     }

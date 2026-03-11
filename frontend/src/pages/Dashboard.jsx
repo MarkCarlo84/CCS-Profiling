@@ -2,27 +2,33 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getSummary } from '../api';
 import {
-    Building, Users, GraduationCap, CheckCircle,
-    BookMarked, CalendarDays, TrendingUp, ArrowRight,
-    BarChart3, Search, FileText, PartyPopper,
+    Users, GraduationCap, CheckCircle,
+    BookOpen, ShieldAlert, Zap, Trophy,
+    TrendingUp, ArrowRight, BarChart3, Search,
+    Network, ClipboardCheck, Award, Activity,
 } from 'lucide-react';
 
 const STAT_CONFIGS = [
-    { key: 'departments', label: 'Departments', Icon: Building, color: '#f97316' },
     { key: 'total_faculty', label: 'Total Faculty', Icon: Users, color: '#8b5cf6' },
     { key: 'total_students', label: 'Total Students', Icon: GraduationCap, color: '#3b82f6' },
     { key: 'active_students', label: 'Active Students', Icon: CheckCircle, color: '#22c55e' },
-    { key: 'total_courses', label: 'Total Courses', Icon: BookMarked, color: '#f59e0b' },
-    { key: 'upcoming_events', label: 'Upcoming Events', Icon: CalendarDays, color: '#ec4899' },
+    { key: 'total_subjects', label: 'Subjects', Icon: BookOpen, color: '#f59e0b' },
+    { key: 'total_violations', label: 'Violations', Icon: ShieldAlert, color: '#ef4444' },
 ];
 
 const QUICK_ACTIONS = [
     { to: '/faculty-map', label: 'Faculty Map', Icon: Users, desc: 'View full roster', color: '#8b5cf6' },
     { to: '/student-map', label: 'Student Map', Icon: GraduationCap, desc: 'Student profiles', color: '#3b82f6' },
+    { to: '/subjects', label: 'Subjects', Icon: BookOpen, desc: 'All subjects & units', color: '#f59e0b' },
+    { to: '/affiliations', label: 'Affiliations', Icon: Network, desc: 'Org memberships', color: '#0891b2' },
+    { to: '/violations', label: 'Violations', Icon: ShieldAlert, desc: 'Disciplinary records', color: '#ef4444' },
+    { to: '/skills', label: 'Skills', Icon: Zap, desc: 'Student competencies', color: '#7c3aed' },
+    { to: '/academic-records', label: 'Academic Records', Icon: Award, desc: 'GPA & grades', color: '#059669' },
+    { to: '/non-academic-histories', label: 'Non-Academic', Icon: Trophy, desc: 'Awards & achievements', color: '#d97706' },
+    { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck, desc: 'Define honor criteria', color: '#64748b' },
+    { to: '/operations', label: 'Operations Center', Icon: Activity, desc: 'Operations Center', color: '#10b981' },
     { to: '/reports', label: 'Run Reports', Icon: BarChart3, desc: 'Filter & export', color: '#f97316' },
-    { to: '/search', label: 'Global Search', Icon: Search, desc: 'All modules', color: '#22c55e' },
-    { to: '/events', label: 'Events', Icon: PartyPopper, desc: 'Upcoming activities', color: '#ec4899' },
-    { to: '/scheduling', label: 'Class Schedule', Icon: CalendarDays, desc: 'Master timetable', color: '#f59e0b' },
+    { to: '/search', label: 'Global Search', Icon: Search, desc: 'Search all records', color: '#22c55e' },
 ];
 
 export default function Dashboard() {
@@ -92,40 +98,28 @@ export default function Dashboard() {
                         ))}
                     </div>
 
-                    {/* Two-column layout */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-                        {/* Students by Department */}
-                        <div className="card">
+                    {/* Gender breakdown */}
+                    {summary?.by_gender && (
+                        <div className="card" style={{ marginBottom: 20 }}>
                             <div className="card-header">
-                                <h2><GraduationCap size={16} color="#f97316" />Students by Department</h2>
-                                <span style={{ fontSize: 12, color: '#a8a29e', fontWeight: 500 }}>{summary?.total_students ?? 0} total</span>
+                                <h2><GraduationCap size={16} color="#f97316" /> Students by Gender</h2>
+                                <span style={{ fontSize: 12, color: '#a8a29e', fontWeight: 500 }}>{summary.total_students} total</span>
                             </div>
                             <div className="card-body" style={{ padding: 0 }}>
-                                {summary?.by_department?.map((d, i) => {
-                                    const pct = summary.total_students ? Math.round((d.count / summary.total_students) * 100) : 0;
+                                {Object.entries(summary.by_gender).map(([gender, count], i, arr) => {
+                                    const pct = summary.total_students ? Math.round((count / summary.total_students) * 100) : 0;
+                                    const colors = ['#3b82f6', '#ec4899', '#8b5cf6'];
+                                    const clr = colors[i] ?? '#f97316';
                                     return (
-                                        <div key={d.code} style={{
-                                            display: 'flex', alignItems: 'center', gap: 12,
-                                            padding: '12px 20px',
-                                            borderBottom: i < summary.by_department.length - 1 ? '1px solid #f5f5f4' : 'none',
-                                        }}>
-                                            <div style={{
-                                                width: 32, height: 32, borderRadius: 9, background: '#fff7ed',
-                                                border: '1px solid #fed7aa', display: 'flex', alignItems: 'center',
-                                                justifyContent: 'center', fontSize: 10, fontWeight: 800, color: '#c2410c',
-                                                flexShrink: 0,
-                                            }}>{d.code?.slice(0, 2)}</div>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div key={gender} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 20px', borderBottom: i < arr.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
+                                            <div style={{ width: 32, height: 32, borderRadius: 9, background: `${clr}18`, border: `1px solid ${clr}30`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 800, color: clr, flexShrink: 0 }}>{gender?.[0]}</div>
+                                            <div style={{ flex: 1 }}>
                                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#18120e', truncate: true }}>{d.name}</span>
-                                                    <span style={{ fontSize: 13, fontWeight: 700, color: '#f97316', marginLeft: 8 }}>{d.count}</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#18120e' }}>{gender}</span>
+                                                    <span style={{ fontSize: 13, fontWeight: 700, color: clr }}>{count}</span>
                                                 </div>
                                                 <div style={{ height: 5, background: '#f5f5f4', borderRadius: 3, overflow: 'hidden' }}>
-                                                    <div style={{
-                                                        width: `${pct}%`, height: '100%',
-                                                        background: 'linear-gradient(90deg,#f97316,#fb923c)',
-                                                        borderRadius: 3, transition: 'width .6s ease',
-                                                    }} />
+                                                    <div style={{ width: `${pct}%`, height: '100%', background: `linear-gradient(90deg,${clr},${clr}cc)`, borderRadius: 3 }} />
                                                 </div>
                                             </div>
                                             <span style={{ fontSize: 11, color: '#a8a29e', fontWeight: 600, minWidth: 30, textAlign: 'right' }}>{pct}%</span>
@@ -134,55 +128,12 @@ export default function Dashboard() {
                                 })}
                             </div>
                         </div>
-
-                        {/* Students by Year Level */}
-                        <div className="card">
-                            <div className="card-header">
-                                <h2><FileText size={16} color="#f97316" />Students by Year Level</h2>
-                            </div>
-                            <div className="card-body" style={{ padding: 0 }}>
-                                {summary?.by_year_level && Object.entries(summary.by_year_level).map(([yr, cnt], i, arr) => {
-                                    const max = Math.max(...Object.values(summary.by_year_level));
-                                    const pct = max ? Math.round((cnt / max) * 100) : 0;
-                                    const colors = ['#f97316', '#ea580c', '#c2410c', '#9a3412'];
-                                    return (
-                                        <div key={yr} style={{
-                                            display: 'flex', alignItems: 'center', gap: 14,
-                                            padding: '14px 20px',
-                                            borderBottom: i < arr.length - 1 ? '1px solid #f5f5f4' : 'none',
-                                        }}>
-                                            <div style={{
-                                                width: 36, height: 36, borderRadius: 10,
-                                                background: `${colors[i] ?? '#f97316'}18`,
-                                                border: `1px solid ${colors[i] ?? '#f97316'}30`,
-                                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                                fontSize: 13, fontWeight: 800, color: colors[i] ?? '#f97316',
-                                                flexShrink: 0,
-                                            }}>{i + 1}</div>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
-                                                    <span style={{ fontSize: 13, fontWeight: 600, color: '#18120e' }}>{yr}</span>
-                                                    <span style={{ fontSize: 13, fontWeight: 700, color: colors[i] ?? '#f97316' }}>{cnt}</span>
-                                                </div>
-                                                <div style={{ height: 6, background: '#f5f5f4', borderRadius: 3, overflow: 'hidden' }}>
-                                                    <div style={{
-                                                        width: `${pct}%`, height: '100%',
-                                                        background: `linear-gradient(90deg,${colors[i] ?? '#f97316'},${colors[i] ?? '#fb923c'}cc)`,
-                                                        borderRadius: 3, transition: 'width .6s ease',
-                                                    }} />
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
+                    )}
 
                     {/* Quick Actions */}
                     <div style={{ marginBottom: 4 }}>
-                        <div className="section-divider"><h2>Quick Actions</h2></div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(200px,1fr))', gap: 12 }}>
+                        <div className="section-divider"><h2>Quick Access</h2></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 12 }}>
                             {QUICK_ACTIONS.map(({ to, label, Icon, desc, color }) => (
                                 <Link key={to} to={to} className="action-card">
                                     <div className="action-icon" style={{ background: `linear-gradient(135deg,${color},${color}cc)` }}>

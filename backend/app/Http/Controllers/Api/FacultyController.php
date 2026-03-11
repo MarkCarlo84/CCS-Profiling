@@ -4,6 +4,8 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Faculty;
+use App\Models\Student;
+use App\Models\EligibilityCriteria;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 
@@ -11,20 +13,17 @@ class FacultyController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Faculty::with('department');
+        $query = Faculty::query();
 
-        if ($request->filled('department_id')) {
-            $query->where('department_id', $request->department_id);
-        }
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
+        if ($request->filled('department')) {
+            $query->where('department', 'like', "%{$request->department}%");
         }
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
                 $q->where('first_name', 'like', "%$search%")
                   ->orWhere('last_name', 'like', "%$search%")
-                  ->orWhere('employee_number', 'like', "%$search%");
+                  ->orWhere('faculty_id', 'like', "%$search%");
             });
         }
 
@@ -34,55 +33,103 @@ class FacultyController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'department_id'     => 'required|exists:departments,id',
-            'employee_number'   => 'required|unique:faculties',
-            'first_name'        => 'required|string|max:100',
-            'last_name'         => 'required|string|max:100',
-            'middle_name'       => 'nullable|string|max:100',
-            'position'          => 'required|string|max:100',
-            'employment_type'   => 'in:full_time,part_time,contractual',
-            'specialization'    => 'nullable|string|max:150',
-            'highest_education' => 'nullable|string|max:100',
-            'email'             => 'nullable|email',
-            'phone'             => 'nullable|string|max:30',
-            'date_hired'        => 'nullable|date',
-            'status'            => 'in:active,inactive,on_leave',
-            'remarks'           => 'nullable|string',
+            'faculty_id'     => 'nullable|string|max:50',
+            'first_name'     => 'required|string|max:100',
+            'last_name'      => 'required|string|max:100',
+            'department'     => 'nullable|string|max:100',
+            'position'       => 'required|string|max:100',
+            'email'          => 'nullable|email',
+            'contact_number' => 'nullable|string|max:30',
         ]);
-        $faculty = Faculty::create($data);
-        return response()->json($faculty->load('department'), 201);
+        return response()->json(Faculty::create($data), 201);
     }
 
     public function show(Faculty $faculty): JsonResponse
     {
-        return response()->json($faculty->load('department'));
+        return response()->json($faculty);
     }
 
     public function update(Request $request, Faculty $faculty): JsonResponse
     {
         $data = $request->validate([
-            'department_id'     => 'sometimes|exists:departments,id',
-            'employee_number'   => "sometimes|unique:faculties,employee_number,{$faculty->id}",
-            'first_name'        => 'sometimes|string|max:100',
-            'last_name'         => 'sometimes|string|max:100',
-            'middle_name'       => 'nullable|string|max:100',
-            'position'          => 'sometimes|string|max:100',
-            'employment_type'   => 'in:full_time,part_time,contractual',
-            'specialization'    => 'nullable|string|max:150',
-            'highest_education' => 'nullable|string|max:100',
-            'email'             => 'nullable|email',
-            'phone'             => 'nullable|string|max:30',
-            'date_hired'        => 'nullable|date',
-            'status'            => 'in:active,inactive,on_leave',
-            'remarks'           => 'nullable|string',
+            'faculty_id'     => 'nullable|string|max:50',
+            'first_name'     => 'sometimes|string|max:100',
+            'last_name'      => 'sometimes|string|max:100',
+            'department'     => 'nullable|string|max:100',
+            'position'       => 'sometimes|string|max:100',
+            'email'          => 'nullable|email',
+            'contact_number' => 'nullable|string|max:30',
         ]);
         $faculty->update($data);
-        return response()->json($faculty->load('department'));
+        return response()->json($faculty);
     }
 
     public function destroy(Faculty $faculty): JsonResponse
     {
         $faculty->delete();
         return response()->json(['message' => 'Faculty deleted.']);
+    }
+
+    /**
+     * + createReport(criteria: EligibilityCriteria) : Report
+     * POST /api/faculties/{faculty}/create-report/{criteria}
+     */
+    public function createReport(Faculty $faculty, EligibilityCriteria $eligibilityCriterion): JsonResponse
+    {
+        return response()->json($faculty->createReport($eligibilityCriterion));
+    }
+
+    /**
+     * + evaluateStudent(student: Student) : void
+     * GET /api/faculties/{faculty}/evaluate-student/{student}
+     */
+    public function evaluateStudent(Faculty $faculty, Student $student): JsonResponse
+    {
+        return response()->json([
+            'faculty' => $faculty->full_name,
+            'student' => $student->full_name,
+            'results' => $faculty->evaluateStudent($student),
+        ]);
+    }
+
+    /**
+     * + recordViolation(student: Student, violation: Violation) : void
+     * POST /api/faculties/{faculty}/record-violation/{student}
+     */
+    public function recordViolation(Request $request, Faculty $faculty, Student $student): JsonResponse
+    {
+        $data = $request->validate([
+            'violation_type' => 'required|string|max:100',
+            'description'    => 'nullable|string',
+            'date_committed' => 'nullable|date',
+            'severity_level' => 'in:minor,major,grave',
+            'action_taken'   => 'nullable|string',
+        ]);
+        $violation = $faculty->recordViolation($student, $data);
+        return response()->json($violation, 201);
+    }
+
+    /**
+     * + updateStudentRecord(student: Student) : void
+     * PATCH /api/faculties/{faculty}/update-student/{student}
+     */
+    public function updateStudentRecord(Request $request, Faculty $faculty, Student $student): JsonResponse
+    {
+        $data = $request->validate([
+            'first_name'     => 'sometimes|string|max:100',
+            'last_name'      => 'sometimes|string|max:100',
+            'middle_name'    => 'nullable|string|max:100',
+            'age'            => 'nullable|integer',
+            'guardian_name'  => 'nullable|string|max:100',
+            'date_of_birth'  => 'nullable|date',
+            'gender'         => 'nullable|in:Male,Female,Other',
+            'address'        => 'nullable|string',
+            'contact_number' => 'nullable|string|max:30',
+            'email'          => 'nullable|email',
+            'enrollment_date'=> 'nullable|date',
+            'status'         => 'nullable|in:active,inactive,graduated,dropped',
+        ]);
+        $updated = $faculty->updateStudentRecord($student, $data);
+        return response()->json($updated);
     }
 }

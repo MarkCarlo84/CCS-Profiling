@@ -10,21 +10,19 @@ return new class extends Migration
     {
         Schema::create('students', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('department_id')->constrained()->onDelete('cascade');
-            $table->string('student_number', 50)->unique();
+            $table->string('student_id', 50)->nullable()->unique();
             $table->string('first_name');
-            $table->string('last_name');
             $table->string('middle_name')->nullable();
-            $table->enum('year_level', ['1st Year', '2nd Year', '3rd Year', '4th Year'])->default('1st Year');
-            $table->string('section', 20)->nullable();
-            $table->string('email')->nullable();
-            $table->string('phone', 30)->nullable();
-            $table->date('birthdate')->nullable();
-            $table->string('address')->nullable();
+            $table->string('last_name');
+            $table->integer('age')->nullable();
+            $table->string('guardian_name')->nullable();
+            $table->date('date_of_birth')->nullable();
             $table->enum('gender', ['Male', 'Female', 'Other'])->nullable();
-            $table->decimal('gpa', 4, 2)->nullable();
+            $table->string('address')->nullable();
+            $table->string('contact_number', 30)->nullable();
+            $table->string('email')->nullable();
+            $table->date('enrollment_date')->nullable();
             $table->enum('status', ['active', 'inactive', 'graduated', 'dropped'])->default('active');
-            $table->text('remarks')->nullable();
             $table->timestamps();
         });
     }
