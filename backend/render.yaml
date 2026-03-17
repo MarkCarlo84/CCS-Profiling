@@ -1,14 +1,9 @@
 services:
   - type: web
     name: ccs-profiling-backend
-    runtime: php
-    buildCommand: |
-      composer install --no-dev --optimize-autoloader
-      php artisan config:cache
-      php artisan route:cache
-      php artisan view:cache
-      php artisan migrate --force
-    startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
+    runtime: docker
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
     envVars:
       - key: APP_NAME
         value: CCS-Profiling
@@ -25,6 +20,8 @@ services:
           property: url
       - key: DB_CONNECTION
         value: sqlite
+      - key: DB_DATABASE
+        value: /app/database/database.sqlite
       - key: SESSION_DRIVER
         value: file
       - key: CACHE_STORE
@@ -35,6 +32,5 @@ services:
         value: stderr
       - key: LOG_LEVEL
         value: error
-      # Set FRONTEND_URL to your Vercel deployment URL in Render dashboard
       - key: FRONTEND_URL
         value: https://YOUR-VERCEL-APP.vercel.app
