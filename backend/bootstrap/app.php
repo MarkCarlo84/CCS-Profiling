@@ -15,7 +15,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->validateCsrfTokens(except: ['api/*']);
         // CORS must be global so OPTIONS preflight requests are handled
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
-        $middleware->trustHosts(at: ['localhost', '127.0.0.1']);
+        // Trust all proxies (needed for Render/Cloudflare)
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //
