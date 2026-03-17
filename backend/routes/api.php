@@ -17,6 +17,14 @@ Route::get('/debug', function () {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
 });
+
+Route::post('/debug-login', function (\Illuminate\Http\Request $request) {
+    return response()->json([
+        'received' => $request->all(),
+        'content_type' => $request->header('Content-Type'),
+        'method' => $request->method(),
+    ]);
+});
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\GradeController;
