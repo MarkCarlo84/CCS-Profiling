@@ -22,25 +22,32 @@ RUN mkdir -p database && touch database/database.sqlite
 
 # Storage permissions
 RUN chmod -R 775 storage bootstrap/cache database \
-    && chown -R www-data:www-data storage bootstrap/cache database
+    && chown -R www-data:www-data /app
 
-# Nginx config
-RUN echo 'server { \n\
-    listen 80; \n\
-    root /app/public; \n\
-    index index.php; \n\
-    location / { try_files $uri $uri/ /index.php?$query_string; } \n\
-    location ~ \.php$ { \n\
-        fastcgi_pass 127.0.0.1:9000; \n\
-        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name; \n\
-        include fastcgi_params; \n\
-    } \n\
+# Nginx config - listen on $PORT (Render sets this)
+RUN echo 'server {\n\
+    listen 80;\n\
+    root /app/public;\n\
+    index index.php;\n\
+    add_header X-Frame-Options "SAMEORIGIN";\n\
+    add_header X-Content-Type-Options "nosniff";\n\
+    charset utf-8;\n\
+    location / {\n\
+        try_files $uri $uri/ /index.php?$query_string;\n\
+    }\n\
+    location ~ \.php$ {\n\
+        fastcgi_pass 127.0.0.1:9000;\n\
+        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;\n\
+        include fastcgi_params;\n\
+    }\n\
+    location ~ /\.(?!well-known).* {\n\
+        deny all;\n\
+    }\n\
 }' > /etc/nginx/sites-available/default
+
+COPY start.sh /start.sh
+RUN chmod +x /start.sh
 
 EXPOSE 80
 
-CMD php artisan config:clear \
-    && php artisan migrate --force \
-    && php artisan db:seed --force \
-    && php-fpm -D \
-    && nginx -g "daemon off;"
+CMD ["/start.sh"]
