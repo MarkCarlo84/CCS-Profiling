@@ -23,7 +23,11 @@ export default function Login() {
             await login(form.email, form.password);
             setSuccess(true);
         } catch (err) {
-            setError(err.response?.data?.errors?.email?.[0] || err.response?.data?.message || 'Invalid email or password. Please try again.');
+            const detail = err.response?.data?.errors?.email?.[0]
+                || err.response?.data?.message
+                || JSON.stringify(err.response?.data)
+                || 'Invalid email or password. Please try again.';
+            setError(`${err.response?.status ?? ''} ${detail}`);
             setLoading(false);
         }
     };
