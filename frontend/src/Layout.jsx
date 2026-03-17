@@ -9,7 +9,9 @@ import {
     ChevronLeft, ChevronRight, LogOut,
     Activity,
 } from 'lucide-react';
+import { useLoading } from './LoadingContext';
 import './Layout.css';
+
 import ccsLogo from './CCS Logo.png';
 
 const navGroups = [
@@ -56,11 +58,12 @@ const navGroups = [
 export default function Layout({ children }) {
     const [collapsed, setCollapsed] = useState(false);
     const { user, logout } = useAuth();
+    const { showLoader } = useLoading();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
+        showLoader(() => navigate('/login'));
         await logout();
-        navigate('/login');
     };
 
     return (

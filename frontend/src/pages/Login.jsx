@@ -38,80 +38,6 @@ export default function Login() {
                 <div style={styles.bgNoise} />
             </div>
 
-            {/* CS-Themed 3D Floating Art */}
-            <div style={styles.floatingLogosContainer}>
-
-                {/* ── Isometric 3D Cube – top left ── */}
-                <svg className="float-anim-1" style={{position:'absolute',top:'8%',left:'4%',opacity:0.22,filter:'drop-shadow(0 8px 24px rgba(249,115,22,0.5))'}} width="120" height="120" viewBox="0 0 120 120" fill="none">
-                    <polygon points="60,8 108,34 108,86 60,112 12,86 12,34" fill="rgba(249,115,22,0.18)" stroke="rgba(249,115,22,0.7)" strokeWidth="1.5"/>
-                    <polygon points="60,8 108,34 60,60 12,34" fill="rgba(249,115,22,0.28)" stroke="rgba(249,115,22,0.8)" strokeWidth="1.2"/>
-                    <polygon points="60,60 108,34 108,86 60,112" fill="rgba(234,88,12,0.20)" stroke="rgba(234,88,12,0.6)" strokeWidth="1.2"/>
-                    <polygon points="60,60 12,34 12,86 60,112" fill="rgba(253,186,116,0.12)" stroke="rgba(253,186,116,0.5)" strokeWidth="1.2"/>
-                    <line x1="60" y1="8" x2="60" y2="60" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                    <line x1="12" y1="34" x2="60" y2="60" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                    <line x1="108" y1="34" x2="60" y2="60" stroke="rgba(255,255,255,0.3)" strokeWidth="1"/>
-                </svg>
-
-                {/* ── Circuit Board Node Cluster – top right ── */}
-                <svg className="float-anim-2" style={{position:'absolute',top:'5%',right:'5%',opacity:0.25,filter:'drop-shadow(0 4px 16px rgba(249,115,22,0.4))'}} width="160" height="140" viewBox="0 0 160 140" fill="none">
-                    <circle cx="80" cy="70" r="10" fill="rgba(249,115,22,0.5)" stroke="#f97316" strokeWidth="2"/>
-                    <circle cx="30" cy="30" r="6" fill="rgba(249,115,22,0.3)" stroke="#f97316" strokeWidth="1.5"/>
-                    <circle cx="130" cy="25" r="6" fill="rgba(249,115,22,0.3)" stroke="#f97316" strokeWidth="1.5"/>
-                    <circle cx="140" cy="110" r="7" fill="rgba(249,115,22,0.3)" stroke="#f97316" strokeWidth="1.5"/>
-                    <circle cx="20" cy="110" r="5" fill="rgba(249,115,22,0.3)" stroke="#f97316" strokeWidth="1.5"/>
-                    <circle cx="80" cy="128" r="5" fill="rgba(249,115,22,0.3)" stroke="#f97316" strokeWidth="1.5"/>
-                    {/* Traces */}
-                    <line x1="80" y1="70" x2="30" y2="30" stroke="rgba(249,115,22,0.45)" strokeWidth="1.5" strokeDasharray="4 3"/>
-                    <line x1="80" y1="70" x2="130" y2="25" stroke="rgba(249,115,22,0.45)" strokeWidth="1.5" strokeDasharray="4 3"/>
-                    <line x1="80" y1="70" x2="140" y2="110" stroke="rgba(249,115,22,0.45)" strokeWidth="1.5" strokeDasharray="4 3"/>
-                    <line x1="80" y1="70" x2="20" y2="110" stroke="rgba(249,115,22,0.45)" strokeWidth="1.5" strokeDasharray="4 3"/>
-                    <line x1="80" y1="70" x2="80" y2="128" stroke="rgba(249,115,22,0.45)" strokeWidth="1.5" strokeDasharray="4 3"/>
-                    {/* Right-angle trace corners */}
-                    <polyline points="80,70 80,25 130,25" stroke="rgba(255,200,100,0.3)" strokeWidth="1" fill="none"/>
-                    <polyline points="80,70 30,70 30,30" stroke="rgba(255,200,100,0.3)" strokeWidth="1" fill="none"/>
-                    <rect x="74" y="64" width="12" height="12" rx="3" fill="none" stroke="rgba(249,115,22,0.6)" strokeWidth="1.5"/>
-                </svg>
-
-                {/* ── Code Angle Brackets – bottom left ── */}
-                <svg className="float-anim-3" style={{position:'absolute',bottom:'10%',left:'3%',opacity:0.28,filter:'drop-shadow(0 4px 20px rgba(249,115,22,0.4))'}} width="140" height="80" viewBox="0 0 140 80" fill="none">
-                    <text x="0" y="60" fontFamily="monospace" fontSize="72" fontWeight="bold" fill="rgba(249,115,22,0.55)" letterSpacing="-4">&lt;/&gt;</text>
-                </svg>
-
-                {/* ── Floating Curly Braces code symbol – right middle ── */}
-                <svg className="float-anim-1" style={{position:'absolute',top:'38%',right:'3%',opacity:0.20,filter:'drop-shadow(0 4px 20px rgba(249,115,22,0.3))'}} width="90" height="110" viewBox="0 0 90 110" fill="none">
-                    <text x="0" y="90" fontFamily="monospace" fontSize="100" fontWeight="bold" fill="rgba(253,186,116,0.55)">{`{}`}</text>
-                </svg>
-
-                {/* ── Wireframe Diamond / Octahedron – bottom right ── */}
-                <svg className="float-anim-2" style={{position:'absolute',bottom:'6%',right:'4%',opacity:0.22,filter:'drop-shadow(0 6px 20px rgba(249,115,22,0.45))'}} width="110" height="130" viewBox="0 0 110 130" fill="none">
-                    <polygon points="55,4 104,52 55,126 6,52" fill="rgba(249,115,22,0.10)" stroke="rgba(249,115,22,0.65)" strokeWidth="1.5"/>
-                    <line x1="55" y1="4" x2="55" y2="126" stroke="rgba(249,115,22,0.35)" strokeWidth="1" strokeDasharray="5 4"/>
-                    <line x1="6" y1="52" x2="104" y2="52" stroke="rgba(249,115,22,0.35)" strokeWidth="1" strokeDasharray="5 4"/>
-                    <circle cx="55" cy="4"   r="3.5" fill="#f97316"/>
-                    <circle cx="55" cy="126" r="3.5" fill="#f97316"/>
-                    <circle cx="6"  cy="52"  r="3.5" fill="#f97316"/>
-                    <circle cx="104" cy="52" r="3.5" fill="#f97316"/>
-                </svg>
-
-                {/* ── Binary stream – center-left ── */}
-                <div className="float-anim-3" style={{position:'absolute',top:'28%',left:'2%',opacity:0.15,fontFamily:'monospace',fontSize:'13px',color:'#fb923c',lineHeight:'1.6',letterSpacing:'0.05em',filter:'blur(0.5px)',userSelect:'none',pointerEvents:'none',whiteSpace:'pre'}}>
-                    {`01001100\n11010011\n00110101\n10101010\n01100110\n11001101\n00011011`}
-                </div>
-
-                {/* ── Hex values stream – bottom center ── */}
-                <div className="float-anim-1" style={{position:'absolute',bottom:'5%',left:'38%',opacity:0.12,fontFamily:'monospace',fontSize:'11px',color:'#fdba74',lineHeight:'1.8',letterSpacing:'0.08em',userSelect:'none',pointerEvents:'none',whiteSpace:'pre'}}>
-                    {`0xFF 0xA3\n0x2B 0xD1\n0x94 0x6E\n0x17 0xBC`}
-                </div>
-
-                {/* ── Small satellite cube – center top ── */}
-                <svg className="float-anim-2" style={{position:'absolute',top:'3%',left:'42%',opacity:0.18,filter:'drop-shadow(0 4px 12px rgba(249,115,22,0.4))'}} width="60" height="60" viewBox="0 0 60 60" fill="none">
-                    <polygon points="30,4 54,17 54,43 30,56 6,43 6,17" fill="rgba(249,115,22,0.15)" stroke="rgba(249,115,22,0.6)" strokeWidth="1.2"/>
-                    <polygon points="30,4 54,17 30,30 6,17" fill="rgba(249,115,22,0.25)" stroke="rgba(249,115,22,0.7)" strokeWidth="1"/>
-                    <polygon points="30,30 54,17 54,43 30,56" fill="rgba(234,88,12,0.18)" stroke="rgba(234,88,12,0.5)" strokeWidth="1"/>
-                </svg>
-
-            </div>
-
             {/* Glass Login Card */}
             <div style={styles.contentWrapper}>
                 <div style={styles.glassCard} className="fade-in-up">
@@ -127,7 +53,7 @@ export default function Login() {
                             <img src={sitesLogo} alt="SITES" style={styles.miniLogo} />
                         </div>
                         <h1 style={styles.title}>CCS Profiling System</h1>
-                        <p style={styles.subtitle}>College of Computer Studies · Cabuyao City</p>
+                        <p style={styles.subtitle}>College of Computer Studies<br />University of Cabuyao</p>
                         <div style={styles.divider} />
                     </div>
 
@@ -217,7 +143,7 @@ export default function Login() {
 
                     {/* Footer */}
                     <p style={styles.footer}>
-                        CCS Profiling &copy; {new Date().getFullYear()} · Cabuyao City College
+                        CCS Profiling &copy; {new Date().getFullYear()} · University of Cabuyao
                     </p>
                 </div>
             </div>
@@ -230,14 +156,8 @@ export default function Login() {
                 @keyframes spin        { to   { transform: rotate(360deg); } }
                 @keyframes fadeInUp    { from { opacity: 0; transform: translateY(36px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
                 @keyframes shakeError  { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
-                @keyframes float1      { 0%,100%{transform:translate(0,0) rotate(0deg)}   50%{transform:translate(-18px,26px) rotate(4deg)} }
-                @keyframes float2      { 0%,100%{transform:translate(0,0) rotate(0deg)}   50%{transform:translate(22px,-18px) rotate(-4deg)} }
-                @keyframes float3      { 0%,100%{transform:translate(0,0) rotate(0deg)}   50%{transform:translate(-14px,-22px) rotate(6deg)} }
 
                 .fade-in-up    { animation: fadeInUp   0.75s cubic-bezier(0.16,1,0.3,1) forwards; }
-                .float-anim-1  { animation: float1  9s  ease-in-out infinite; }
-                .float-anim-2  { animation: float2  11s ease-in-out infinite; }
-                .float-anim-3  { animation: float3  10s ease-in-out infinite; }
                 .shake-error   { animation: shakeError 0.45s ease-in-out; }
                 .spin-icon     { animation: spin 1s linear infinite; }
 

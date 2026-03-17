@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
+import { LoadingProvider, useLoading } from './LoadingContext';
+import LoadingScreen from './LoadingScreen';
 import Layout from './Layout';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
@@ -55,11 +57,26 @@ function AppRoutes() {
 }
 
 export default function App() {
+  const [introDone, setIntroDone] = useState(false);
+
   return (
-    <BrowserRouter>
-      <AuthProvider>
-        <AppRoutes />
-      </AuthProvider>
-    </BrowserRouter>
+    <LoadingProvider>
+      {!introDone && <LoadingScreen onDone={() => setIntroDone(true)} />}
+      <BrowserRouter>
+        <AuthProvider>
+          <AppInner />
+        </AuthProvider>
+      </BrowserRouter>
+    </LoadingProvider>
+  );
+}
+
+function AppInner() {
+  const { visible } = useLoading();
+  return (
+    <>
+      {visible && <LoadingScreen />}
+      <AppRoutes />
+    </>
   );
 }
