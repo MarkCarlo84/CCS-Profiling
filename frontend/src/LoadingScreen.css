@@ -29,12 +29,12 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 3rem;
+  gap: clamp(1rem, 4vw, 3rem);
 }
 
 .ls-logo {
-  width: 220px;
-  height: 220px;
+  width: clamp(80px, 18vw, 220px);
+  height: clamp(80px, 18vw, 220px);
   object-fit: cover;
   border-radius: 50%;
   border: 3px solid #e2e8f0;
@@ -44,8 +44,8 @@
 }
 
 .ls-logo--center {
-  width: 260px;
-  height: 260px;
+  width: clamp(96px, 22vw, 260px);
+  height: clamp(96px, 22vw, 260px);
   border-color: #cbd5e1;
 }
 
@@ -121,4 +121,67 @@
 
 @keyframes ls-bar-grow {
   to { width: 100%; }
+}
+
+/* ── Responsive ── */
+@media (max-width: 600px) {
+  .ls-content {
+    gap: 1.25rem;
+    padding: 0 16px;
+  }
+
+  .ls-logos {
+    gap: 1rem;
+  }
+
+  .ls-logo {
+    width: clamp(70px, 22vw, 110px);
+    height: clamp(70px, 22vw, 110px);
+    border-width: 2px;
+  }
+
+  .ls-logo--center {
+    width: clamp(84px, 26vw, 130px);
+    height: clamp(84px, 26vw, 130px);
+  }
+
+  .ls-line {
+    font-size: clamp(0.7rem, 4.5vw, 1rem);
+    letter-spacing: 0.1em;
+  }
+
+  .ls-line--sub {
+    font-size: clamp(0.6rem, 3.5vw, 0.85rem);
+    letter-spacing: 0.15em;
+  }
+
+  .ls-bar {
+    width: 120px;
+  }
+}
+
+@media (max-width: 380px) {
+  .ls-logos {
+    gap: 0.6rem;
+  }
+
+  .ls-logo {
+    width: 70px;
+    height: 70px;
+  }
+
+  .ls-logo--center {
+    width: 84px;
+    height: 84px;
+  }
+
+  .ls-line {
+    font-size: 0.65rem;
+    letter-spacing: 0.08em;
+  }
+
+  .ls-line--sub {
+    font-size: 0.58rem;
+    letter-spacing: 0.1em;
+  }
 }

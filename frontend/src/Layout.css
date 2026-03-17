@@ -904,3 +904,247 @@ tbody td {
 ::-webkit-scrollbar-thumb:hover {
     background: #94a3b8;
 }
+
+/* ===================== MOBILE TOPBAR ===================== */
+.mobile-topbar {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0;
+    height: 56px;
+    background: var(--sidebar-bg);
+    z-index: 200;
+    align-items: center;
+    padding: 0 16px;
+    gap: 12px;
+    border-bottom: 1px solid rgba(255,255,255,.06);
+}
+
+.mobile-menu-btn {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 5px;
+    width: 36px;
+    height: 36px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 6px;
+    border-radius: 8px;
+    flex-shrink: 0;
+}
+
+.mobile-menu-btn span {
+    display: block;
+    height: 2px;
+    background: #94a3b8;
+    border-radius: 2px;
+    transition: all .2s ease;
+}
+
+.mobile-menu-btn:hover span {
+    background: #f8fafc;
+}
+
+.mobile-brand {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #f8fafc;
+    font-weight: 700;
+    font-size: .95rem;
+}
+
+.mobile-brand img {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: contain;
+    background: #fff;
+    padding: 3px;
+}
+
+/* ===================== SIDEBAR OVERLAY ===================== */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.55);
+    z-index: 150;
+    backdrop-filter: blur(2px);
+}
+
+/* ===================== TABLET (768px – 1024px) ===================== */
+@media (max-width: 1024px) {
+    :root {
+        --sidebar-width: 220px;
+    }
+
+    .main-content {
+        padding: 28px 24px;
+    }
+
+    .stats-row {
+        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        gap: 12px;
+    }
+
+    .stat-value {
+        font-size: 1.55rem;
+    }
+
+    .page-header h1 {
+        font-size: 1.4rem;
+    }
+}
+
+/* ===================== MOBILE (≤ 768px) ===================== */
+@media (max-width: 768px) {
+    /* Show mobile topbar */
+    .mobile-topbar {
+        display: flex;
+    }
+
+    /* Show overlay when sidebar is open */
+    .sidebar-overlay {
+        display: block;
+    }
+
+    /* Sidebar slides in from left */
+    .sidebar {
+        transform: translateX(-100%);
+        width: var(--sidebar-width) !important;
+        top: 0;
+        z-index: 160;
+        transition: transform .3s cubic-bezier(.4,0,.2,1);
+    }
+
+    .sidebar.mobile-open {
+        transform: translateX(0);
+    }
+
+    /* Main content takes full width, offset for topbar */
+    .main-content {
+        margin-left: 0 !important;
+        padding: 20px 16px;
+        padding-top: calc(56px + 20px);
+        height: 100%;
+        overflow-y: auto;
+    }
+
+    /* Stats stack to 2 columns on mobile */
+    .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-bottom: 20px;
+    }
+
+    .stat-card {
+        padding: 14px 12px;
+        gap: 10px;
+    }
+
+    .stat-value {
+        font-size: 1.35rem;
+    }
+
+    .stat-label {
+        font-size: .65rem;
+    }
+
+    /* Page header */
+    .page-header {
+        margin-bottom: 18px;
+    }
+
+    .page-header h1 {
+        font-size: 1.2rem;
+    }
+
+    .page-header p {
+        font-size: .8rem;
+    }
+
+    /* Cards */
+    .card-body {
+        padding: 14px;
+    }
+
+    .card-header {
+        padding: 12px 14px;
+    }
+
+    /* Tables scroll horizontally */
+    .table-wrap {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    table {
+        min-width: 600px;
+    }
+
+    /* Filter bar stacks */
+    .filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 8px;
+        padding: 10px 12px;
+    }
+
+    .filter-bar select,
+    .filter-bar input[type="text"],
+    .filter-bar input[type="number"] {
+        width: 100%;
+        min-width: unset;
+    }
+
+    /* Buttons full width on mobile */
+    .btn-mobile-full {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* Hide collapse button on mobile — sidebar always full width */
+    .sidebar .sidebar-brand button[title] {
+        pointer-events: none;
+    }
+}
+
+/* ===================== SMALL MOBILE (≤ 480px) ===================== */
+@media (max-width: 480px) {
+    .stats-row {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .main-content {
+        padding: 16px 12px;
+        padding-top: calc(56px + 16px);
+    }
+
+    .page-header h1 {
+        font-size: 1.1rem;
+    }
+
+    .stat-value {
+        font-size: 1.2rem;
+    }
+
+    .card-body {
+        padding: 12px;
+    }
+}
+
+/* ── Mobile sidebar brand fix ── */
+@media (max-width: 768px) {
+  /* Hide the desktop collapse toggle button inside sidebar on mobile */
+  .sidebar .sidebar-brand {
+    display: none;
+  }
+
+  /* Sidebar starts just below the mobile topbar */
+  .sidebar {
+    top: 56px;
+    height: calc(100% - 56px);
+  }
+}

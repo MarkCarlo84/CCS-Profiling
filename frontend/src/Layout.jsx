@@ -57,18 +57,36 @@ const navGroups = [
 
 export default function Layout({ children }) {
     const [collapsed, setCollapsed] = useState(false);
+    const [mobileOpen, setMobileOpen] = useState(false);
     const { user, logout } = useAuth();
     const { showLoader } = useLoading();
     const navigate = useNavigate();
 
     const handleLogout = async () => {
+        setMobileOpen(false);
         showLoader(() => navigate('/login'));
         await logout();
     };
 
     return (
         <div className="layout">
-            <aside className={`sidebar ${collapsed ? 'collapsed' : ''}`}>
+            {/* Mobile overlay */}
+            {mobileOpen && (
+                <div className="sidebar-overlay" onClick={() => setMobileOpen(false)} />
+            )}
+
+            {/* Mobile top bar */}
+            <header className="mobile-topbar">
+                <button className="mobile-menu-btn" onClick={() => setMobileOpen(o => !o)} aria-label="Toggle menu">
+                    <span /><span /><span />
+                </button>
+                <div className="mobile-brand">
+                    <img src={ccsLogo} alt="CCS Logo" />
+                    <span>CCS Profiling</span>
+                </div>
+            </header>
+
+            <aside className={`sidebar ${collapsed ? 'collapsed' : ''} ${mobileOpen ? 'mobile-open' : ''}`}>
                 {/* Brand */}
                 <div className="sidebar-brand" style={{
                     justifyContent: collapsed ? 'center' : 'flex-start',
@@ -119,6 +137,7 @@ export default function Layout({ children }) {
                                     end={to === '/'}
                                     className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
                                     title={collapsed ? label : undefined}
+                                    onClick={() => setMobileOpen(false)}
                                 >
                                     <Icon size={16} strokeWidth={2} style={{ flexShrink: 0 }} />
                                     <span>{label}</span>
@@ -132,11 +151,10 @@ export default function Layout({ children }) {
                 <div className="sidebar-footer" style={{ padding: collapsed ? '12px 8px' : '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {!collapsed && user && (
                         <div>
-                            <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#f8fafc', truncate: true }}>{user.name}</div>
+                            <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#f8fafc' }}>{user.name}</div>
                             <div style={{ fontSize: '.72rem', color: '#64748b' }}>{user.email}</div>
                         </div>
                     )}
-
                     <button
                         onClick={handleLogout}
                         title="Logout"
@@ -154,9 +172,9 @@ export default function Layout({ children }) {
                         {!collapsed && 'Logout'}
                     </button>
                 </div>
-            </aside >
+            </aside>
 
             <main className="main-content">{children}</main>
-        </div >
+        </div>
     );
 }
