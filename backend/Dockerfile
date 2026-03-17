@@ -1,9 +1,10 @@
 FROM php:8.2-cli
 
-# Install system dependencies
+# Install system dependencies + SQLite
 RUN apt-get update && apt-get install -y \
     git curl zip unzip libzip-dev libonig-dev libxml2-dev \
-    && docker-php-ext-install pdo pdo_mysql mbstring zip bcmath \
+    libsqlite3-dev sqlite3 \
+    && docker-php-ext-install pdo pdo_mysql pdo_sqlite mbstring zip bcmath \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 # Install Composer
@@ -18,13 +19,15 @@ RUN composer install --no-dev --optimize-autoloader --no-scripts
 # Copy app
 COPY . .
 
-# Laravel setup - skip config:cache so env vars are read at runtime
-RUN php artisan route:cache \
-    && php artisan view:cache
+# Create SQLite database file
+RUN mkdir -p database && touch database/database.sqlite
 
 # Storage permissions
-RUN chmod -R 775 storage bootstrap/cache
+RUN chmod -R 775 storage bootstrap/cache database
 
 EXPOSE 8000
 
-CMD php artisan config:clear && php artisan migrate --force && php artisan db:seed --force && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
+CMD php artisan config:clear \
+    && php artisan migrate --force \
+    && php artisan db:seed --force \
+    && php artisan serve --host=0.0.0.0 --port=${PORT:-8000}
