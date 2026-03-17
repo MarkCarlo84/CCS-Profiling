@@ -2,6 +2,21 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FacultyController;
+
+// ── Debug (remove after testing) ──────────────────────────────────────────────
+Route::get('/debug', function () {
+    try {
+        $userCount = \App\Models\User::count();
+        return response()->json([
+            'status' => 'ok',
+            'db' => 'connected',
+            'users' => $userCount,
+            'db_path' => config('database.connections.sqlite.database'),
+        ]);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
+    }
+});
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\GradeController;
