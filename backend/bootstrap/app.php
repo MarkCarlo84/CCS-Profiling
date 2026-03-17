@@ -13,10 +13,8 @@ return Application::configure(basePath: dirname(__DIR__))
     )
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->validateCsrfTokens(except: ['api/*']);
-        $middleware->api(append: [
-            \Illuminate\Http\Middleware\HandleCors::class,
-        ]);
-        // Allow React dev server
+        // CORS must be global so OPTIONS preflight requests are handled
+        $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
         $middleware->trustHosts(at: ['localhost', '127.0.0.1']);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
