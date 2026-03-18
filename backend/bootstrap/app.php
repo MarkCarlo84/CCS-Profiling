@@ -17,6 +17,8 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
         // Trust all proxies (needed for Render/Cloudflare)
         $middleware->trustProxies(at: '*');
+        // Role-based access control
+        $middleware->alias(['role' => \App\Http\Middleware\RoleMiddleware::class]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         //

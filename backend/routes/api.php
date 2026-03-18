@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FacultyController;
+use App\Http\Controllers\Api\TeacherController;
+use App\Http\Controllers\Api\StudentProfileController;
 
 // ── Debug (remove after testing) ──────────────────────────────────────────────
 Route::get('/debug', function () {
@@ -114,3 +116,34 @@ Route::prefix('reports')->group(function () {
 
 // ── Cross-Module Comprehensive Search ─────────────────────────────────────────
 Route::get('/search', [ReportController::class, 'search']);
+
+// ── Teacher POV (role: teacher) ───────────────────────────────────────────────
+Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(function () {
+    Route::get('profile',                                    [TeacherController::class, 'profile']);
+    Route::patch('profile',                                  [TeacherController::class, 'updateProfile']);
+    Route::get('students',                                   [TeacherController::class, 'students']);
+    Route::get('evaluate-student/{student}',                 [TeacherController::class, 'evaluateStudent']);
+    Route::post('record-violation/{student}',                [TeacherController::class, 'recordViolation']);
+    Route::patch('update-student/{student}',                 [TeacherController::class, 'updateStudentRecord']);
+    Route::post('create-report/{eligibilityCriterion}',      [TeacherController::class, 'createReport']);
+});
+
+// ── Student POV (role: student) ───────────────────────────────────────────────
+Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(function () {
+    Route::get('profile',                                    [StudentProfileController::class, 'profile']);
+    Route::patch('profile',                                  [StudentProfileController::class, 'updateProfile']);
+    Route::post('skills',                                    [StudentProfileController::class, 'addSkill']);
+    Route::post('affiliations',                              [StudentProfileController::class, 'addAffiliation']);
+    Route::get('academic-records',                           [StudentProfileController::class, 'academicRecords']);
+    Route::get('violations',                                 [StudentProfileController::class, 'violations']);
+    Route::get('non-academic-histories',                     [StudentProfileController::class, 'nonAcademicHistories']);
+});
+
+// ── Admin-only routes (role: admin) ───────────────────────────────────────────
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(function () {
+    // User management
+    Route::get('users',          [AuthController::class, 'listUsers']);
+    Route::post('users',         [AuthController::class, 'createUser']);
+    Route::patch('users/{user}', [AuthController::class, 'updateUser']);
+    Route::delete('users/{user}',[AuthController::class, 'deleteUser']);
+});

@@ -22,6 +22,9 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'role',
+        'faculty_id',
+        'student_id',
     ];
 
     /**
@@ -43,7 +46,21 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
+            'password'          => 'hashed',
         ];
+    }
+
+    public function isAdmin(): bool    { return $this->role === 'admin'; }
+    public function isTeacher(): bool  { return $this->role === 'teacher'; }
+    public function isStudent(): bool  { return $this->role === 'student'; }
+
+    public function faculty(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Faculty::class, 'faculty_id');
+    }
+
+    public function student(): \Illuminate\Database\Eloquent\Relations\BelongsTo
+    {
+        return $this->belongsTo(\App\Models\Student::class, 'student_id');
     }
 }

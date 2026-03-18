@@ -3,64 +3,114 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from './AuthContext';
 import {
     LayoutDashboard, BarChart3, Search,
-    GraduationCap, Users, School,
-    BookOpen, ShieldAlert, Network,
-    Zap, Trophy, ClipboardCheck, Award,
-    ChevronLeft, ChevronRight, LogOut,
-    Activity,
+    GraduationCap, Users, BookOpen,
+    ShieldAlert, Network, Zap, Trophy,
+    ClipboardCheck, Award, ChevronLeft,
+    ChevronRight, LogOut, Activity, UserCircle,
 } from 'lucide-react';
 import { useLoading } from './LoadingContext';
 import './Layout.css';
-
 import ccsLogo from './CCS Logo.png';
 
-const navGroups = [
-    {
-        label: 'Overview',
-        items: [
-            { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
-            { to: '/reports', label: 'Reports', Icon: BarChart3 },
-            { to: '/search', label: 'Search', Icon: Search },
-        ],
-    },
-    {
-        label: 'People',
-        items: [
-            { to: '/faculty-map', label: 'Faculty', Icon: Users },
-            { to: '/student-map', label: 'Students', Icon: GraduationCap },
-        ],
-    },
-    {
-        label: 'Academic',
-        items: [
-            { to: '/subjects', label: 'Subjects', Icon: BookOpen },
-            { to: '/academic-records', label: 'Academic Records', Icon: Award },
-        ],
-    },
-    {
-        label: 'Student Records',
-        items: [
-            { to: '/affiliations', label: 'Affiliations', Icon: Network },
-            { to: '/violations', label: 'Violations', Icon: ShieldAlert },
-            { to: '/skills', label: 'Skills', Icon: Zap },
-            { to: '/non-academic-histories', label: 'Non-Academic', Icon: Trophy },
-        ],
-    },
-    {
-        label: 'Admin',
-        items: [
-            { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck },
-            { to: '/operations', label: 'Operations Center', Icon: Activity }, // Added Operations Center
-        ],
-    },
-];
+const NAV_BY_ROLE = {
+    admin: [
+        {
+            label: 'Overview',
+            items: [
+                { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
+                { to: '/reports', label: 'Reports', Icon: BarChart3 },
+                { to: '/search', label: 'Search', Icon: Search },
+            ],
+        },
+        {
+            label: 'People',
+            items: [
+                { to: '/faculty-map', label: 'Faculty', Icon: Users },
+                { to: '/student-map', label: 'Students', Icon: GraduationCap },
+            ],
+        },
+        {
+            label: 'Academic',
+            items: [
+                { to: '/subjects', label: 'Subjects', Icon: BookOpen },
+                { to: '/academic-records', label: 'Academic Records', Icon: Award },
+            ],
+        },
+        {
+            label: 'Student Records',
+            items: [
+                { to: '/affiliations', label: 'Affiliations', Icon: Network },
+                { to: '/violations', label: 'Violations', Icon: ShieldAlert },
+                { to: '/skills', label: 'Skills', Icon: Zap },
+                { to: '/non-academic-histories', label: 'Non-Academic', Icon: Trophy },
+            ],
+        },
+        {
+            label: 'Admin',
+            items: [
+                { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck },
+                { to: '/operations', label: 'Operations Center', Icon: Activity },
+            ],
+        },
+    ],
+
+    teacher: [
+        {
+            label: 'Overview',
+            items: [
+                { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
+                { to: '/reports', label: 'Reports', Icon: BarChart3 },
+            ],
+        },
+        {
+            label: 'Students',
+            items: [
+                { to: '/student-map', label: 'Student Profiles', Icon: GraduationCap },
+                { to: '/academic-records', label: 'Academic Records', Icon: Award },
+                { to: '/violations', label: 'Violations', Icon: ShieldAlert },
+            ],
+        },
+        {
+            label: 'Student Records',
+            items: [
+                { to: '/affiliations', label: 'Affiliations', Icon: Network },
+                { to: '/skills', label: 'Skills', Icon: Zap },
+                { to: '/non-academic-histories', label: 'Non-Academic', Icon: Trophy },
+            ],
+        },
+        {
+            label: 'Tools',
+            items: [
+                { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck },
+            ],
+        },
+    ],
+
+    student: [
+        {
+            label: 'My Profile',
+            items: [
+                { to: '/', label: 'My Dashboard', Icon: LayoutDashboard },
+            ],
+        },
+    ],
+};
 
 export default function Layout({ children }) {
     const [collapsed, setCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
-    const { user, logout } = useAuth();
+    const { user, role, logout } = useAuth();
     const { showLoader } = useLoading();
     const navigate = useNavigate();
+
+    const navGroups = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.admin;
+
+    const ROLE_BADGE = {
+        admin:   { label: 'Admin',   color: '#f97316' },
+        teacher: { label: 'Teacher', color: '#8b5cf6' },
+        student: { label: 'Student', color: '#3b82f6' },
+    };
+    const badge = ROLE_BADGE[role] ?? ROLE_BADGE.admin;
 
     const handleLogout = async () => {
         setMobileOpen(false);
@@ -151,7 +201,15 @@ export default function Layout({ children }) {
                 <div className="sidebar-footer" style={{ padding: collapsed ? '12px 8px' : '12px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {!collapsed && user && (
                         <div>
-                            <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#f8fafc' }}>{user.name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 2 }}>
+                                <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#f8fafc' }}>{user.name}</div>
+                                <span style={{
+                                    fontSize: '.65rem', fontWeight: 700, padding: '1px 7px',
+                                    borderRadius: 999, background: `${badge.color}22`,
+                                    color: badge.color, border: `1px solid ${badge.color}44`,
+                                    textTransform: 'uppercase', letterSpacing: '.04em',
+                                }}>{badge.label}</span>
+                            </div>
                             <div style={{ fontSize: '.72rem', color: '#64748b' }}>{user.email}</div>
                         </div>
                     )}
