@@ -121,6 +121,27 @@ export const getReportStudents = (params = {}) => api.get('/reports/students', {
 export const getReportFaculties = (params = {}) => api.get('/reports/faculties', { params });
 export const getSummary = () => api.get('/reports/summary');
 
+// ── Teacher Reports (written) ─────────────────────────────────────────────────
+export const getTeacherReports = () => api.get('/teacher/reports');
+export const createTeacherReport = (data) => api.post('/teacher/reports', data);
+export const updateTeacherReport = (id, data) => api.patch(`/teacher/reports/${id}`, data);
+export const deleteTeacherReport = (id) => api.delete(`/teacher/reports/${id}`);
+
+// ── Admin: All Faculty Reports ────────────────────────────────────────────────
+export const getAllFacultyReports = () => api.get('/admin/faculty-reports');
+
+// ── Admin: Faculty Evaluations ────────────────────────────────────────────────
+export const getAdminFacultyEvaluations = () => api.get('/admin/faculty-evaluations');
+export const getAdminFacultyEvaluationSummary = () => api.get('/admin/faculty-evaluations/summary');
+
+// ── Student: Faculty Evaluations ──────────────────────────────────────────────
+export const getStudentEvaluations = () => api.get('/student/evaluations');
+export const getEvaluableFaculties = () => api.get('/student/evaluations/faculties');
+export const submitFacultyEvaluation = (data) => api.post('/student/evaluations', data);
+
+// ── Teacher: My Evaluations (anonymous) ───────────────────────────────────────
+export const getMyEvaluations = () => api.get('/teacher/my-evaluations');
+
 // ── Comprehensive Search ──────────────────────────────────────────────────────
 export const searchAll = async (query) => {
     const response = await api.get('/search', { params: { q: query } });

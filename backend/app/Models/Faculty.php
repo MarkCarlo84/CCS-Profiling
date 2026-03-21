@@ -12,6 +12,11 @@ class Faculty extends Model
         'position', 'email', 'contact_number',
     ];
 
+    public function evaluations(): HasMany
+    {
+        return $this->hasMany(FacultyEvaluation::class);
+    }
+
     public function getFullNameAttribute(): string
     {
         return "{$this->first_name} {$this->last_name}";

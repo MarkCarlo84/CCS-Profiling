@@ -20,6 +20,9 @@ import AcademicRecordsMap from './pages/AcademicRecordsMap';
 import NonAcademicHistoriesMap from './pages/NonAcademicHistoriesMap';
 import EligibilityCriteriaMap from './pages/EligibilityCriteriaMap';
 import OperationsCenter from './pages/OperationsCenter';
+import AdminFacultyReports from './pages/AdminFacultyReports';
+import AdminFacultyEvaluations from './pages/AdminFacultyEvaluations';
+import StudentEvaluateFaculty from './pages/StudentEvaluateFaculty';
 
 // Role dashboards
 import DashboardTeacher from './pages/DashboardTeacher';
@@ -28,6 +31,8 @@ import ChangePassword from './pages/ChangePassword';
 import StudentSkills from './pages/StudentSkills';
 import StudentAffiliations from './pages/StudentAffiliations';
 import StudentNonAcademicActivities from './pages/StudentNonAcademicActivities';
+import TeacherCreateReport from './pages/TeacherCreateReport';
+import TeacherMyEvaluations from './pages/TeacherMyEvaluations';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -60,6 +65,8 @@ function AppRoutes() {
                 <Route path="/non-academic-histories" element={<NonAcademicHistoriesMap />} />
                 <Route path="/eligibility-criteria" element={<EligibilityCriteriaMap />} />
                 <Route path="/operations" element={<OperationsCenter />} />
+                <Route path="/faculty-reports" element={<AdminFacultyReports />} />
+                <Route path="/faculty-evaluations" element={<AdminFacultyEvaluations />} />
               </>}
 
               {/* ── Teacher ── */}
@@ -73,6 +80,8 @@ function AppRoutes() {
                 <Route path="/non-academic-histories" element={<NonAcademicHistoriesMap />} />
                 <Route path="/eligibility-criteria" element={<EligibilityCriteriaMap />} />
                 <Route path="/reports" element={<Reports />} />
+                <Route path="/create-report" element={<TeacherCreateReport />} />
+                <Route path="/my-evaluations" element={<TeacherMyEvaluations />} />
               </>}
 
               {/* ── Student ── */}
@@ -81,6 +90,7 @@ function AppRoutes() {
                 <Route path="/my-skills" element={<StudentSkills />} />
                 <Route path="/my-affiliations" element={<StudentAffiliations />} />
                 <Route path="/my-activities" element={<StudentNonAcademicActivities />} />
+                <Route path="/evaluate-faculty" element={<StudentEvaluateFaculty />} />
                 <Route path="/change-password" element={<ChangePassword />} />
               </>}
 
