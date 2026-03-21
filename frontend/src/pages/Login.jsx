@@ -197,12 +197,12 @@ export default function Login() {
 
                         <form onSubmit={handleOtpSubmit} style={{ width: '100%' }}>
                             <div style={styles.otpInputWrap}>
-                                <ShieldCheck size={18} color={otpFocused ? '#f97316' : '#aaa'} style={{ flexShrink: 0 }} />
+                                <ShieldCheck size={18} color={otpFocused ? '#f97316' : '#aaa'} style={styles.otpIcon} />
                                 <input
                                     type="text"
                                     inputMode="numeric"
                                     maxLength={6}
-                                    placeholder="0  0  0  0  0  0"
+                                    placeholder="000000"
                                     value={otpValue}
                                     onChange={e => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
                                     onFocus={() => setOtpFocused(true)}
@@ -502,18 +502,25 @@ const styles = {
         margin: 0, fontSize: '0.78rem', color: '#a8a29e', textAlign: 'center',
     },
     otpInputWrap: {
-        display: 'flex', alignItems: 'center', gap: '0.6rem',
+        position: 'relative',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
         borderWidth: '2px', borderStyle: 'solid', borderColor: '#e7e5e4',
         borderRadius: '14px', padding: '0 1rem', height: '58px',
         marginTop: '0.75rem', width: '100%', boxSizing: 'border-box',
         transition: 'border-color 0.2s',
     },
+    otpIcon: {
+        position: 'absolute',
+        left: '1rem',
+        transition: 'color 0.2s',
+    },
     otpInput: {
-        flex: 1, border: 'none', outline: 'none',
+        width: '100%', border: 'none', outline: 'none',
         textAlign: 'center', fontSize: '1.8rem', fontWeight: 800,
-        letterSpacing: '10px', color: '#1c1917',
+        letterSpacing: '0.5rem', color: '#1c1917',
         fontFamily: "'Outfit', sans-serif",
         background: 'transparent',
+        paddingLeft: '0.25rem',
     },
     otpBackBtn: {
         background: 'none', border: 'none',
