@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 import { useAuth } from '../AuthContext';
-import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Mail, Lock } from 'lucide-react';
+import { Loader2, AlertCircle, CheckCircle, Eye, EyeOff, Mail, Lock, ShieldCheck } from 'lucide-react';
 import ccsLogo from '../CCS Logo.png';
 import universityBg from '../BCH.jpg';
 import acssLogo from '../ACSS.jpg';
 import sitesLogo from '../SITES.jpg';
 
 export default function Login() {
-    const { login } = useAuth();
+    const { login, confirmLoginOtp } = useAuth();
     const [form, setForm] = useState({ email: '', password: '' });
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -15,40 +15,63 @@ export default function Login() {
     const [showPw, setShowPw] = useState(false);
     const [focused, setFocused] = useState({ email: false, password: false });
 
+    // OTP verification state
+    const [otpStep, setOtpStep] = useState(false);
+    const [otpEmail, setOtpEmail] = useState('');
+    const [otpValue, setOtpValue] = useState('');
+    const [otpFocused, setOtpFocused] = useState(false);
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError('');
         setLoading(true);
         try {
-            await login(form.email, form.password);
-            setSuccess(true);
+            const result = await login(form.email, form.password);
+            if (result?.must_verify) {
+                // First login — show OTP modal
+                setOtpEmail(result.email);
+                setOtpStep(true);
+                setOtpValue('');
+            } else {
+                setSuccess(true);
+            }
         } catch (err) {
             const detail = err.response?.data?.errors?.email?.[0]
                 || err.response?.data?.message
-                || JSON.stringify(err.response?.data)
                 || 'Invalid email or password. Please try again.';
             setError(`${err.response?.status ?? ''} ${detail}`);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleOtpSubmit = async (e) => {
+        e.preventDefault();
+        setError('');
+        setLoading(true);
+        try {
+            await confirmLoginOtp(otpEmail, otpValue);
+            setSuccess(true);
+        } catch (err) {
+            setError(err.response?.data?.message || 'Invalid or expired OTP.');
+        } finally {
             setLoading(false);
         }
     };
 
     return (
         <div style={styles.container}>
-            {/* Background Image & Overlay */}
             <div style={styles.bgWrapper}>
                 <img src={universityBg} alt="Background" style={styles.bgImage} />
                 <div style={styles.bgOverlay} />
-                {/* Noise texture for depth */}
                 <div style={styles.bgNoise} />
             </div>
 
-            {/* Glass Login Card */}
             <div style={styles.contentWrapper}>
                 <div style={styles.glassCard} className="fade-in-up">
 
                     {/* --- HEADER --- */}
                     <div style={styles.header}>
-                        {/* Three logos row */}
                         <div style={styles.logoRow}>
                             <img src={acssLogo}  alt="ACSS"  style={styles.miniLogo} />
                             <div style={styles.mainLogoWrap}>
@@ -61,24 +84,19 @@ export default function Login() {
                         <div style={styles.divider} />
                     </div>
 
-                    {/* --- ERROR --- */}
-                    {error && (
+                    {/* --- ERROR (login form errors only) --- */}
+                    {error && !otpStep && (
                         <div style={styles.errorBox} className="shake-error" key={error}>
                             <AlertCircle size={16} />
                             <span>{error}</span>
                         </div>
                     )}
 
-                    {/* --- FORM --- */}
+                    {/* --- LOGIN FORM (always visible) --- */}
                     <form onSubmit={handleSubmit} style={styles.form}>
-
-                        {/* Email Field */}
                         <div style={styles.fieldWrap}>
                             <label style={styles.label} htmlFor="login-email">Email Address</label>
-                            <div style={{
-                                ...styles.inputWrap,
-                                ...(focused.email ? styles.inputWrapFocused : {})
-                            }}>
+                            <div style={{ ...styles.inputWrap, ...(focused.email ? styles.inputWrapFocused : {}) }}>
                                 <Mail size={18} color={focused.email ? '#ffffff' : 'rgba(255,255,255,0.5)'} style={styles.fieldIcon} />
                                 <input
                                     id="login-email"
@@ -96,16 +114,12 @@ export default function Login() {
                             </div>
                         </div>
 
-                        {/* Password Field */}
                         <div style={styles.fieldWrap}>
                             <div style={styles.labelRow}>
                                 <label style={styles.label} htmlFor="login-password">Password</label>
                                 <a href="#forgot" style={styles.forgotLink} tabIndex={-1}>Forgot password?</a>
                             </div>
-                            <div style={{
-                                ...styles.inputWrap,
-                                ...(focused.password ? styles.inputWrapFocused : {})
-                            }}>
+                            <div style={{ ...styles.inputWrap, ...(focused.password ? styles.inputWrapFocused : {}) }}>
                                 <Lock size={18} color={focused.password ? '#ffffff' : 'rgba(255,255,255,0.5)'} style={styles.fieldIcon} />
                                 <input
                                     id="login-password"
@@ -125,14 +139,10 @@ export default function Login() {
                             </div>
                         </div>
 
-                        {/* Submit Button */}
                         <button
                             type="submit"
                             disabled={loading || success}
-                            style={{
-                                ...styles.submitBtn,
-                                ...(success ? styles.submitBtnSuccess : {}),
-                            }}
+                            style={{ ...styles.submitBtn, ...(success ? styles.submitBtnSuccess : {}) }}
                             className="submit-btn"
                         >
                             {success ? (
@@ -145,12 +155,90 @@ export default function Login() {
                         </button>
                     </form>
 
-                    {/* Footer */}
                     <p style={styles.footer}>
                         CCS Profiling &copy; {new Date().getFullYear()} · University of Cabuyao
                     </p>
                 </div>
             </div>
+
+            {/* --- OTP MODAL OVERLAY --- */}
+            {otpStep && (
+                <div style={styles.otpOverlay} className="otp-overlay-in">
+                    <div style={styles.otpModal} className="otp-modal-in">
+                        {/* Close / back button */}
+                        <button
+                            type="button"
+                            onClick={() => { setOtpStep(false); setError(''); setOtpValue(''); }}
+                            style={styles.otpCloseBtn}
+                            aria-label="Close OTP modal"
+                        >
+                            ✕
+                        </button>
+
+                        {/* Icon */}
+                        <div style={styles.otpIconWrap}>
+                            <ShieldCheck size={32} color="#f97316" />
+                        </div>
+
+                        <h2 style={styles.otpTitle}>Verify Your Identity</h2>
+                        <p style={styles.otpDesc}>
+                            A 6-digit OTP was sent to<br />
+                            <strong style={{ color: '#f97316' }}>{otpEmail}</strong>
+                        </p>
+                        <p style={styles.otpHint}>Enter it below to complete sign in. Expires in 10 minutes.</p>
+
+                        {/* OTP error */}
+                        {error && otpStep && (
+                            <div style={{ ...styles.errorBox, marginBottom: 4 }} className="shake-error" key={error}>
+                                <AlertCircle size={15} />
+                                <span>{error}</span>
+                            </div>
+                        )}
+
+                        <form onSubmit={handleOtpSubmit} style={{ width: '100%' }}>
+                            <div style={styles.otpInputWrap}>
+                                <ShieldCheck size={18} color={otpFocused ? '#f97316' : '#aaa'} style={{ flexShrink: 0 }} />
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    maxLength={6}
+                                    placeholder="0  0  0  0  0  0"
+                                    value={otpValue}
+                                    onChange={e => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    onFocus={() => setOtpFocused(true)}
+                                    onBlur={() => setOtpFocused(false)}
+                                    required
+                                    autoFocus
+                                    style={styles.otpInput}
+                                />
+                            </div>
+
+                            <button
+                                type="submit"
+                                disabled={loading || success || otpValue.length !== 6}
+                                style={{ ...styles.submitBtn, marginTop: 20, ...(success ? styles.submitBtnSuccess : {}) }}
+                                className="submit-btn"
+                            >
+                                {success ? (
+                                    <><CheckCircle size={18} /> Verified!</>
+                                ) : loading ? (
+                                    <><Loader2 size={18} className="spin-icon" /> Verifying...</>
+                                ) : (
+                                    'Verify & Sign In'
+                                )}
+                            </button>
+                        </form>
+
+                        <button
+                            type="button"
+                            onClick={() => { setOtpStep(false); setError(''); setOtpValue(''); }}
+                            style={styles.otpBackBtn}
+                        >
+                            ← Back to login
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <style>{`
                 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap');
@@ -160,10 +248,14 @@ export default function Login() {
                 @keyframes spin        { to   { transform: rotate(360deg); } }
                 @keyframes fadeInUp    { from { opacity: 0; transform: translateY(36px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
                 @keyframes shakeError  { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+                @keyframes overlayIn   { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes modalIn     { from { opacity: 0; transform: translateY(24px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
 
-                .fade-in-up    { animation: fadeInUp   0.75s cubic-bezier(0.16,1,0.3,1) forwards; }
-                .shake-error   { animation: shakeError 0.45s ease-in-out; }
-                .spin-icon     { animation: spin 1s linear infinite; }
+                .fade-in-up      { animation: fadeInUp   0.75s cubic-bezier(0.16,1,0.3,1) forwards; }
+                .shake-error     { animation: shakeError 0.45s ease-in-out; }
+                .spin-icon       { animation: spin 1s linear infinite; }
+                .otp-overlay-in  { animation: overlayIn 0.25s ease forwards; }
+                .otp-modal-in    { animation: modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
 
                 /* Input inside the wrapper – no inline outline/ring conflict */
                 #login-email, #login-password {
@@ -325,16 +417,18 @@ const styles = {
     inputWrap: {
         display: 'flex', alignItems: 'center', gap: '0.6rem',
         background: 'rgba(255,255,255,0.05)',
-        border: '1.5px solid rgba(255,255,255,0.12)',
+        borderWidth: '1.5px',
+        borderStyle: 'solid',
+        borderColor: 'rgba(255,255,255,0.12)',
         borderRadius: '14px',
         padding: '0 1rem',
         height: '52px',
         transition: 'border-color 0.25s, background 0.25s, box-shadow 0.25s',
     },
     inputWrapFocused: {
-        background: 'rgba(249,115,22,0.08)', // Orange tint on focus
-        borderColor: '#f97316',              // Orange border on focus
-        boxShadow: '0 0 0 3px rgba(249,115,22,0.18)', // Orange glow ring
+        background: 'rgba(249,115,22,0.08)',
+        borderColor: '#f97316',
+        boxShadow: '0 0 0 3px rgba(249,115,22,0.18)',
     },
     fieldIcon: { flexShrink: 0, transition: 'color 0.25s' },
     input: { flex: 1, background: 'transparent', border: 'none', outline: 'none', color: '#fff', fontFamily: "'Outfit', sans-serif", fontSize: '1rem', minWidth: 0 },
@@ -365,5 +459,65 @@ const styles = {
         color: 'rgba(255,255,255,0.3)',
         marginTop: '-0.5rem',
         letterSpacing: '0.02em',
+    },
+
+    /* OTP Modal */
+    otpOverlay: {
+        position: 'fixed', inset: 0, zIndex: 50,
+        background: 'rgba(0,0,0,0.6)',
+        backdropFilter: 'blur(6px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        padding: '1.25rem',
+    },
+    otpModal: {
+        position: 'relative',
+        width: '100%', maxWidth: '400px',
+        background: '#ffffff',
+        borderRadius: '24px',
+        padding: '2.5rem 2rem 2rem',
+        boxShadow: '0 32px 80px rgba(0,0,0,0.35)',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.6rem',
+    },
+    otpCloseBtn: {
+        position: 'absolute', top: 14, right: 16,
+        background: 'rgba(0,0,0,0.06)', border: 'none', borderRadius: '50%',
+        width: 32, height: 32, cursor: 'pointer',
+        fontSize: '0.85rem', color: '#555',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+    },
+    otpIconWrap: {
+        width: 68, height: 68, borderRadius: '50%',
+        background: '#fff7ed',
+        border: '2px solid #fed7aa',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+        marginBottom: '0.4rem',
+    },
+    otpTitle: {
+        margin: 0, fontSize: '1.25rem', fontWeight: 800, color: '#1c1917', textAlign: 'center',
+    },
+    otpDesc: {
+        margin: 0, fontSize: '0.9rem', color: '#57534e', textAlign: 'center', lineHeight: 1.6,
+    },
+    otpHint: {
+        margin: 0, fontSize: '0.78rem', color: '#a8a29e', textAlign: 'center',
+    },
+    otpInputWrap: {
+        display: 'flex', alignItems: 'center', gap: '0.6rem',
+        borderWidth: '2px', borderStyle: 'solid', borderColor: '#e7e5e4',
+        borderRadius: '14px', padding: '0 1rem', height: '58px',
+        marginTop: '0.75rem', width: '100%', boxSizing: 'border-box',
+        transition: 'border-color 0.2s',
+    },
+    otpInput: {
+        flex: 1, border: 'none', outline: 'none',
+        textAlign: 'center', fontSize: '1.8rem', fontWeight: 800,
+        letterSpacing: '10px', color: '#1c1917',
+        fontFamily: "'Outfit', sans-serif",
+        background: 'transparent',
+    },
+    otpBackBtn: {
+        background: 'none', border: 'none',
+        color: '#a8a29e', fontSize: '0.82rem',
+        cursor: 'pointer', marginTop: '0.25rem',
     },
 };

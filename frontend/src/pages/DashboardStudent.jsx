@@ -4,7 +4,7 @@ import { useAuth } from '../AuthContext';
 import {
     GraduationCap, ShieldAlert, Zap, Trophy,
     Network, Award, TrendingUp, UserCircle,
-    BookOpen, CheckCircle,
+    BookOpen, CheckCircle, Pencil, X, Plus, Trash2,
 } from 'lucide-react';
 
 function InfoRow({ label, value }) {
@@ -14,15 +14,14 @@ function InfoRow({ label, value }) {
             <span style={{ fontSize: 13, color: '#18120e', fontWeight: 600 }}>{value ?? '—'}</span>
         </div>
     );
-}
-
-function SectionCard({ title, Icon, color, children }) {
+}function SectionCard({ title, Icon, color, action, children }) {
     return (
         <div className="card" style={{ marginBottom: 16 }}>
-            <div className="card-header">
-                <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h2 style={{ display: 'flex', alignItems: 'center', gap: 8, margin: 0 }}>
                     <Icon size={16} color={color} /> {title}
                 </h2>
+                {action}
             </div>
             <div className="card-body">{children}</div>
         </div>
@@ -31,16 +30,81 @@ function SectionCard({ title, Icon, color, children }) {
 
 export default function DashboardStudent() {
     const { user } = useAuth();
-    const [profile, setProfile] = useState(user?.profile ?? null);
-    const [loading, setLoading] = useState(!user?.profile);
+    const [profile, setProfile] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(false);
+    const [editForm, setEditForm] = useState({});
+    const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
+
+    // Skills state
+    const [skillModal, setSkillModal] = useState(false);
+    const [skillForm, setSkillForm] = useState({ skill_name: '', skill_level: 'beginner', certification: false });
+    const [skillSaving, setSkillSaving] = useState(false);
+    const [skillError, setSkillError] = useState('');
 
     useEffect(() => {
-        if (!profile) {
-            api.get('/student/profile')
-                .then(r => setProfile(r.data))
-                .finally(() => setLoading(false));
-        }
+        api.get('/student/profile')
+            .then(r => setProfile(r.data))
+            .finally(() => setLoading(false));
     }, []);
+
+    const openEdit = () => {
+        setEditForm({
+            guardian_name:  profile.guardian_name  ?? '',
+            address:        profile.address         ?? '',
+            contact_number: profile.contact_number  ?? '',
+            email:          profile.email           ?? '',
+        });
+        setSaveError('');
+        setEditing(true);
+    };
+
+    const handleEditSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setSaveError('');
+        try {
+            const res = await api.patch('/student/profile', editForm);
+            setProfile(p => ({ ...p, ...res.data }));
+            setEditing(false);
+        } catch (err) {
+            setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const openSkillModal = () => {
+        setSkillForm({ skill_name: '', skill_level: 'beginner', certification: false });
+        setSkillError('');
+        setSkillModal(true);
+    };
+
+    const handleAddSkill = async (e) => {
+        e.preventDefault();
+        setSkillSaving(true);
+        setSkillError('');
+        try {
+            const res = await api.post('/student/skills', skillForm);
+            setProfile(p => ({ ...p, skills: [...(p.skills ?? []), res.data] }));
+            setSkillModal(false);
+        } catch (err) {
+            setSkillError(err.response?.data?.message || 'Failed to add skill.');
+        } finally {
+            setSkillSaving(false);
+        }
+    };
+
+    const handleDeleteSkill = async (skillId) => {
+        if (!window.confirm('Remove this skill?')) return;
+        try {
+            await api.delete(`/student/skills/${skillId}`);
+            setProfile(p => ({ ...p, skills: p.skills.filter(s => s.id !== skillId) }));
+        } catch {
+            alert('Failed to remove skill.');
+        }
+    };
 
     if (loading) return <div className="loading"><div className="loading-spinner" /><span>Loading your profile…</span></div>;
 
@@ -118,7 +182,13 @@ export default function DashboardStudent() {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: 16, marginTop: 4 }}>
 
                 {/* Personal Info */}
-                <SectionCard title="Personal Information" Icon={UserCircle} color="#3b82f6">
+                <SectionCard title="Personal Information" Icon={UserCircle} color="#3b82f6"
+                    action={
+                        <button onClick={openEdit} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#3b82f6', background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 7, padding: '4px 10px', cursor: 'pointer' }}>
+                            <Pencil size={12} /> Edit
+                        </button>
+                    }
+                >
                     <InfoRow label="Student ID"    value={profile.student_id} />
                     <InfoRow label="Full Name"     value={`${profile.first_name} ${profile.middle_name ? profile.middle_name + ' ' : ''}${profile.last_name}`} />
                     <InfoRow label="Date of Birth" value={profile.date_of_birth} />
@@ -152,20 +222,25 @@ export default function DashboardStudent() {
                 </SectionCard>
 
                 {/* Skills */}
-                <SectionCard title="Skills" Icon={Zap} color="#7c3aed">
+                <SectionCard title="Skills" Icon={Zap} color="#7c3aed"
+                    action={
+                        <button onClick={openSkillModal} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#7c3aed', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 7, padding: '4px 10px', cursor: 'pointer' }}>
+                            <Plus size={12} /> Add Skill
+                        </button>
+                    }
+                >
                     {profile.skills?.length ? (
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                             {profile.skills.map(s => (
-                                <span key={s.id} style={{
-                                    padding: '4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600,
-                                    background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe',
-                                }}>
-                                    {s.skill_name} · {s.skill_level}
-                                    {s.certification && ' ✓'}
-                                </span>
+                                <div key={s.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 12px', borderRadius: 999, fontSize: 12, fontWeight: 600, background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe' }}>
+                                    <span>{s.skill_name} · {s.skill_level}{s.certification ? ' ✓' : ''}</span>
+                                    <button onClick={() => handleDeleteSkill(s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', color: '#a78bfa' }}>
+                                        <X size={12} />
+                                    </button>
+                                </div>
                             ))}
                         </div>
-                    ) : <p style={{ color: '#a8a29e', fontSize: 13 }}>No skills recorded yet.</p>}
+                    ) : <p style={{ color: '#a8a29e', fontSize: 13 }}>No skills recorded yet. Add your first skill!</p>}
                 </SectionCard>
 
                 {/* Affiliations */}
@@ -210,6 +285,109 @@ export default function DashboardStudent() {
                 </SectionCard>
 
             </div>
+
+            {/* Add Skill Modal */}
+            {skillModal && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                    <div style={{ background: '#fff', borderRadius: 20, padding: '28px 32px', width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1c1917' }}>Add Skill</h2>
+                            <button onClick={() => setSkillModal(false)} style={{ background: 'rgba(0,0,0,.05)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <X size={15} />
+                            </button>
+                        </div>
+                        <form onSubmit={handleAddSkill} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div>
+                                <label style={mLabel}>Skill Name</label>
+                                <input
+                                    required
+                                    value={skillForm.skill_name}
+                                    onChange={e => setSkillForm(f => ({ ...f, skill_name: e.target.value }))}
+                                    placeholder="e.g. Python, Photoshop, Public Speaking"
+                                    style={mInput}
+                                />
+                            </div>
+                            <div>
+                                <label style={mLabel}>Proficiency Level</label>
+                                <select value={skillForm.skill_level} onChange={e => setSkillForm(f => ({ ...f, skill_level: e.target.value }))} style={mInput}>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Intermediate</option>
+                                    <option value="advanced">Advanced</option>
+                                    <option value="expert">Expert</option>
+                                </select>
+                            </div>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '.875rem', color: '#44403c', cursor: 'pointer' }}>
+                                <input
+                                    type="checkbox"
+                                    checked={skillForm.certification}
+                                    onChange={e => setSkillForm(f => ({ ...f, certification: e.target.checked }))}
+                                />
+                                Has certification / credential
+                            </label>
+                            {skillError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{skillError}</p>}
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+                                <button type="button" className="btn btn-outline" onClick={() => setSkillModal(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={skillSaving}>
+                                    {skillSaving ? 'Adding...' : 'Add Skill'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Profile Modal */}
+            {editing && (
+                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+                    <div style={{ background: '#fff', borderRadius: 20, padding: '28px 32px', width: '100%', maxWidth: 480, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+                            <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1c1917' }}>Edit My Profile</h2>
+                            <button onClick={() => setEditing(false)} style={{ background: 'rgba(0,0,0,.05)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                                <X size={15} />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handleEditSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            {[
+                                { label: 'Email Address', field: 'email', type: 'email' },
+                                { label: 'Contact Number', field: 'contact_number', type: 'text' },
+                                { label: 'Guardian Name', field: 'guardian_name', type: 'text' },
+                            ].map(({ label, field, type }) => (
+                                <div key={field}>
+                                    <label style={{ display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5 }}>{label}</label>
+                                    <input
+                                        type={type}
+                                        value={editForm[field]}
+                                        onChange={e => setEditForm(f => ({ ...f, [field]: e.target.value }))}
+                                        style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917', boxSizing: 'border-box' }}
+                                    />
+                                </div>
+                            ))}
+                            <div>
+                                <label style={{ display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5 }}>Address</label>
+                                <textarea
+                                    value={editForm.address}
+                                    onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
+                                    rows={3}
+                                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917', boxSizing: 'border-box', resize: 'none' }}
+                                />
+                            </div>
+
+                            {saveError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{saveError}</p>}
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
+                                <button type="button" className="btn btn-outline" onClick={() => setEditing(false)}>Cancel</button>
+                                <button type="submit" className="btn btn-primary" disabled={saving}>
+                                    {saving ? 'Saving...' : 'Save Changes'}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
+
+const mLabel = { display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5 };
+const mInput = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917', boxSizing: 'border-box', fontFamily: "'Inter',sans-serif" };

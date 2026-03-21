@@ -5,6 +5,20 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 });
 
+// Always attach token from localStorage on every request
+api.interceptors.request.use((config) => {
+    const token = localStorage.getItem('ccs_token');
+    if (token) config.headers['Authorization'] = `Bearer ${token}`;
+    return config;
+});
+
+// ── OTP ───────────────────────────────────────────────────────────────────────
+export const sendOtp         = (action, email) => api.post('/otp/send', { action, email });
+export const verifyOtp       = (otp, action, email) => api.post('/otp/verify', { otp, action, email });
+export const verifyLoginOtp  = (email, otp) => api.post('/auth/verify-login-otp', { email, otp });
+export const changePassword  = (current_password, new_password, new_password_confirmation) =>
+    api.post('/auth/change-password', { current_password, new_password, new_password_confirmation });
+
 // ── Faculty ──────────────────────────────────────────────────────────────────
 export const getFaculties = (params = {}) => api.get('/faculties', { params });
 export const getFaculty = (id) => api.get(`/faculties/${id}`);

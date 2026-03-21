@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FacultyController;
+use App\Http\Controllers\Api\OtpController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\StudentProfileController;
 
@@ -42,9 +43,11 @@ use Illuminate\Support\Facades\Route;
 
 // ── Auth (public) ─────────────────────────────────────────────────────────────
 Route::post('/auth/login',  [AuthController::class, 'login']);
+Route::post('/auth/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me',      [AuthController::class, 'me']);
+    Route::post('/auth/change-password', [AuthController::class, 'changePassword']);
 });
 
 // Auth user (Sanctum)
@@ -53,7 +56,13 @@ Route::get('/user', function (Request $request) {
 })->middleware('auth:sanctum');
 
 // ── Faculty ──────────────────────────────────────────────────────────────────
-Route::apiResource('faculties', FacultyController::class);
+Route::get('faculties',          [FacultyController::class, 'index']);
+Route::get('faculties/{faculty}', [FacultyController::class, 'show']);
+Route::put('faculties/{faculty}', [FacultyController::class, 'update']);
+Route::patch('faculties/{faculty}', [FacultyController::class, 'update']);
+Route::delete('faculties/{faculty}', [FacultyController::class, 'destroy']);
+// store requires auth (OTP check inside)
+Route::middleware('auth:sanctum')->post('faculties', [FacultyController::class, 'store']);
 // Faculty operations from class diagram
 Route::post('faculties/{faculty}/create-report/{eligibilityCriterion}',   [FacultyController::class, 'createReport']);
 Route::get('faculties/{faculty}/evaluate-student/{student}',              [FacultyController::class, 'evaluateStudent']);
@@ -61,7 +70,13 @@ Route::post('faculties/{faculty}/record-violation/{student}',             [Facul
 Route::patch('faculties/{faculty}/update-student/{student}',              [FacultyController::class, 'updateStudentRecord']);
 
 // ── Students ──────────────────────────────────────────────────────────────────
-Route::apiResource('students', StudentController::class);
+Route::get('students',           [StudentController::class, 'index']);
+Route::get('students/{student}', [StudentController::class, 'show']);
+Route::put('students/{student}', [StudentController::class, 'update']);
+Route::patch('students/{student}', [StudentController::class, 'update']);
+Route::delete('students/{student}', [StudentController::class, 'destroy']);
+// store requires auth (OTP check inside)
+Route::middleware('auth:sanctum')->post('students', [StudentController::class, 'store']);
 // Student operations from class diagram
 Route::patch('students/{student}/update-profile',                         [StudentController::class, 'updateProfile']);
 Route::post('students/{student}/violations',                              [StudentController::class, 'addViolation']);
@@ -133,10 +148,14 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(fu
     Route::get('profile',                                    [StudentProfileController::class, 'profile']);
     Route::patch('profile',                                  [StudentProfileController::class, 'updateProfile']);
     Route::post('skills',                                    [StudentProfileController::class, 'addSkill']);
+    Route::delete('skills/{skill}',                          [StudentProfileController::class, 'deleteSkill']);
     Route::post('affiliations',                              [StudentProfileController::class, 'addAffiliation']);
+    Route::delete('affiliations/{affiliation}',              [StudentProfileController::class, 'deleteAffiliation']);
     Route::get('academic-records',                           [StudentProfileController::class, 'academicRecords']);
     Route::get('violations',                                 [StudentProfileController::class, 'violations']);
     Route::get('non-academic-histories',                     [StudentProfileController::class, 'nonAcademicHistories']);
+    Route::post('non-academic-histories',                    [StudentProfileController::class, 'addNonAcademicHistory']);
+    Route::delete('non-academic-histories/{nonAcademicHistory}', [StudentProfileController::class, 'deleteNonAcademicHistory']);
 });
 
 // ── Admin-only routes (role: admin) ───────────────────────────────────────────
@@ -146,4 +165,10 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('users',         [AuthController::class, 'createUser']);
     Route::patch('users/{user}', [AuthController::class, 'updateUser']);
     Route::delete('users/{user}',[AuthController::class, 'deleteUser']);
+});
+
+// ── OTP (admin only) ──────────────────────────────────────────────────────────
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('otp')->group(function () {
+    Route::post('send',   [OtpController::class, 'send']);
+    Route::post('verify', [OtpController::class, 'verify']);
 });

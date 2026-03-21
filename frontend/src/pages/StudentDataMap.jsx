@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { getStudents, createStudent, updateStudent, deleteStudent } from '../api';
-import { GraduationCap, Search, Printer, Building, Trophy, CheckCircle, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { GraduationCap, Search, Printer, Building, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
 
 function Badge({ value }) {
     return <span className={`badge badge-${value?.toLowerCase().replace(/\s/g, '_')}`}>{value?.replace(/_/g, ' ')}</span>;
@@ -35,9 +35,11 @@ export default function StudentDataMap() {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ status: 'active', search: '', gender: '' });
-    const [modal, setModal] = useState(null); // 'add' | { edit: student }
+    const [modal, setModal] = useState(null);
     const [form, setForm] = useState(emptyStudent);
     const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
+
     const printRef = useRef();
 
     const handlePrint = useReactToPrint({
@@ -76,12 +78,20 @@ export default function StudentDataMap() {
     const handleSave = async (e) => {
         e.preventDefault();
         setSaving(true);
+        setSaveError('');
         try {
-            if (modal === 'add') await createStudent(form);
-            else await updateStudent(modal.edit.id, form);
+            if (modal === 'add') {
+                await createStudent(form);
+            } else {
+                await updateStudent(modal.edit.id, form);
+            }
             setModal(null);
             loadData();
-        } finally { setSaving(false); }
+        } catch (err) {
+            setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleDelete = async (id) => {
@@ -286,8 +296,8 @@ export default function StudentDataMap() {
 
                         <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12 }}>
                             <div>
-                                <label style={lStyle}>Email</label>
-                                <input style={iStyle} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                                <label style={lStyle}>Email {modal === 'add' && <span style={{ color: '#dc2626' }}>*</span>}</label>
+                                <input style={iStyle} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required={modal === 'add'} />
                             </div>
                             <div>
                                 <label style={lStyle}>Contact No.</label>
@@ -300,9 +310,12 @@ export default function StudentDataMap() {
                             <textarea style={{ ...iStyle, height: 60, resize: 'none' }} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
                         </div>
 
+                        {saveError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{saveError}</p>}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
                             <button type="button" className="btn btn-outline" onClick={() => setModal(null)}>Cancel</button>
-                            <button type="submit" className="btn btn-primary" disabled={saving}><Check size={14} /> {saving ? 'Saving...' : 'Save Student'}</button>
+                            <button type="submit" className="btn btn-primary" disabled={saving}>
+                                <Check size={14} /> {saving ? 'Saving...' : modal === 'add' ? 'Add Student' : 'Save Student'}
+                            </button>
                         </div>
                     </form>
                 </Modal>

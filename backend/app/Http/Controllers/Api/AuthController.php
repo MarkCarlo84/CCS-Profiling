@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\OtpMail;
+use App\Models\OtpVerification;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -27,7 +29,84 @@ class AuthController extends Controller
             ]);
         }
 
-        // Delete old tokens and create a new one
+        // First-login: send OTP and require email verification
+        if ($user->must_verify_email) {
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            OtpVerification::where('email', $user->email)
+                ->where('action', 'first_login')
+                ->where('used', false)
+                ->delete();
+
+            OtpVerification::create([
+                'email'      => $user->email,
+                'otp'        => $otp,
+                'action'     => 'first_login',
+                'used'       => false,
+                'expires_at' => now()->addMinutes(10),
+            ]);
+
+            Mail::to($user->email)->send(new OtpMail($otp, 'first_login'));
+
+            return response()->json([
+                'must_verify' => true,
+                'email'       => $user->email,
+                'message'     => 'OTP sent to your email. Please verify to continue.',
+            ]);
+        }
+
+        // Normal login
+        $user->tokens()->delete();
+        $token = $user->createToken('ccs-profiling-token')->plainTextToken;
+
+        $profile = null;
+        if ($user->isTeacher() && $user->faculty_id) {
+            $profile = $user->faculty;
+        } elseif ($user->isStudent() && $user->student_id) {
+            $profile = $user->student;
+        }
+
+        return response()->json([
+            'token' => $token,
+            'user'  => [
+                'id'      => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'role'    => $user->role,
+                'profile' => $profile,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/auth/verify-login-otp
+     * Verify OTP on first login, then issue token.
+     */
+    public function verifyLoginOtp(Request $request): JsonResponse
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'otp'   => 'required|string|size:6',
+        ]);
+
+        $user = User::where('email', $request->email)->first();
+        if (!$user) {
+            return response()->json(['message' => 'User not found.'], 404);
+        }
+
+        $record = OtpVerification::where('email', $request->email)
+            ->where('action', 'first_login')
+            ->where('used', false)
+            ->latest()
+            ->first();
+
+        if (!$record || !$record->isValid($request->otp)) {
+            return response()->json(['message' => 'Invalid or expired OTP.'], 422);
+        }
+
+        $record->update(['used' => true]);
+        $user->update(['must_verify_email' => false]);
+
         $user->tokens()->delete();
         $token = $user->createToken('ccs-profiling-token')->plainTextToken;
 
@@ -54,6 +133,28 @@ class AuthController extends Controller
     {
         $request->user()->tokens()->delete();
         return response()->json(['message' => 'Logged out successfully.']);
+    }
+
+    /**
+     * POST /api/auth/change-password
+     * Authenticated user changes their own password.
+     */
+    public function changePassword(Request $request): JsonResponse
+    {
+        $request->validate([
+            'current_password' => 'required|string',
+            'new_password'     => 'required|string|min:8|confirmed',
+        ]);
+
+        $user = $request->user();
+
+        if (!Hash::check($request->current_password, $user->password)) {
+            return response()->json(['message' => 'Current password is incorrect.'], 422);
+        }
+
+        $user->update(['password' => Hash::make($request->new_password)]);
+
+        return response()->json(['message' => 'Password changed successfully.']);
     }
 
     public function me(Request $request): JsonResponse

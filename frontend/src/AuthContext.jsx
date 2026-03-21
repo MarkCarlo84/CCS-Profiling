@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import api from './api';
+import api, { verifyLoginOtp as apiVerifyLoginOtp } from './api';
 
 const AuthContext = createContext(null);
 
@@ -7,11 +7,9 @@ export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
 
-    // Restore session on page load
     useEffect(() => {
         const token = localStorage.getItem('ccs_token');
         if (token) {
-            api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
             api.get('/auth/me')
                 .then(r => setUser(r.data))
                 .catch(() => { localStorage.removeItem('ccs_token'); })
@@ -23,9 +21,18 @@ export function AuthProvider({ children }) {
 
     const login = useCallback(async (email, password) => {
         const res = await api.post('/auth/login', { email, password });
+        if (res.data.must_verify) return res.data;
+
         const { token, user: u } = res.data;
         localStorage.setItem('ccs_token', token);
-        api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        setUser(u);
+        return u;
+    }, []);
+
+    const confirmLoginOtp = useCallback(async (email, otp) => {
+        const res = await apiVerifyLoginOtp(email, otp);
+        const { token, user: u } = res.data;
+        localStorage.setItem('ccs_token', token);
         setUser(u);
         return u;
     }, []);
@@ -33,14 +40,13 @@ export function AuthProvider({ children }) {
     const logout = useCallback(async () => {
         await api.post('/auth/logout').catch(() => { });
         localStorage.removeItem('ccs_token');
-        delete api.defaults.headers.common['Authorization'];
         setUser(null);
     }, []);
 
     const role = user?.role ?? null;
 
     return (
-        <AuthContext.Provider value={{ user, role, loading, login, logout }}>
+        <AuthContext.Provider value={{ user, role, loading, login, confirmLoginOtp, logout }}>
             {children}
         </AuthContext.Provider>
     );
