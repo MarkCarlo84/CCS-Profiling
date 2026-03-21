@@ -2,8 +2,10 @@
 
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FacultyController;
+use App\Http\Controllers\Api\FacultyEvaluationController;
 use App\Http\Controllers\Api\OtpController;
 use App\Http\Controllers\Api\TeacherController;
+use App\Http\Controllers\Api\TeacherReportController;
 use App\Http\Controllers\Api\StudentProfileController;
 
 // ── Debug (remove after testing) ──────────────────────────────────────────────
@@ -141,6 +143,14 @@ Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(fu
     Route::post('record-violation/{student}',                [TeacherController::class, 'recordViolation']);
     Route::patch('update-student/{student}',                 [TeacherController::class, 'updateStudentRecord']);
     Route::post('create-report/{eligibilityCriterion}',      [TeacherController::class, 'createReport']);
+    // Teacher written reports
+    Route::get('reports',                                    [TeacherReportController::class, 'index']);
+    Route::post('reports',                                   [TeacherReportController::class, 'store']);
+    Route::get('reports/{report}',                           [TeacherReportController::class, 'show']);
+    Route::patch('reports/{report}',                         [TeacherReportController::class, 'update']);
+    Route::delete('reports/{report}',                        [TeacherReportController::class, 'destroy']);
+    // My evaluations (anonymous)
+    Route::get('my-evaluations',                             [FacultyEvaluationController::class, 'teacherIndex']);
 });
 
 // ── Student POV (role: student) ───────────────────────────────────────────────
@@ -156,6 +166,10 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(fu
     Route::get('non-academic-histories',                     [StudentProfileController::class, 'nonAcademicHistories']);
     Route::post('non-academic-histories',                    [StudentProfileController::class, 'addNonAcademicHistory']);
     Route::delete('non-academic-histories/{nonAcademicHistory}', [StudentProfileController::class, 'deleteNonAcademicHistory']);
+    // Faculty evaluations
+    Route::get('evaluations',                                [FacultyEvaluationController::class, 'index']);
+    Route::get('evaluations/faculties',                      [FacultyEvaluationController::class, 'faculties']);
+    Route::post('evaluations',                               [FacultyEvaluationController::class, 'store']);
 });
 
 // ── Admin-only routes (role: admin) ───────────────────────────────────────────
@@ -165,6 +179,11 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('users',         [AuthController::class, 'createUser']);
     Route::patch('users/{user}', [AuthController::class, 'updateUser']);
     Route::delete('users/{user}',[AuthController::class, 'deleteUser']);
+    // Faculty reports (read-only)
+    Route::get('faculty-reports',                            [TeacherReportController::class, 'adminIndex']);
+    // Faculty evaluation summary
+    Route::get('faculty-evaluations',                        [FacultyEvaluationController::class, 'adminIndex']);
+    Route::get('faculty-evaluations/summary',                [FacultyEvaluationController::class, 'adminSummary']);
 });
 
 // ── OTP (admin only) ──────────────────────────────────────────────────────────

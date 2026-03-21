@@ -34,3 +34,19 @@ services:
         value: error
       - key: FRONTEND_URL
         value: https://YOUR-VERCEL-APP.vercel.app
+      - key: MAIL_MAILER
+        value: smtp
+      - key: MAIL_SCHEME
+        value: ""
+      - key: MAIL_HOST
+        value: smtp-relay.brevo.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_FROM_ADDRESS
+        sync: false
+      - key: MAIL_FROM_NAME
+        value: CCS Profiling System
