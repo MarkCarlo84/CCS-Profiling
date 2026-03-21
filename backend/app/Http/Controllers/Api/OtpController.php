@@ -41,9 +41,34 @@ class OtpController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        Mail::to($targetEmail)->send(new OtpMail($otp, $request->action));
+        try {
+            \Log::info('Attempting to send OTP email', [
+                'to' => $targetEmail,
+                'action' => $request->action,
+                'mail_config' => [
+                    'mailer' => config('mail.default'),
+                    'host' => config('mail.mailers.smtp.host'),
+                    'port' => config('mail.mailers.smtp.port'),
+                    'from' => config('mail.from.address'),
+                ]
+            ]);
 
-        return response()->json(['message' => 'OTP sent to ' . $targetEmail]);
+            Mail::to($targetEmail)->send(new OtpMail($otp, $request->action));
+
+            \Log::info('OTP email sent successfully', ['to' => $targetEmail]);
+
+            return response()->json(['message' => 'OTP sent to ' . $targetEmail]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send OTP email', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+
+            return response()->json([
+                'message' => 'Failed to send OTP email',
+                'error' => $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
