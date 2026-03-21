@@ -31,7 +31,7 @@ services:
       - key: LOG_CHANNEL
         value: stderr
       - key: LOG_LEVEL
-        value: error
+        value: info
       - key: FRONTEND_URL
         value: https://YOUR-VERCEL-APP.vercel.app
       - key: MAIL_MAILER
