@@ -25,6 +25,7 @@ class User extends Authenticatable
         'role',
         'faculty_id',
         'student_id',
+        'must_verify_email',
     ];
 
     /**

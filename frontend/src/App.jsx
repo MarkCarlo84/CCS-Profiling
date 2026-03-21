@@ -24,6 +24,10 @@ import OperationsCenter from './pages/OperationsCenter';
 // Role dashboards
 import DashboardTeacher from './pages/DashboardTeacher';
 import DashboardStudent from './pages/DashboardStudent';
+import ChangePassword from './pages/ChangePassword';
+import StudentSkills from './pages/StudentSkills';
+import StudentAffiliations from './pages/StudentAffiliations';
+import StudentNonAcademicActivities from './pages/StudentNonAcademicActivities';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -74,6 +78,10 @@ function AppRoutes() {
               {/* ── Student ── */}
               {role === 'student' && <>
                 <Route path="/" element={<DashboardStudent />} />
+                <Route path="/my-skills" element={<StudentSkills />} />
+                <Route path="/my-affiliations" element={<StudentAffiliations />} />
+                <Route path="/my-activities" element={<StudentNonAcademicActivities />} />
+                <Route path="/change-password" element={<ChangePassword />} />
               </>}
 
               <Route path="*" element={<Navigate to="/" replace />} />

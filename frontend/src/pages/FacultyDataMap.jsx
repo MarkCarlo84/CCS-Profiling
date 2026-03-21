@@ -26,6 +26,8 @@ export default function FacultyDataMap() {
     const [modal, setModal] = useState(null); // 'add' | { edit: faculty }
     const [form, setForm] = useState(emptyFaculty);
     const [saving, setSaving] = useState(false);
+    const [saveError, setSaveError] = useState('');
+
     const printRef = useRef();
 
     const handlePrint = useReactToPrint({
@@ -56,15 +58,24 @@ export default function FacultyDataMap() {
         setModal({ edit: f });
     };
 
+    // Step 1: on form submit — save directly
     const handleSave = async (e) => {
         e.preventDefault();
         setSaving(true);
+        setSaveError('');
         try {
-            if (modal === 'add') await createFaculty(form);
-            else await updateFaculty(modal.edit.id, form);
+            if (modal === 'add') {
+                await createFaculty(form);
+            } else {
+                await updateFaculty(modal.edit.id, form);
+            }
             setModal(null);
             loadData();
-        } finally { setSaving(false); }
+        } catch (err) {
+            setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
+        } finally {
+            setSaving(false);
+        }
     };
 
     const handleDelete = async (id) => {
@@ -174,6 +185,7 @@ export default function FacultyDataMap() {
                 )}
             </div>
 
+            {/* Add / Edit Faculty Modal */}
             {modal && (
                 <Modal title={modal === 'add' ? 'Add New Faculty' : 'Edit Faculty'} onClose={() => setModal(null)}>
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -207,17 +219,20 @@ export default function FacultyDataMap() {
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                             <div>
-                                <label style={lStyle}>Email Address</label>
-                                <input style={iStyle} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} />
+                                <label style={lStyle}>Email Address <span style={{ color: '#dc2626' }}>*</span></label>
+                                <input style={iStyle} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />
                             </div>
                             <div>
                                 <label style={lStyle}>Contact Number</label>
                                 <input style={iStyle} value={form.contact_number} onChange={e => setForm({ ...form, contact_number: e.target.value })} />
                             </div>
                         </div>
+                        {saveError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{saveError}</p>}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 8 }}>
                             <button type="button" className="btn btn-outline" onClick={() => setModal(null)}>Cancel</button>
-                            <button type="submit" className="btn btn-primary" disabled={saving}><Check size={14} /> {saving ? 'Saving...' : 'Save Faculty'}</button>
+                            <button type="submit" className="btn btn-primary" disabled={saving}>
+                                <Check size={14} /> {saving ? 'Saving...' : modal === 'add' ? 'Add Faculty' : 'Save Faculty'}
+                            </button>
                         </div>
                     </form>
                 </Modal>

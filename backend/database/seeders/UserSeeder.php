@@ -14,7 +14,7 @@ class UserSeeder extends Seeder
     {
         // ── Admin ─────────────────────────────────────────────────────────────
         User::firstOrCreate(
-            ['email' => 'admin@ccs.edu.ph'],
+            ['email' => env('ADMIN_EMAIL', 'admin@ccs.edu.ph')],
             [
                 'name'     => 'CCS Admin',
                 'password' => Hash::make('admin1234'),

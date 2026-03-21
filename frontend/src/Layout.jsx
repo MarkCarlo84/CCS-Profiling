@@ -6,7 +6,7 @@ import {
     GraduationCap, Users, BookOpen,
     ShieldAlert, Network, Zap, Trophy,
     ClipboardCheck, Award, ChevronLeft,
-    ChevronRight, LogOut, Activity, UserCircle,
+    ChevronRight, LogOut, Activity, UserCircle, KeyRound,
 } from 'lucide-react';
 import { useLoading } from './LoadingContext';
 import './Layout.css';
@@ -91,6 +91,10 @@ const NAV_BY_ROLE = {
             label: 'My Profile',
             items: [
                 { to: '/', label: 'My Dashboard', Icon: LayoutDashboard },
+                { to: '/my-skills', label: 'My Skills', Icon: Zap },
+                { to: '/my-affiliations', label: 'My Affiliations', Icon: Network },
+                { to: '/my-activities', label: 'My Activities', Icon: Trophy },
+                { to: '/change-password', label: 'Change Password', Icon: KeyRound },
             ],
         },
     ],

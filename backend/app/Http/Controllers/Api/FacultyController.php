@@ -3,11 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeMail;
 use App\Models\Faculty;
 use App\Models\Student;
 use App\Models\EligibilityCriteria;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class FacultyController extends Controller
 {
@@ -38,10 +42,40 @@ class FacultyController extends Controller
             'last_name'      => 'required|string|max:100',
             'department'     => 'nullable|string|max:100',
             'position'       => 'required|string|max:100',
-            'email'          => 'nullable|email',
+            'email'          => 'required|email|unique:users,email',
             'contact_number' => 'nullable|string|max:30',
         ]);
-        return response()->json(Faculty::create($data), 201);
+
+        $faculty = Faculty::create($data);
+
+        // Auto-create user account with default password
+        $defaultPassword = 'Faculty1234';
+        $user = User::create([
+            'name'               => $faculty->first_name . ' ' . $faculty->last_name,
+            'email'              => $faculty->email,
+            'password'           => Hash::make($defaultPassword),
+            'role'               => 'teacher',
+            'faculty_id'         => $faculty->id,
+            'must_verify_email'  => true,
+        ]);
+
+        // Send welcome email with credentials
+        Mail::to($faculty->email)->send(new WelcomeMail(
+            $user->name,
+            $faculty->email,
+            $defaultPassword,
+            'faculty'
+        ));
+
+        return response()->json([
+            'faculty' => $faculty,
+            'user'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ],
+        ], 201);
     }
 
     public function show(Faculty $faculty): JsonResponse

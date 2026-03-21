@@ -3,13 +3,17 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Mail\WelcomeMail;
 use App\Models\Student;
+use App\Models\User;
 use App\Models\Violation;
 use App\Models\Affiliation;
 use App\Models\Skill;
 use App\Models\AcademicRecord;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Mail;
 
 class StudentController extends Controller
 {
@@ -48,12 +52,41 @@ class StudentController extends Controller
             'gender'         => 'nullable|in:Male,Female,Other',
             'address'        => 'nullable|string',
             'contact_number' => 'nullable|string|max:30',
-            'email'          => 'nullable|email',
+            'email'          => 'required|email|unique:users,email',
             'enrollment_date'=> 'nullable|date',
             'status'         => 'in:active,inactive,graduated,dropped',
         ]);
+
         $student = Student::create($data);
-        return response()->json($student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']), 201);
+
+        // Auto-create user account with default password
+        $defaultPassword = 'Student1234';
+        $user = User::create([
+            'name'               => $student->first_name . ' ' . $student->last_name,
+            'email'              => $student->email,
+            'password'           => Hash::make($defaultPassword),
+            'role'               => 'student',
+            'student_id'         => $student->id,
+            'must_verify_email'  => true,
+        ]);
+
+        // Send welcome email with credentials
+        Mail::to($student->email)->send(new WelcomeMail(
+            $user->name,
+            $student->email,
+            $defaultPassword,
+            'student'
+        ));
+
+        return response()->json([
+            'student' => $student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']),
+            'user'    => [
+                'id'    => $user->id,
+                'name'  => $user->name,
+                'email' => $user->email,
+                'role'  => $user->role,
+            ],
+        ], 201);
     }
 
     public function show(Student $student): JsonResponse
