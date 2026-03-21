@@ -7,7 +7,6 @@ use App\Mail\OtpMail;
 use App\Models\OtpVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class OtpController extends Controller
@@ -42,34 +41,9 @@ class OtpController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        try {
-            Log::info('Attempting to send OTP email', [
-                'to' => $targetEmail,
-                'action' => $request->action,
-                'mail_config' => [
-                    'mailer' => config('mail.default'),
-                    'host' => config('mail.mailers.smtp.host'),
-                    'port' => config('mail.mailers.smtp.port'),
-                    'from' => config('mail.from.address'),
-                ]
-            ]);
+        Mail::to($targetEmail)->send(new OtpMail($otp, $request->action));
 
-            Mail::to($targetEmail)->send(new OtpMail($otp, $request->action));
-
-            Log::info('OTP email sent successfully', ['to' => $targetEmail]);
-
-            return response()->json(['message' => 'OTP sent to ' . $targetEmail]);
-        } catch (\Exception $e) {
-            Log::error('Failed to send OTP email', [
-                'error' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
-
-            return response()->json([
-                'message' => 'Failed to send OTP email',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return response()->json(['message' => 'OTP sent to ' . $targetEmail]);
     }
 
     /**

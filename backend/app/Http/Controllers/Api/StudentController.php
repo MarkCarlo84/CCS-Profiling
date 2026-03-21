@@ -70,21 +70,13 @@ class StudentController extends Controller
             'must_verify_email'  => true,
         ]);
 
-        // Send welcome email with credentials (non-blocking)
-        try {
-            Mail::to($student->email)->send(new WelcomeMail(
-                $user->name,
-                $student->email,
-                $defaultPassword,
-                'student'
-            ));
-        } catch (\Exception $e) {
-            \Log::warning('Failed to send welcome email to student', [
-                'email' => $student->email,
-                'error' => $e->getMessage()
-            ]);
-            // Continue anyway - user account is created
-        }
+        // Send welcome email with credentials
+        Mail::to($student->email)->send(new WelcomeMail(
+            $user->name,
+            $student->email,
+            $defaultPassword,
+            'student'
+        ));
 
         return response()->json([
             'student' => $student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']),
