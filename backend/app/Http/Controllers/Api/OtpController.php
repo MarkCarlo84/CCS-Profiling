@@ -7,6 +7,7 @@ use App\Mail\OtpMail;
 use App\Models\OtpVerification;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 
 class OtpController extends Controller
@@ -42,7 +43,7 @@ class OtpController extends Controller
         ]);
 
         try {
-            \Log::info('Attempting to send OTP email', [
+            Log::info('Attempting to send OTP email', [
                 'to' => $targetEmail,
                 'action' => $request->action,
                 'mail_config' => [
@@ -55,11 +56,11 @@ class OtpController extends Controller
 
             Mail::to($targetEmail)->send(new OtpMail($otp, $request->action));
 
-            \Log::info('OTP email sent successfully', ['to' => $targetEmail]);
+            Log::info('OTP email sent successfully', ['to' => $targetEmail]);
 
             return response()->json(['message' => 'OTP sent to ' . $targetEmail]);
         } catch (\Exception $e) {
-            \Log::error('Failed to send OTP email', [
+            Log::error('Failed to send OTP email', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString()
             ]);
