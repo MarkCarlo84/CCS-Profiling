@@ -36,8 +36,6 @@ services:
         value: https://YOUR-VERCEL-APP.vercel.app
       - key: MAIL_MAILER
         value: smtp
-      - key: MAIL_SCHEME
-        value: smtp
       - key: MAIL_HOST
         value: smtp-relay.brevo.com
       - key: MAIL_PORT
