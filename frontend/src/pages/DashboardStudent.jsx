@@ -1,11 +1,21 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
 import {
     GraduationCap, ShieldAlert, Zap, Trophy,
     Network, Award, TrendingUp, UserCircle,
     BookOpen, CheckCircle, Pencil, X, Plus, Trash2,
+    PartyPopper, CalendarRange, MapPin,
 } from 'lucide-react';
+
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+const statusCfg = {
+    upcoming:  { bg: '#fff7ed', fg: '#c2410c', border: '#fed7aa' },
+    ongoing:   { bg: '#f0fdf4', fg: '#15803d', border: '#bbf7d0' },
+    completed: { bg: '#f5f5f4', fg: '#78716c', border: '#e7e5e4' },
+    cancelled: { bg: '#fef2f2', fg: '#b91c1c', border: '#fecaca' },
+};
 
 function InfoRow({ label, value }) {
     return (
@@ -32,6 +42,7 @@ export default function DashboardStudent() {
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [events, setEvents] = useState([]);
     const [editing, setEditing] = useState(false);
     const [editForm, setEditForm] = useState({});
     const [saving, setSaving] = useState(false);
@@ -47,6 +58,9 @@ export default function DashboardStudent() {
         api.get('/student/profile')
             .then(r => setProfile(r.data))
             .finally(() => setLoading(false));
+        api.get('/student/events', { params: { status: 'upcoming' } })
+            .then(r => setEvents(r.data.slice(0, 4)))
+            .catch(() => {});
     }, []);
 
     const openEdit = () => {
@@ -282,6 +296,34 @@ export default function DashboardStudent() {
                             {v.action_taken && <div style={{ fontSize: 12, color: '#a8a29e' }}>Action: {v.action_taken}</div>}
                         </div>
                     )) : <p style={{ color: '#a8a29e', fontSize: 13 }}>No violations on record.</p>}
+                </SectionCard>
+
+                {/* Upcoming Events */}
+                <SectionCard title="Upcoming Events" Icon={PartyPopper} color="#f97316"
+                    action={
+                        <Link to="/events" style={{ fontSize: 12, fontWeight: 600, color: '#f97316', textDecoration: 'none' }}>View all →</Link>
+                    }
+                >
+                    {events.length === 0 ? (
+                        <p style={{ color: '#a8a29e', fontSize: 13 }}>No upcoming events.</p>
+                    ) : events.map((ev, i) => {
+                        const sc = statusCfg[ev.status] ?? statusCfg.upcoming;
+                        return (
+                            <div key={ev.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: i < events.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
+                                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+                                    <PartyPopper size={16} color="#f97316" strokeWidth={1.8} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', marginBottom: 3 }}>{ev.title}</div>
+                                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#78716c', flexWrap: 'wrap', alignItems: 'center' }}>
+                                        <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><CalendarRange size={11} color="#f97316" />{fmtDate(ev.date_start)}</span>
+                                        {ev.venue && <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><MapPin size={11} color="#a8a29e" />{ev.venue}</span>}
+                                        <span style={{ background: sc.bg, color: sc.fg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{ev.status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </SectionCard>
 
             </div>

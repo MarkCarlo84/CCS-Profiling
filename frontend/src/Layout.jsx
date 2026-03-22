@@ -6,7 +6,7 @@ import {
     GraduationCap, Users, BookOpen,
     ShieldAlert, Network, Zap, Trophy,
     ClipboardCheck, Award, ChevronLeft,
-    ChevronRight, LogOut, Activity, UserCircle, KeyRound, FileText, Star,
+    ChevronRight, LogOut, Activity, UserCircle, KeyRound, FileText, Star, PartyPopper,
 } from 'lucide-react';
 import { useLoading } from './LoadingContext';
 import './Layout.css';
@@ -51,7 +51,7 @@ const NAV_BY_ROLE = {
                 { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck },
                 { to: '/faculty-reports', label: 'Faculty Reports', Icon: FileText },
                 { to: '/faculty-evaluations', label: 'Faculty Evaluations', Icon: Star },
-                { to: '/operations', label: 'Operations Center', Icon: Activity },
+                { to: '/events', label: 'Events', Icon: PartyPopper },
             ],
         },
     ],
@@ -86,6 +86,7 @@ const NAV_BY_ROLE = {
                 { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck },
                 { to: '/my-evaluations', label: 'My Evaluations', Icon: Star },
                 { to: '/create-report', label: 'Create Report', Icon: FileText },
+                { to: '/events', label: 'Events', Icon: PartyPopper },
             ],
         },
     ],
@@ -99,6 +100,7 @@ const NAV_BY_ROLE = {
                 { to: '/my-affiliations', label: 'My Affiliations', Icon: Network },
                 { to: '/my-activities', label: 'My Activities', Icon: Trophy },
                 { to: '/evaluate-faculty', label: 'Evaluate Faculty', Icon: Star },
+                { to: '/events', label: 'Events', Icon: PartyPopper },
                 { to: '/change-password', label: 'Change Password', Icon: KeyRound },
             ],
         },

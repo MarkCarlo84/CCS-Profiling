@@ -19,9 +19,10 @@ import SkillsMap from './pages/SkillsMap';
 import AcademicRecordsMap from './pages/AcademicRecordsMap';
 import NonAcademicHistoriesMap from './pages/NonAcademicHistoriesMap';
 import EligibilityCriteriaMap from './pages/EligibilityCriteriaMap';
-import OperationsCenter from './pages/OperationsCenter';
 import AdminFacultyReports from './pages/AdminFacultyReports';
 import AdminFacultyEvaluations from './pages/AdminFacultyEvaluations';
+import AdminEvents from './pages/AdminEvents';
+import Events from './pages/Events';
 import StudentEvaluateFaculty from './pages/StudentEvaluateFaculty';
 
 // Role dashboards
@@ -64,9 +65,9 @@ function AppRoutes() {
                 <Route path="/academic-records" element={<AcademicRecordsMap />} />
                 <Route path="/non-academic-histories" element={<NonAcademicHistoriesMap />} />
                 <Route path="/eligibility-criteria" element={<EligibilityCriteriaMap />} />
-                <Route path="/operations" element={<OperationsCenter />} />
                 <Route path="/faculty-reports" element={<AdminFacultyReports />} />
                 <Route path="/faculty-evaluations" element={<AdminFacultyEvaluations />} />
+                <Route path="/events" element={<AdminEvents />} />
               </>}
 
               {/* ── Teacher ── */}
@@ -82,6 +83,7 @@ function AppRoutes() {
                 <Route path="/reports" element={<Reports />} />
                 <Route path="/create-report" element={<TeacherCreateReport />} />
                 <Route path="/my-evaluations" element={<TeacherMyEvaluations />} />
+                <Route path="/events" element={<Events />} />
               </>}
 
               {/* ── Student ── */}
@@ -91,6 +93,7 @@ function AppRoutes() {
                 <Route path="/my-affiliations" element={<StudentAffiliations />} />
                 <Route path="/my-activities" element={<StudentNonAcademicActivities />} />
                 <Route path="/evaluate-faculty" element={<StudentEvaluateFaculty />} />
+                <Route path="/events" element={<Events />} />
                 <Route path="/change-password" element={<ChangePassword />} />
               </>}
 

@@ -26,7 +26,6 @@ const QUICK_ACTIONS = [
     { to: '/academic-records', label: 'Academic Records', Icon: Award, desc: 'GPA & grades', color: '#059669' },
     { to: '/non-academic-histories', label: 'Non-Academic', Icon: Trophy, desc: 'Awards & achievements', color: '#d97706' },
     { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck, desc: 'Define honor criteria', color: '#64748b' },
-    { to: '/operations', label: 'Operations Center', Icon: Activity, desc: 'Operations Center', color: '#10b981' },
     { to: '/reports', label: 'Run Reports', Icon: BarChart3, desc: 'Filter & export', color: '#f97316' },
     { to: '/search', label: 'Global Search', Icon: Search, desc: 'Search all records', color: '#22c55e' },
 ];
