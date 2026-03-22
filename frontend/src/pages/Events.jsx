@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import api from '../api';
+import { useAuth } from '../AuthContext';
 import {
     CalendarRange, MapPin, User, ChevronDown, ChevronUp, Users, SlidersHorizontal,
     Trophy, BookOpenCheck, Activity, Mic2, Wrench, Globe, Bus, Leaf, Star, Briefcase, ClipboardList, PartyPopper
@@ -31,6 +32,8 @@ const Chip = ({ label, bg, fg, border }) => (
 );
 
 export default function Events() {
+    const { role } = useAuth();
+    const prefix = role === 'teacher' ? '/teacher' : '/student';
     const [events, setEvents] = useState([]);
     const [departments, setDepartments] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -49,18 +52,18 @@ export default function Events() {
         if (filterType) params.type = filterType;
         if (filterStatus) params.status = filterStatus;
         if (filterDept) params.department_id = filterDept;
-        try { const res = await axios.get(`${API}/events`, { params }); setEvents(res.data); }
+        try { const res = await api.get(`${prefix}/events`, { params }); setEvents(res.data); }
         catch (e) { console.error(e); }
         setLoading(false);
     };
 
-    useEffect(() => { axios.get(`${API}/departments`).then(r => setDepartments(r.data)); fetchEvents(); }, []);
+    useEffect(() => { api.get('/departments').then(r => setDepartments(r.data)).catch(() => {}); fetchEvents(); }, []);
 
     const openDetail = async event => {
         if (expanded === event.id) { setExpanded(null); setDetail(null); return; }
         setExpanded(event.id);
         setLoadingDetail(true);
-        try { const res = await axios.get(`${API}/events/${event.id}`); setDetail(res.data); }
+        try { const res = await api.get(`${prefix}/events/${event.id}`); setDetail(res.data); }
         catch (e) { console.error(e); }
         setLoadingDetail(false);
     };

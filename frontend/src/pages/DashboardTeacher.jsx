@@ -6,8 +6,17 @@ import {
     GraduationCap, ShieldAlert, Zap, Trophy,
     Network, ClipboardCheck, Award, BarChart3,
     ArrowRight, Users, TrendingUp, CheckCircle,
-    UserCircle,
+    UserCircle, PartyPopper, CalendarRange, MapPin,
 } from 'lucide-react';
+
+const fmtDate = d => d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+
+const statusCfg = {
+    upcoming:  { bg: '#fff7ed', fg: '#c2410c', border: '#fed7aa' },
+    ongoing:   { bg: '#f0fdf4', fg: '#15803d', border: '#bbf7d0' },
+    completed: { bg: '#f5f5f4', fg: '#78716c', border: '#e7e5e4' },
+    cancelled: { bg: '#fef2f2', fg: '#b91c1c', border: '#fecaca' },
+};
 
 const QUICK_ACTIONS = [
     { to: '/student-map', label: 'Student Profiles', Icon: GraduationCap, desc: 'View & update students', color: '#3b82f6' },
@@ -24,6 +33,7 @@ export default function DashboardTeacher() {
     const { user } = useAuth();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [events, setEvents] = useState([]);
 
     const profile = user?.profile;
 
@@ -31,6 +41,9 @@ export default function DashboardTeacher() {
         api.get('/students', { params: { status: 'active' } })
             .then(r => setStudents(r.data))
             .finally(() => setLoading(false));
+        api.get('/teacher/events', { params: { status: 'upcoming' } })
+            .then(r => setEvents(r.data.slice(0, 4)))
+            .catch(() => {});
     }, []);
 
     const totalActive   = students.filter(s => s.status === 'active').length;
@@ -151,6 +164,36 @@ export default function DashboardTeacher() {
                                     <ArrowRight size={14} color="#d6d3d1" style={{ flexShrink: 0 }} />
                                 </Link>
                             ))}
+                        </div>
+                    </div>
+
+                    {/* Events widget */}
+                    <div className="card" style={{ marginTop: 20 }}>
+                        <div className="card-header">
+                            <h2><PartyPopper size={16} color="#f97316" /> Upcoming Events</h2>
+                            <Link to="/events" style={{ fontSize: 12, color: '#f97316', fontWeight: 600, textDecoration: 'none' }}>View all →</Link>
+                        </div>
+                        <div className="card-body" style={{ padding: 0 }}>
+                            {events.length === 0 ? (
+                                <div style={{ padding: '20px 20px', color: '#a8a29e', fontSize: 13, textAlign: 'center' }}>No upcoming events.</div>
+                            ) : events.map((ev, i) => {
+                                const sc = statusCfg[ev.status] ?? statusCfg.upcoming;
+                                return (
+                                    <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px', borderBottom: i < events.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
+                                        <div style={{ width: 40, height: 40, borderRadius: 11, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <PartyPopper size={18} color="#f97316" strokeWidth={1.8} />
+                                        </div>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', marginBottom: 3 }}>{ev.title}</div>
+                                            <div style={{ display: 'flex', gap: 10, fontSize: 11, color: '#78716c', flexWrap: 'wrap' }}>
+                                                <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><CalendarRange size={11} color="#f97316" />{fmtDate(ev.date_start)}</span>
+                                                {ev.venue && <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><MapPin size={11} color="#a8a29e" />{ev.venue}</span>}
+                                            </div>
+                                        </div>
+                                        <span style={{ background: sc.bg, color: sc.fg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 700, flexShrink: 0 }}>{ev.status}</span>
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
 

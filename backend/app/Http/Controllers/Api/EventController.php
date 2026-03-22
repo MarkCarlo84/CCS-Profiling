@@ -49,16 +49,17 @@ class EventController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'title'         => 'required|string|max:255',
-            'type'          => 'required|in:curricular,extra_curricular',
-            'category'      => 'required|string|max:100',
-            'organizer'     => 'nullable|string|max:150',
-            'venue'         => 'nullable|string|max:200',
-            'date_start'    => 'required|date',
-            'date_end'      => 'nullable|date|after_or_equal:date_start',
-            'description'   => 'nullable|string',
-            'status'        => 'in:upcoming,ongoing,completed,cancelled',
-            'department_id' => 'nullable|exists:departments,id',
+            'title'            => 'required|string|max:255',
+            'type'             => 'required|in:curricular,extra_curricular',
+            'category'         => 'required|string|max:100',
+            'organizer'        => 'nullable|string|max:150',
+            'venue'            => 'nullable|string|max:200',
+            'date_start'       => 'required|date',
+            'date_end'         => 'nullable|date|after_or_equal:date_start',
+            'description'      => 'nullable|string',
+            'status'           => 'in:upcoming,ongoing,completed,cancelled',
+            'department_id'    => 'nullable|exists:departments,id',
+            'max_participants' => 'nullable|integer|min:1',
         ]);
 
         $event = Event::create($data);
@@ -87,16 +88,17 @@ class EventController extends Controller
     public function update(Request $request, Event $event): JsonResponse
     {
         $data = $request->validate([
-            'title'         => 'sometimes|string|max:255',
-            'type'          => 'sometimes|in:curricular,extra_curricular',
-            'category'      => 'sometimes|string|max:100',
-            'organizer'     => 'nullable|string|max:150',
-            'venue'         => 'nullable|string|max:200',
-            'date_start'    => 'sometimes|date',
-            'date_end'      => 'nullable|date|after_or_equal:date_start',
-            'description'   => 'nullable|string',
-            'status'        => 'in:upcoming,ongoing,completed,cancelled',
-            'department_id' => 'nullable|exists:departments,id',
+            'title'            => 'sometimes|string|max:255',
+            'type'             => 'sometimes|in:curricular,extra_curricular',
+            'category'         => 'sometimes|string|max:100',
+            'organizer'        => 'nullable|string|max:150',
+            'venue'            => 'nullable|string|max:200',
+            'date_start'       => 'sometimes|date',
+            'date_end'         => 'nullable|date|after_or_equal:date_start',
+            'description'      => 'nullable|string',
+            'status'           => 'in:upcoming,ongoing,completed,cancelled',
+            'department_id'    => 'nullable|exists:departments,id',
+            'max_participants' => 'nullable|integer|min:1',
         ]);
 
         $event->update($data);

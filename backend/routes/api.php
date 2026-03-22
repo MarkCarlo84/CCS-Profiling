@@ -40,6 +40,15 @@ use App\Http\Controllers\Api\AcademicRecordController;
 use App\Http\Controllers\Api\SkillController;
 use App\Http\Controllers\Api\NonAcademicHistoryController;
 use App\Http\Controllers\Api\ReportController;
+use App\Http\Controllers\Api\CourseController;
+use App\Http\Controllers\Api\SectionController;
+use App\Http\Controllers\Api\RoomController;
+use App\Http\Controllers\Api\ScheduleController;
+use App\Http\Controllers\Api\CurriculumController;
+use App\Http\Controllers\Api\SyllabusController;
+use App\Http\Controllers\Api\LessonController;
+use App\Http\Controllers\Api\DepartmentController;
+use App\Http\Controllers\Api\EventController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -134,6 +143,33 @@ Route::prefix('reports')->group(function () {
 // ── Cross-Module Comprehensive Search ─────────────────────────────────────────
 Route::get('/search', [ReportController::class, 'search']);
 
+// ── Departments (public index for dropdowns, full CRUD under admin) ───────────
+Route::get('departments', [DepartmentController::class, 'index']);
+Route::get('departments/{department}', [DepartmentController::class, 'show']);
+
+// ── Courses ───────────────────────────────────────────────────────────────────
+Route::apiResource('courses', CourseController::class);
+
+// ── Sections ──────────────────────────────────────────────────────────────────
+Route::apiResource('sections', SectionController::class);
+
+// ── Rooms ─────────────────────────────────────────────────────────────────────
+Route::apiResource('rooms', RoomController::class);
+
+// ── Schedules ─────────────────────────────────────────────────────────────────
+Route::apiResource('schedules', ScheduleController::class);
+
+// ── Curricula ─────────────────────────────────────────────────────────────────
+Route::apiResource('curricula', CurriculumController::class);
+
+// ── Syllabi ───────────────────────────────────────────────────────────────────
+Route::apiResource('syllabi', SyllabusController::class);
+
+// ── Lessons ───────────────────────────────────────────────────────────────────
+Route::apiResource('lessons', LessonController::class);
+
+
+
 // ── Teacher POV (role: teacher) ───────────────────────────────────────────────
 Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(function () {
     Route::get('profile',                                    [TeacherController::class, 'profile']);
@@ -151,6 +187,9 @@ Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(fu
     Route::delete('reports/{report}',                        [TeacherReportController::class, 'destroy']);
     // My evaluations (anonymous)
     Route::get('my-evaluations',                             [FacultyEvaluationController::class, 'teacherIndex']);
+    // Events (read-only)
+    Route::get('events',                                     [EventController::class, 'index']);
+    Route::get('events/{event}',                             [EventController::class, 'show']);
 });
 
 // ── Student POV (role: student) ───────────────────────────────────────────────
@@ -170,6 +209,9 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(fu
     Route::get('evaluations',                                [FacultyEvaluationController::class, 'index']);
     Route::get('evaluations/faculties',                      [FacultyEvaluationController::class, 'faculties']);
     Route::post('evaluations',                               [FacultyEvaluationController::class, 'store']);
+    // Events (read-only)
+    Route::get('events',                                     [EventController::class, 'index']);
+    Route::get('events/{event}',                             [EventController::class, 'show']);
 });
 
 // ── Admin-only routes (role: admin) ───────────────────────────────────────────
@@ -184,6 +226,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     // Faculty evaluation summary
     Route::get('faculty-evaluations',                        [FacultyEvaluationController::class, 'adminIndex']);
     Route::get('faculty-evaluations/summary',                [FacultyEvaluationController::class, 'adminSummary']);
+    // Events (full CRUD + participants)
+    Route::apiResource('events', EventController::class);
+    Route::post('events/{event}/participants',                [EventController::class, 'addParticipant']);
+    Route::delete('events/{event}/participants/{participant}',[EventController::class, 'removeParticipant']);
+    // Departments (full CRUD)
+    Route::post('departments',                               [DepartmentController::class, 'store']);
+    Route::put('departments/{department}',                   [DepartmentController::class, 'update']);
+    Route::patch('departments/{department}',                 [DepartmentController::class, 'update']);
+    Route::delete('departments/{department}',                [DepartmentController::class, 'destroy']);
 });
 
 // ── OTP (admin only) ──────────────────────────────────────────────────────────
