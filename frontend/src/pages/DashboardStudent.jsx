@@ -136,6 +136,74 @@ export default function DashboardStudent() {
 
     return (
         <div>
+            {/* Violation Warnings */}
+            {totalViolations > 0 && (
+                <div style={{
+                    background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
+                    border: '2px solid #fecaca',
+                    borderRadius: 16,
+                    padding: '16px 20px',
+                    marginBottom: 16,
+                    boxShadow: '0 4px 12px rgba(239,68,68,.15)',
+                }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+                        <div style={{
+                            width: 40, height: 40, borderRadius: 10,
+                            background: '#dc2626',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            flexShrink: 0,
+                        }}>
+                            <ShieldAlert size={20} color="#fff" strokeWidth={2.5} />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#991b1b', marginBottom: 4 }}>
+                                Violation Warning
+                            </h3>
+                            <p style={{ margin: 0, fontSize: '.875rem', color: '#7f1d1d', lineHeight: 1.6 }}>
+                                You have <strong>{totalViolations} violation{totalViolations !== 1 ? 's' : ''}</strong> on record.
+                                {profile.violations?.some(v => v.severity_level === 'grave') && (
+                                    <span style={{ display: 'block', marginTop: 4, fontWeight: 700 }}>
+                                        ⚠️ This includes grave violations that may affect your academic standing.
+                                    </span>
+                                )}
+                                {profile.violations?.some(v => v.severity_level === 'major') && !profile.violations?.some(v => v.severity_level === 'grave') && (
+                                    <span style={{ display: 'block', marginTop: 4, fontWeight: 600 }}>
+                                        ⚠️ This includes major violations. Please review your conduct.
+                                    </span>
+                                )}
+                            </p>
+                            <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                {profile.violations?.slice(0, 3).map(v => (
+                                    <span key={v.id} style={{
+                                        fontSize: '.75rem',
+                                        fontWeight: 700,
+                                        padding: '3px 10px',
+                                        borderRadius: 999,
+                                        background: v.severity_level === 'grave' ? '#7f1d1d' : v.severity_level === 'major' ? '#dc2626' : '#f87171',
+                                        color: '#fff',
+                                    }}>
+                                        {v.violation_type}
+                                    </span>
+                                ))}
+                                {totalViolations > 3 && (
+                                    <span style={{
+                                        fontSize: '.75rem',
+                                        fontWeight: 600,
+                                        padding: '3px 10px',
+                                        borderRadius: 999,
+                                        background: '#fff',
+                                        color: '#991b1b',
+                                        border: '1px solid #fecaca',
+                                    }}>
+                                        +{totalViolations - 3} more
+                                    </span>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Header */}
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>

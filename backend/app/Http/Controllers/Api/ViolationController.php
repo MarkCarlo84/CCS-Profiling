@@ -18,6 +18,9 @@ class ViolationController extends Controller
         if ($request->filled('severity_level')) {
             $query->where('severity_level', $request->severity_level);
         }
+        if ($request->filled('search')) {
+            $query->where('violation_type', 'like', "%{$request->search}%");
+        }
         return response()->json($query->orderBy('date_committed', 'desc')->get());
     }
 

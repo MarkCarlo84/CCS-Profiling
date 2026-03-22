@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getViolations, deleteViolation, updateViolationAction } from '../api';
-import { ShieldAlert, Search, ChevronDown, Trash2, Pencil, X, Check } from 'lucide-react';
+import { useAuth } from '../AuthContext';
+import { ShieldAlert, Search, ChevronDown, Trash2, Pencil, X, Check, CheckCircle } from 'lucide-react';
 
 function Badge({ value }) {
     return value ? <span className={`badge badge-${value.toLowerCase()}`}>{value.replace(/_/g, ' ')}</span> : null;
@@ -37,6 +38,9 @@ function ActionModal({ violation, onClose, onSaved }) {
 }
 
 export default function ViolationsMap() {
+    const { role } = useAuth();
+    const isAdmin = role === 'admin';
+    
     const [violations, setViolations] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
@@ -46,7 +50,15 @@ export default function ViolationsMap() {
     const load = () => { setLoading(true); getViolations({ search, severity_level: severity }).then(r => setViolations(r.data)).finally(() => setLoading(false)); };
     useEffect(load, [search, severity]);
 
-    const remove = async (id) => { if (!window.confirm('Delete this violation record?')) return; await deleteViolation(id); load(); };
+    const remove = async (id, violationType) => { 
+        if (!window.confirm(`Clear this violation record?\n\nViolation: ${violationType}\n\nThis action cannot be undone.`)) return; 
+        try {
+            await deleteViolation(id); 
+            load();
+        } catch (err) {
+            alert('Failed to remove violation. Please try again.');
+        }
+    };
 
     return (
         <div>
@@ -55,7 +67,10 @@ export default function ViolationsMap() {
                     <div style={iconWrap}><ShieldAlert size={22} color="#f97316" /></div>
                     <h1 style={h1}>Violations</h1>
                 </div>
-                <p style={sub}>All student violation records — {violations.length} shown</p>
+                <p style={sub}>
+                    All student violation records — {violations.length} shown
+                    {isAdmin && <span style={{ marginLeft: 8, color: '#16a34a', fontWeight: 600 }}>• You can clear violations</span>}
+                </p>
             </div>
 
             <div className="filter-bar no-print">
@@ -77,13 +92,16 @@ export default function ViolationsMap() {
                         <div className="table-wrap">
                             <table>
                                 <thead>
-                                    <tr><th>#</th><th>Student ID</th><th>Violation Type</th><th>Severity</th><th>Date Committed</th><th>Action Taken</th><th>Description</th><th>Actions</th></tr>
+                                    <tr><th>#</th><th>Student ID</th><th>Student Name</th><th>Violation Type</th><th>Severity</th><th>Date Committed</th><th>Action Taken</th><th>Description</th><th>Actions</th></tr>
                                 </thead>
                                 <tbody>
-                                    {violations.map((v, i) => (
+                                    {violations.map((v, i) => {
+                                        console.log('Violation data:', v); // Debug log
+                                        return (
                                         <tr key={v.id}>
                                             <td>{i + 1}</td>
-                                            <td><strong>{v.student_id}</strong></td>
+                                            <td><strong>{v.student?.student_id || `ID: ${v.student_id}` || '—'}</strong></td>
+                                            <td>{v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}</td>
                                             <td>{v.violation_type}</td>
                                             <td><Badge value={v.severity_level} /></td>
                                             <td>{v.date_committed ? new Date(v.date_committed).toLocaleDateString('en-PH') : '—'}</td>
@@ -92,12 +110,20 @@ export default function ViolationsMap() {
                                             <td>
                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                     <button style={iconBtn} title="Update action" onClick={() => setEditing(v)}><Pencil size={13} /></button>
-                                                    <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(v.id)}><Trash2 size={13} /></button>
+                                                    {isAdmin && (
+                                                        <button 
+                                                            style={{ ...iconBtn, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }} 
+                                                            title="Clear violation (Admin only)"
+                                                            onClick={() => remove(v.id, v.violation_type)}
+                                                        >
+                                                            <CheckCircle size={13} />
+                                                        </button>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
-                                    ))}
-                                    {violations.length === 0 && <tr><td colSpan={8} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>No violations recorded.</td></tr>}
+                                    )})}
+                                    {violations.length === 0 && <tr><td colSpan={9} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>No violations recorded.</td></tr>}
                                 </tbody>
                             </table>
                         </div>
