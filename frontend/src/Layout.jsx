@@ -70,6 +70,7 @@ const NAV_BY_ROLE = {
                 { to: '/student-map', label: 'Student Profiles', Icon: GraduationCap },
                 { to: '/academic-records', label: 'Academic Records', Icon: Award },
                 { to: '/violations', label: 'Violations', Icon: ShieldAlert },
+                { to: '/record-violation', label: 'Record Violation', Icon: ShieldAlert },
             ],
         },
         {
@@ -85,8 +86,9 @@ const NAV_BY_ROLE = {
             items: [
                 { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck },
                 { to: '/my-evaluations', label: 'My Evaluations', Icon: Star },
-                { to: '/create-report', label: 'Create Report', Icon: FileText },
+                { to: '/create-report', label: 'My Reports', Icon: FileText },
                 { to: '/events', label: 'Events', Icon: PartyPopper },
+                { to: '/change-password', label: 'Change Password', Icon: KeyRound },
             ],
         },
     ],

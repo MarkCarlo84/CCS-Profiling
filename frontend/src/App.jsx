@@ -34,6 +34,7 @@ import StudentAffiliations from './pages/StudentAffiliations';
 import StudentNonAcademicActivities from './pages/StudentNonAcademicActivities';
 import TeacherCreateReport from './pages/TeacherCreateReport';
 import TeacherMyEvaluations from './pages/TeacherMyEvaluations';
+import TeacherRecordViolation from './pages/TeacherRecordViolation';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -75,6 +76,7 @@ function AppRoutes() {
                 <Route path="/" element={<DashboardTeacher />} />
                 <Route path="/student-map" element={<StudentDataMap />} />
                 <Route path="/violations" element={<ViolationsMap />} />
+                <Route path="/record-violation" element={<TeacherRecordViolation />} />
                 <Route path="/affiliations" element={<AffiliationsMap />} />
                 <Route path="/skills" element={<SkillsMap />} />
                 <Route path="/academic-records" element={<AcademicRecordsMap />} />
@@ -84,6 +86,7 @@ function AppRoutes() {
                 <Route path="/create-report" element={<TeacherCreateReport />} />
                 <Route path="/my-evaluations" element={<TeacherMyEvaluations />} />
                 <Route path="/events" element={<Events />} />
+                <Route path="/change-password" element={<ChangePassword />} />
               </>}
 
               {/* ── Student ── */}
