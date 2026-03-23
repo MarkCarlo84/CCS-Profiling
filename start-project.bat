@@ -41,23 +41,16 @@ if errorlevel 1 (
     echo.
 )
 
-REM Check if database exists
-if not exist backend\database\database.sqlite (
-    echo [BACKEND] Creating database...
-    type nul > backend\database\database.sqlite
-    echo [BACKEND] Running migrations...
-    cd backend
-    call php artisan migrate --force
-    echo.
-    echo [BACKEND] Seeding database...
-    call php artisan db:seed --force
-    cd ..
-    echo [BACKEND] Database setup complete!
-    echo.
-) else (
-    echo [BACKEND] Database already exists.
-    echo.
-)
+REM Check if database exists - MySQL via XAMPP
+echo [BACKEND] Checking database connection...
+cd backend
+call php artisan migrate --force
+echo.
+echo [BACKEND] Seeding database...
+call php artisan db:seed --force
+cd ..
+echo [BACKEND] Database setup complete!
+echo.
 
 REM ========================================
 REM FRONTEND SETUP

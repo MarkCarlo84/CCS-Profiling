@@ -18,6 +18,43 @@ return new class extends Migration
             $table->timestamps();
         });
 
+        // Affiliations
+        Schema::dropIfExists('affiliations');
+        Schema::create('affiliations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('student_id')->constrained()->onDelete('cascade');
+            $table->string('name');
+            $table->string('type')->nullable();
+            $table->string('role')->nullable();
+            $table->date('date_joined')->nullable();
+            $table->timestamps();
+        });
+
+        // Violations
+        Schema::dropIfExists('violations');
+        Schema::create('violations', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('student_id')->constrained()->onDelete('cascade');
+            $table->string('violation_type');
+            $table->text('description')->nullable();
+            $table->date('date_committed')->nullable();
+            $table->string('severity_level')->default('minor');
+            $table->text('action_taken')->nullable();
+            $table->timestamps();
+        });
+
+        // Academic Records — must come before grades
+        Schema::dropIfExists('academic_records');
+        Schema::create('academic_records', function (Blueprint $table) {
+            $table->id();
+            $table->foreignId('student_id')->constrained()->onDelete('cascade');
+            $table->string('school_year', 20);
+            $table->string('semester', 30)->nullable();
+            $table->decimal('gpa', 4, 2)->nullable();
+            $table->timestamps();
+        });
+
+        // Grades — depends on academic_records and subjects
         Schema::dropIfExists('grades');
         Schema::create('grades', function (Blueprint $table) {
             $table->id();
@@ -40,54 +77,18 @@ return new class extends Migration
             $table->timestamps();
         });
 
-        // Affiliations (replaces student_affiliations)
-        Schema::dropIfExists('affiliations');
-        Schema::create('affiliations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->onDelete('cascade');
-            $table->string('name');            // organization name
-            $table->string('type')->nullable(); // e.g. academic, sports, government
-            $table->string('role')->nullable();
-            $table->date('date_joined')->nullable();
-            $table->timestamps();
-        });
-
-        // Violations (replaces student_violations)
-        Schema::dropIfExists('violations');
-        Schema::create('violations', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->onDelete('cascade');
-            $table->string('violation_type');
-            $table->text('description')->nullable();
-            $table->date('date_committed')->nullable();
-            $table->string('severity_level')->default('minor'); // minor, major, grave
-            $table->text('action_taken')->nullable();
-            $table->timestamps();
-        });
-
-        // Academic Records (replaces student_academic_records)
-        Schema::dropIfExists('academic_records');
-        Schema::create('academic_records', function (Blueprint $table) {
-            $table->id();
-            $table->foreignId('student_id')->constrained()->onDelete('cascade');
-            $table->string('school_year', 20);
-            $table->string('semester', 30)->nullable(); // 1st Semester, 2nd Semester
-            $table->decimal('gpa', 4, 2)->nullable();
-            $table->timestamps();
-        });
-
-        // Skills (replaces student_skills)
+        // Skills
         Schema::dropIfExists('skills');
         Schema::create('skills', function (Blueprint $table) {
             $table->id();
             $table->foreignId('student_id')->constrained()->onDelete('cascade');
             $table->string('skill_name');
-            $table->string('skill_level')->default('beginner'); // beginner, intermediate, advanced, expert
+            $table->string('skill_level')->default('beginner');
             $table->boolean('certification')->default(false);
             $table->timestamps();
         });
 
-        // Non-Academic Histories (replaces student_non_academic_records)
+        // Non-Academic Histories
         Schema::dropIfExists('non_academic_histories');
         Schema::create('non_academic_histories', function (Blueprint $table) {
             $table->id();

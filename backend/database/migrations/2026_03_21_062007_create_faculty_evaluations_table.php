@@ -23,7 +23,7 @@ return new class extends Migration
             $table->string('semester')->nullable();
             $table->timestamps();
             // One evaluation per student per faculty per semester
-            $table->unique(['faculty_id', 'student_id', 'school_year', 'semester']);
+            $table->unique(['faculty_id', 'student_id', 'school_year', 'semester'], 'fe_unique_per_semester');
         });
     }
 
