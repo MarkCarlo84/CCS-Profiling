@@ -70,8 +70,8 @@ class StudentController extends Controller
             'must_verify_email'  => true,
         ]);
 
-        // Send welcome email with credentials (queued to avoid blocking)
-        Mail::to($student->email)->queue(new WelcomeMail(
+        // Send welcome email with credentials
+        Mail::to($student->email)->send(new WelcomeMail(
             $user->name,
             $student->email,
             $defaultPassword,
