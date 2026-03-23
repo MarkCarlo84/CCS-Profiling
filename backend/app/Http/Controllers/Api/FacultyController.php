@@ -59,13 +59,17 @@ class FacultyController extends Controller
             'must_verify_email'  => true,
         ]);
 
-        // Send welcome email with credentials
-        Mail::to($faculty->email)->send(new WelcomeMail(
-            $user->name,
-            $faculty->email,
-            $defaultPassword,
-            'faculty'
-        ));
+        // Send welcome email — non-blocking, failure won't affect save
+        try {
+            Mail::to($faculty->email)->send(new WelcomeMail(
+                $user->name,
+                $faculty->email,
+                $defaultPassword,
+                'faculty'
+            ));
+        } catch (\Exception $e) {
+            \Log::error('Faculty welcome email failed: ' . $e->getMessage());
+        }
 
         return response()->json([
             'faculty' => $faculty,
