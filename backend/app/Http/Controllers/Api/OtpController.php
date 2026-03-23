@@ -41,7 +41,7 @@ class OtpController extends Controller
             'expires_at' => now()->addMinutes(10),
         ]);
 
-        Mail::to($targetEmail)->queue(new OtpMail($otp, $request->action));
+        Mail::to($targetEmail)->send(new OtpMail($otp, $request->action));
 
         return response()->json(['message' => 'OTP sent to ' . $targetEmail]);
     }

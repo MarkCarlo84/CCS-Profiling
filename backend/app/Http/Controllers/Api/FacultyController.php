@@ -59,8 +59,8 @@ class FacultyController extends Controller
             'must_verify_email'  => true,
         ]);
 
-        // Send welcome email with credentials (queued to avoid blocking)
-        Mail::to($faculty->email)->queue(new WelcomeMail(
+        // Send welcome email with credentials
+        Mail::to($faculty->email)->send(new WelcomeMail(
             $user->name,
             $faculty->email,
             $defaultPassword,
