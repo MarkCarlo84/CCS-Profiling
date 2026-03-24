@@ -70,17 +70,16 @@ class StudentController extends Controller
             'must_verify_email'  => true,
         ]);
 
-        // Send welcome email — non-blocking, failure won't affect save
-        try {
-            Mail::to($student->email)->send(new WelcomeMail(
-                $user->name,
-                $student->email,
-                $defaultPassword,
-                'student'
-            ));
-        } catch (\Exception $e) {
-            \Log::error('Student welcome email failed: ' . $e->getMessage());
-        }
+        // Send welcome email after response is returned
+        $name = $user->name;
+        $email = $student->email;
+        register_shutdown_function(function () use ($name, $email, $defaultPassword) {
+            try {
+                Mail::to($email)->send(new WelcomeMail($name, $email, $defaultPassword, 'student'));
+            } catch (\Exception $e) {
+                \Log::error('Student welcome email failed: ' . $e->getMessage());
+            }
+        });
 
         return response()->json([
             'student' => $student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']),
