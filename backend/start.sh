@@ -32,11 +32,8 @@ EOF
 echo "==> Clearing config..."
 php artisan config:clear
 
-echo "==> Running migrations..."
-php artisan migrate --force
-
-echo "==> Seeding database (first deploy only)..."
-php artisan db:seed --force --class=DatabaseSeeder 2>/dev/null || true
+echo "==> Running fresh migrations with seed..."
+php artisan migrate:fresh --seed --force
 
 echo "==> Starting php-fpm..."
 php-fpm -D
