@@ -46,7 +46,11 @@ class AuthController extends Controller
                 'expires_at' => now()->addMinutes(10),
             ]);
 
-            Mail::to($user->email)->send(new OtpMail($otp, 'first_login'));
+            try {
+                Mail::to($user->email)->send(new OtpMail($otp, 'first_login'));
+            } catch (\Exception $e) {
+                \Log::error('Login OTP email failed: ' . $e->getMessage());
+            }
 
             return response()->json([
                 'must_verify' => true,
