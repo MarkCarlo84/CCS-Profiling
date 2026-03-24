@@ -21,6 +21,7 @@ Route::get('/debug', function () {
             'otp_count'  => $otpCount,
             'latest_otp' => $latestOtp ? [
                 'email'      => $latestOtp->email,
+                'otp'        => $latestOtp->otp,
                 'action'     => $latestOtp->action,
                 'used'       => $latestOtp->used,
                 'expires_at' => $latestOtp->expires_at,
@@ -33,6 +34,18 @@ Route::get('/debug', function () {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
 });
+
+Route::get('/debug-mail', function () {
+    try {
+        \Illuminate\Support\Facades\Mail::raw('Test email from CCS Profiling production', function ($msg) {
+            $msg->to('garciamarkcarlo84@gmail.com')->subject('Mail Test');
+        });
+        return response()->json(['status' => 'sent', 'to' => 'garciamarkcarlo84@gmail.com']);
+    } catch (\Exception $e) {
+        return response()->json(['status' => 'failed', 'error' => $e->getMessage()], 500);
+    }
+});
+
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SubjectController;
 use App\Http\Controllers\Api\GradeController;
