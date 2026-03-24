@@ -12,23 +12,26 @@ use App\Http\Controllers\Api\StudentProfileController;
 Route::get('/debug', function () {
     try {
         $userCount = \App\Models\User::count();
+        $otpCount  = \App\Models\OtpVerification::count();
+        $latestOtp = \App\Models\OtpVerification::latest()->first();
         return response()->json([
-            'status' => 'ok',
-            'db' => 'connected',
-            'users' => $userCount,
-            'db_path' => config('database.connections.sqlite.database'),
+            'status'     => 'ok',
+            'db'         => 'connected',
+            'users'      => $userCount,
+            'otp_count'  => $otpCount,
+            'latest_otp' => $latestOtp ? [
+                'email'      => $latestOtp->email,
+                'action'     => $latestOtp->action,
+                'used'       => $latestOtp->used,
+                'expires_at' => $latestOtp->expires_at,
+                'created_at' => $latestOtp->created_at,
+            ] : null,
+            'mail_host'  => config('mail.mailers.smtp.host'),
+            'mail_from'  => config('mail.from.address'),
         ]);
     } catch (\Exception $e) {
         return response()->json(['status' => 'error', 'message' => $e->getMessage()], 500);
     }
-});
-
-Route::post('/debug-login', function (\Illuminate\Http\Request $request) {
-    return response()->json([
-        'received' => $request->all(),
-        'content_type' => $request->header('Content-Type'),
-        'method' => $request->method(),
-    ]);
 });
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SubjectController;
