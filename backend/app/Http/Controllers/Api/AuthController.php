@@ -46,35 +46,11 @@ class AuthController extends Controller
                 'expires_at' => now()->addMinutes(10),
             ]);
 
-            $mailSent = false;
             try {
                 Mail::to($user->email)->send(new OtpMail($otp, 'first_login'));
-                $mailSent = true;
             } catch (\Exception $e) {
                 \Log::error('Login OTP email failed: ' . $e->getMessage());
-            }
-
-            // If mail failed, skip OTP and log user in directly
-            if (!$mailSent) {
-                $user->update(['must_verify_email' => false]);
-                $user->tokens()->delete();
-                $token = $user->createToken('ccs-profiling-token')->plainTextToken;
-                $profile = null;
-                if ($user->isTeacher() && $user->faculty_id) {
-                    $profile = $user->faculty;
-                } elseif ($user->isStudent() && $user->student_id) {
-                    $profile = $user->student;
-                }
-                return response()->json([
-                    'token' => $token,
-                    'user'  => [
-                        'id'      => $user->id,
-                        'name'    => $user->name,
-                        'email'   => $user->email,
-                        'role'    => $user->role,
-                        'profile' => $profile,
-                    ],
-                ]);
+                return response()->json(['message' => 'Failed to send OTP email. Please try again later.'], 500);
             }
 
             return response()->json([
