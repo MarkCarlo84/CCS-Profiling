@@ -30,6 +30,11 @@ use App\Http\Controllers\Api\EventController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
+// Handle OPTIONS preflight for all routes
+Route::options('{any}', function () {
+    return response()->json([], 200);
+})->where('any', '.*');
+
 // ── Auth (public) ─────────────────────────────────────────────────────────────
 Route::post('/auth/login',  [AuthController::class, 'login']);
 Route::post('/auth/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
