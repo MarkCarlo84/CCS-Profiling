@@ -42,7 +42,7 @@ class FacultyController extends Controller
             'department'     => 'nullable|string|max:100',
             'position'       => 'required|string|max:100',
             'email'          => 'required|email|unique:users,email',
-            'contact_number' => 'nullable|string|max:30',
+            'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
         ]);
 
         $faculty = Faculty::create($data);
@@ -95,7 +95,7 @@ class FacultyController extends Controller
             'department'     => 'nullable|string|max:100',
             'position'       => 'sometimes|string|max:100',
             'email'          => 'nullable|email',
-            'contact_number' => 'nullable|string|max:30',
+            'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
         ]);
         $faculty->update($data);
         return response()->json($faculty);

@@ -25,6 +25,8 @@ export function AuthProvider({ children }) {
 
         const { token, user: u } = res.data;
         localStorage.setItem('ccs_token', token);
+        // Delay redirect so the login success animation can play
+        await new Promise(r => setTimeout(r, 1200));
         setUser(u);
         return u;
     }, []);
@@ -33,6 +35,8 @@ export function AuthProvider({ children }) {
         const res = await apiVerifyLoginOtp(email, otp);
         const { token, user: u } = res.data;
         localStorage.setItem('ccs_token', token);
+        // Delay redirect so the login success animation can play
+        await new Promise(r => setTimeout(r, 1200));
         setUser(u);
         return u;
     }, []);

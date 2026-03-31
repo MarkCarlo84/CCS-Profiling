@@ -188,17 +188,19 @@ function ReportModal({ faculty, onClose }) {
     );
 }
 
-const emptyFaculty = { faculty_id: '', first_name: '', middle_name: '', last_name: '', department: '', position: '', email: '', contact_number: '' };
+const emptyFaculty = { faculty_id: '', first_name: '', middle_name: '', last_name: '', department: '', position: '', email: '', contact_number: '09' };
 
 export default function FacultyDataMap() {
     const [faculties, setFaculties] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ department: '', search: '' });
-    const [modal, setModal] = useState(null); // 'add' | { edit: faculty }
+    const [modal, setModal] = useState(null);
     const [form, setForm] = useState(emptyFaculty);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
     const [reportFaculty, setReportFaculty] = useState(null);
+    const [deptPages, setDeptPages] = useState({});
+    const PAGE_SIZE = 5;
 
     const printRef = useRef();
 
@@ -214,6 +216,7 @@ export default function FacultyDataMap() {
     };
 
     useEffect(loadData, [filters]);
+    useEffect(() => setDeptPages({}), [filters]);
 
     const openAdd = () => { setForm(emptyFaculty); setModal('add'); };
     const openEdit = (f) => {
@@ -225,7 +228,7 @@ export default function FacultyDataMap() {
             department: f.department || '',
             position: f.position || '',
             email: f.email || '',
-            contact_number: f.contact_number || ''
+            contact_number: f.contact_number || '09'
         });
         setModal({ edit: f });
     };
@@ -256,12 +259,22 @@ export default function FacultyDataMap() {
         loadData();
     };
 
+    const handleContactChange = (e) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (!val.startsWith('09')) val = '09' + val.replace(/^0*9*/, '');
+        if (val.length > 11) val = val.slice(0, 11);
+        setForm(f => ({ ...f, contact_number: val }));
+    };
+
     const grouped = faculties.reduce((acc, f) => {
         const key = f.department || 'Unknown';
         if (!acc[key]) acc[key] = [];
         acc[key].push(f);
         return acc;
     }, {});
+
+    const getDeptPage = (dept) => deptPages[dept] || 1;
+    const setDeptPage = (dept, p) => setDeptPages(prev => ({ ...prev, [dept]: p }));
 
     const deptOptions = [...new Set(faculties.map(f => f.department).filter(Boolean))].sort();
 
@@ -274,7 +287,27 @@ export default function FacultyDataMap() {
                             <div style={iconWrap}><Users size={22} color="#f97316" /></div>
                             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Faculty Data Map</h1>
                         </div>
-                        <p style={{ color: '#78716c' }}>Complete faculty roster grouped by department — Manage and Print</p>
+                        <p style={{ color: '#78716c', marginBottom: 10 }}>Complete faculty roster grouped by department — Manage and Print</p>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                            {[['', 'All Faculty'], ['IT', 'Information Technology (IT)'], ['CS', 'Computer Science (CS)']].map(([val, label]) => (
+                                <button
+                                    key={val}
+                                    onClick={() => setFilters(f => ({ ...f, department: val }))}
+                                    style={{
+                                        padding: '8px 20px',
+                                        borderRadius: 10,
+                                        border: '1.5px solid',
+                                        borderColor: filters.department === val ? '#f97316' : '#e7e5e4',
+                                        background: filters.department === val ? '#f97316' : '#fff',
+                                        color: filters.department === val ? '#fff' : '#78716c',
+                                        fontWeight: filters.department === val ? 700 : 500,
+                                        fontSize: '.875rem',
+                                        cursor: 'pointer',
+                                        transition: 'all .15s',
+                                    }}
+                                >{label}</button>
+                            ))}
+                        </div>
                     </div>
                     <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Faculty</button>
                 </div>
@@ -290,10 +323,6 @@ export default function FacultyDataMap() {
                         style={{ paddingLeft: 36 }}
                     />
                 </div>
-                <select value={filters.department} onChange={e => setFilters(f => ({ ...f, department: e.target.value }))}>
-                    <option value="">All Departments</option>
-                    {deptOptions.map(d => <option key={d} value={d}>{d}</option>)}
-                </select>
                 <div style={{ flex: 1 }} />
                 <button className="btn btn-outline" onClick={handlePrint} style={{ whiteSpace: 'nowrap' }}>
                     <Printer size={15} /> Print Report
@@ -313,11 +342,17 @@ export default function FacultyDataMap() {
                 ) : faculties.length === 0 ? (
                     <div className="empty"><Users size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No faculty records found.</p></div>
                 ) : (
-                    Object.entries(grouped).map(([deptName, members]) => (
-                        <div key={deptName} className="card" style={{ marginBottom: 24 }}>
+                    ['CS', 'IT', 'Computer Science', 'Information Technology'].filter(k => grouped[k]).map((deptKey) => {
+                        const members = grouped[deptKey];
+                        const label = deptKey === 'CS' ? 'Computer Science' : deptKey === 'IT' ? 'Information Technology' : deptKey;
+                        const page = getDeptPage(deptKey);
+                        const totalPages = Math.ceil(members.length / PAGE_SIZE);
+                        const paginated = members.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+                        return (
+                        <div key={deptKey} className="card" style={{ marginBottom: 24 }}>
                             <div className="card-header" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
                                 <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Building size={17} strokeWidth={2} />{deptName}
+                                    <Building size={17} strokeWidth={2} />{label}
                                 </h2>
                                 <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{members.length} faculty</span>
                             </div>
@@ -332,9 +367,9 @@ export default function FacultyDataMap() {
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            {members.map((fac, idx) => (
+                                            {paginated.map((fac, idx) => (
                                                 <tr key={fac.id}>
-                                                    <td>{idx + 1}</td>
+                                                    <td>{(page - 1) * PAGE_SIZE + idx + 1}</td>
                                                     <td><strong>{fac.faculty_id || `FAC-${fac.id}`}</strong></td>
                                                     <td>{fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}</td>
                                                     <td>{fac.position}</td>
@@ -353,8 +388,23 @@ export default function FacultyDataMap() {
                                     </table>
                                 </div>
                             </div>
+                            {totalPages > 1 && (
+                                <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
+                                    <button onClick={() => setDeptPage(deptKey, Math.max(1, page - 1))} disabled={page === 1} style={{ ...pageBtn, opacity: page === 1 ? 0.4 : 1 }}>‹</button>
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                                        <button key={p} onClick={() => setDeptPage(deptKey, p)}
+                                            style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
+                                        >{p}</button>
+                                    ))}
+                                    <button onClick={() => setDeptPage(deptKey, Math.min(totalPages, page + 1))} disabled={page === totalPages} style={{ ...pageBtn, opacity: page === totalPages ? 0.4 : 1 }}>›</button>
+                                    <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 8 }}>
+                                        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, members.length)} of {members.length}
+                                    </span>
+                                </div>
+                            )}
                         </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
@@ -369,7 +419,11 @@ export default function FacultyDataMap() {
                             </div>
                             <div>
                                 <label style={lStyle}>Department</label>
-                                <input style={iStyle} value={form.department} onChange={e => setForm({ ...form, department: e.target.value })} placeholder="e.g. IT Department" />
+                                <select style={iStyle} value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}>
+                                    <option value="">— Select —</option>
+                                    <option value="IT">Information Technology (IT)</option>
+                                    <option value="CS">Computer Science (CS)</option>
+                                </select>
                             </div>
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
@@ -397,7 +451,7 @@ export default function FacultyDataMap() {
                             </div>
                             <div>
                                 <label style={lStyle}>Contact Number</label>
-                                <input style={iStyle} value={form.contact_number} onChange={e => setForm({ ...form, contact_number: e.target.value })} />
+                                <input style={iStyle} value={form.contact_number} onChange={handleContactChange} placeholder="09XXXXXXXXX" maxLength={11} />
                             </div>
                         </div>
                         {saveError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{saveError}</p>}
@@ -425,3 +479,4 @@ const modalCard = { background: '#fff', borderRadius: 20, padding: '28px 32px', 
 const iconBtnStyle = { background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#78716c' };
 const lStyle = { display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5, letterSpacing: .3 };
 const iStyle = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', fontFamily: "'Inter',sans-serif", color: '#1c1917', boxSizing: 'border-box' };
+const pageBtn = { minWidth: 34, height: 34, borderRadius: 8, border: '1.5px solid #e7e5e4', background: '#fff', color: '#78716c', fontSize: '.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s' };

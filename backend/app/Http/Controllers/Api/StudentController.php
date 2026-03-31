@@ -34,6 +34,9 @@ class StudentController extends Controller
                   ->orWhere('student_id', 'like', "%$s%");
             });
         }
+        if ($request->filled('department')) {
+            $query->where('department', $request->department);
+        }
 
         return response()->json($query->orderBy('last_name')->get());
     }
@@ -41,7 +44,8 @@ class StudentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'student_id'     => 'nullable|string|max:50',
+            'student_id'     => 'nullable|digits_between:7,10',
+            'department'     => 'nullable|in:IT,CS',
             'first_name'     => 'required|string|max:100',
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',
@@ -50,7 +54,7 @@ class StudentController extends Controller
             'date_of_birth'  => 'nullable|date',
             'gender'         => 'nullable|in:Male,Female,Other',
             'address'        => 'nullable|string',
-            'contact_number' => 'nullable|string|max:30',
+            'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email'          => 'required|email|unique:users,email',
             'enrollment_date'=> 'nullable|date',
             'status'         => 'in:active,inactive,graduated,dropped',
@@ -100,7 +104,8 @@ class StudentController extends Controller
     public function update(Request $request, Student $student): JsonResponse
     {
         $data = $request->validate([
-            'student_id'     => 'nullable|string|max:50',
+            'student_id'     => 'nullable|digits_between:7,10',
+            'department'     => 'nullable|in:IT,CS',
             'first_name'     => 'sometimes|string|max:100',
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'sometimes|string|max:100',
@@ -109,7 +114,7 @@ class StudentController extends Controller
             'date_of_birth'  => 'nullable|date',
             'gender'         => 'nullable|in:Male,Female,Other',
             'address'        => 'nullable|string',
-            'contact_number' => 'nullable|string|max:30',
+            'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email'          => 'nullable|email',
             'enrollment_date'=> 'nullable|date',
             'status'         => 'in:active,inactive,graduated,dropped',

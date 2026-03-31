@@ -1,5 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { getSubjects, createSubject, updateSubject, deleteSubject } from '../api';
+import React, { useState } from 'react';
+import { createSubject, updateSubject, deleteSubject } from '../api';
+import { STATIC_SUBJECTS } from '../data/subjects';
 import { BookOpen, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
 
 function Modal({ title, onClose, children }) {
@@ -16,20 +17,33 @@ function Modal({ title, onClose, children }) {
     );
 }
 
-const empty = { subject_code: '', subject_name: '', units: '', description: '', pre_requisite: '' };
+const empty = { subject_code: '', subject_name: '', units: '', description: '', pre_requisite: '', year_level: '', semester: '', program: '' };
+
+const PROGRAMS = [
+    { label: 'Information Technology', value: 'Information Technology' },
+    { label: 'Computer Science', value: 'Computer Science' },
+];
 
 export default function SubjectsMap() {
     const [subjects, setSubjects] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [modal, setModal] = useState(null); // null | 'add' | {edit: subject}
+    const [loading, setLoading] = useState(false);
+    const [modal, setModal] = useState(null);
     const [form, setForm] = useState(empty);
     const [saving, setSaving] = useState(false);
+    const [activeProgram, setActiveProgram] = useState('Information Technology');
 
-    const load = () => { setLoading(true); getSubjects().then(r => setSubjects(r.data)).finally(() => setLoading(false)); };
-    useEffect(load, []);
+    const load = (program) => {
+        setSubjects(STATIC_SUBJECTS.filter(s => s.program === program));
+    };
+    useState(() => load(activeProgram));
 
-    const openAdd = () => { setForm(empty); setModal('add'); };
-    const openEdit = (s) => { setForm({ subject_code: s.subject_code || '', subject_name: s.subject_name || '', units: s.units || '', description: s.description || '', pre_requisite: s.pre_requisite || '' }); setModal({ edit: s }); };
+    const handleProgramChange = (program) => {
+        setActiveProgram(program);
+        load(program);
+    };
+
+    const openAdd = () => { setForm({ ...empty, program: activeProgram }); setModal('add'); };
+    const openEdit = (s) => { setForm({ subject_code: s.subject_code || '', subject_name: s.subject_name || '', units: s.units || '', description: s.description || '', pre_requisite: s.pre_requisite || '', year_level: s.year_level || '', semester: s.semester || '', program: s.program || '' }); setModal({ edit: s }); };
 
     const save = async (e) => {
         e.preventDefault();
@@ -37,13 +51,86 @@ export default function SubjectsMap() {
         try {
             if (modal === 'add') await createSubject(form);
             else await updateSubject(modal.edit.id, form);
-            setModal(null); load();
+            setModal(null);
+            load(activeProgram);
         } finally { setSaving(false); }
     };
 
     const remove = async (id) => {
         if (!window.confirm('Delete this subject?')) return;
-        await deleteSubject(id); load();
+        await deleteSubject(id);
+        load(activeProgram);
+    };
+
+    const grouped = subjects.reduce((acc, s) => {
+        const y = s.year_level || 'Unassigned';
+        const sem = s.semester || 'Unassigned';
+        if (!acc[y]) acc[y] = {};
+        if (!acc[y][sem]) acc[y][sem] = [];
+        acc[y][sem].push(s);
+        return acc;
+    }, {});
+
+    const renderTable = (label, items) => {
+        if (!items || items.length === 0) return null;
+        const totalUnits = items.reduce((sum, s) => sum + (parseInt(s.units) || 0), 0);
+        return (
+            <div key={label} style={{ marginBottom: 28 }}>
+                {/* Semester header */}
+                <div style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    background: 'linear-gradient(135deg, #f97316, #fb923c)',
+                    borderRadius: '10px 10px 0 0', padding: '10px 16px',
+                }}>
+                    <span style={{ fontWeight: 700, fontSize: '.9rem', color: '#fff', letterSpacing: .3 }}>{label}</span>
+                    <span style={{ fontSize: '.78rem', fontWeight: 600, color: 'rgba(255,255,255,.85)', background: 'rgba(255,255,255,.2)', padding: '2px 10px', borderRadius: 20 }}>
+                        Total Units: {totalUnits}
+                    </span>
+                </div>
+                <div style={{ border: '1px solid #fed7aa', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden' }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.875rem' }}>
+                        <thead>
+                            <tr style={{ background: '#fff7ed' }}>
+                                <th style={th}>#</th>
+                                <th style={th}>Course Code</th>
+                                <th style={{ ...th, width: '45%' }}>Course Description</th>
+                                <th style={{ ...th, textAlign: 'center' }}>Units</th>
+                                <th style={th}>Pre-requisite</th>
+                                <th style={{ ...th, textAlign: 'center' }}>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {items.map((s, idx) => (
+                                <tr key={s.id} style={{ background: idx % 2 === 0 ? '#fff' : '#fffbf7', borderTop: '1px solid #fde8d0' }}>
+                                    <td style={{ ...td, color: '#a8a29e', fontSize: '.78rem', width: 36 }}>{idx + 1}</td>
+                                    <td style={td}>
+                                        <strong style={{ color: '#1c1917', fontSize: '.875rem' }}>{s.subject_code}</strong>
+                                    </td>
+                                    <td style={{ ...td, fontWeight: 500, color: '#1c1917' }}>{s.subject_name}</td>
+                                    <td style={{ ...td, textAlign: 'center' }}>
+                                        <span style={{
+                                            display: 'inline-block', fontWeight: 700, fontSize: '.8rem',
+                                            background: '#f0fdf4', color: '#16a34a',
+                                            border: '1px solid #bbf7d0', borderRadius: 6,
+                                            padding: '2px 10px',
+                                        }}>{s.units}</span>
+                                    </td>
+                                    <td style={{ ...td, color: s.pre_requisite ? '#44403c' : '#a8a29e', fontSize: '.82rem', fontStyle: s.pre_requisite ? 'normal' : 'italic' }}>
+                                        {s.pre_requisite || 'none'}
+                                    </td>
+                                    <td style={{ ...td, textAlign: 'center' }}>
+                                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                                            <button style={iconBtn} onClick={() => openEdit(s)} title="Edit"><Pencil size={13} /></button>
+                                            <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)} title="Delete"><Trash2 size={13} /></button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -59,34 +146,52 @@ export default function SubjectsMap() {
                 <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Subject</button>
             </div>
 
+            {/* Program Filter Tabs */}
+            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+                {PROGRAMS.map(p => (
+                    <button
+                        key={p.value}
+                        onClick={() => handleProgramChange(p.value)}
+                        style={{
+                            padding: '8px 20px',
+                            borderRadius: 10,
+                            border: '1.5px solid',
+                            borderColor: activeProgram === p.value ? '#f97316' : '#e7e5e4',
+                            background: activeProgram === p.value ? '#fff7ed' : '#fff',
+                            color: activeProgram === p.value ? '#ea580c' : '#78716c',
+                            fontWeight: activeProgram === p.value ? 700 : 500,
+                            fontSize: '.875rem',
+                            cursor: 'pointer',
+                            transition: 'all .15s',
+                        }}
+                    >
+                        {p.label}
+                    </button>
+                ))}
+            </div>
+
             {loading ? <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div> : (
-                <div className="card">
-                    <div className="card-body" style={{ padding: 0 }}>
-                        <div className="table-wrap">
-                            <table>
-                                <thead><tr><th>#</th><th>Code</th><th>Subject Name</th><th>Units</th><th>Pre-requisite</th><th>Description</th><th>Actions</th></tr></thead>
-                                <tbody>
-                                    {subjects.map((s, i) => (
-                                        <tr key={s.id}>
-                                            <td>{i + 1}</td>
-                                            <td><strong>{s.subject_code}</strong></td>
-                                            <td>{s.subject_name}</td>
-                                            <td>{s.units ?? '—'}</td>
-                                            <td>{s.pre_requisite || '—'}</td>
-                                            <td style={{ maxWidth: 200, fontSize: '.8rem', color: '#78716c' }}>{s.description || '—'}</td>
-                                            <td>
-                                                <div style={{ display: 'flex', gap: 6 }}>
-                                                    <button style={iconBtn} onClick={() => openEdit(s)}><Pencil size={13} /></button>
-                                                    <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)}><Trash2 size={13} /></button>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {subjects.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>No subjects yet.</td></tr>}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+                <div>
+                    {subjects.length === 0 && <div style={{ textAlign: 'center', color: '#a8a29e', padding: 32, background: '#fff', borderRadius: 12, border: '1px solid #e7e5e4' }}>No subjects yet.</div>}
+                    {['1st Year', '2nd Year', '3rd Year', '4th Year', 'Unassigned'].map(y => {
+                        if (!grouped[y]) return null;
+                        const yearUnits = Object.values(grouped[y]).flat().reduce((sum, s) => sum + (parseInt(s.units) || 0), 0);
+                        return (
+                            <div key={y} style={{ marginBottom: 48 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                    <div style={{ flex: 1, height: 2, background: 'linear-gradient(90deg, #f97316, #fed7aa)' }} />
+                                    <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1c1917', whiteSpace: 'nowrap' }}>{y}</span>
+                                    <span style={{ fontSize: '.78rem', fontWeight: 600, color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 20, padding: '2px 10px' }}>
+                                        {yearUnits} units total
+                                    </span>
+                                    <div style={{ flex: 1, height: 2, background: 'linear-gradient(90deg, #fed7aa, transparent)' }} />
+                                </div>
+                                {['1st Semester', '2nd Semester', 'Summer', 'Unassigned'].map(sem =>
+                                    renderTable(sem !== 'Unassigned' ? sem : (y === 'Unassigned' ? 'Uncategorized Subjects' : 'Other'), grouped[y][sem])
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             )}
 
@@ -96,9 +201,38 @@ export default function SubjectsMap() {
                         {[['subject_code', 'Subject Code'], ['subject_name', 'Subject Name'], ['units', 'Units'], ['pre_requisite', 'Pre-Requisite']].map(([k, lbl]) => (
                             <div key={k}>
                                 <label style={lStyle}>{lbl}</label>
-                                <input style={iStyle} value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} required={k === 'subject_name'} />
+                                <input style={iStyle} value={form[k]} onChange={e => setForm(f => ({ ...f, [k]: e.target.value }))} required={k === 'subject_name' || k === 'subject_code' || k === 'units'} />
                             </div>
                         ))}
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                            <div>
+                                <label style={lStyle}>Year Level</label>
+                                <select style={iStyle} value={form.year_level} onChange={e => setForm(f => ({ ...f, year_level: e.target.value }))}>
+                                    <option value="">— Select —</option>
+                                    <option value="1st Year">1st Year</option>
+                                    <option value="2nd Year">2nd Year</option>
+                                    <option value="3rd Year">3rd Year</option>
+                                    <option value="4th Year">4th Year</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label style={lStyle}>Semester</label>
+                                <select style={iStyle} value={form.semester} onChange={e => setForm(f => ({ ...f, semester: e.target.value }))}>
+                                    <option value="">— Select —</option>
+                                    <option value="1st Semester">1st Semester</option>
+                                    <option value="2nd Semester">2nd Semester</option>
+                                    <option value="Summer">Summer</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <label style={lStyle}>Program</label>
+                            <select style={iStyle} value={form.program} onChange={e => setForm(f => ({ ...f, program: e.target.value }))}>
+                                <option value="">— Select —</option>
+                                <option value="Information Technology">Information Technology</option>
+                                <option value="Computer Science">Computer Science</option>
+                            </select>
+                        </div>
                         <div>
                             <label style={lStyle}>Description</label>
                             <textarea style={{ ...iStyle, height: 80, resize: 'vertical' }} value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
@@ -122,3 +256,5 @@ const modalCard = { background: '#fff', borderRadius: 20, padding: '28px 32px', 
 const iconBtn = { background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#78716c' };
 const lStyle = { display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5, letterSpacing: .3 };
 const iStyle = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', fontFamily: "'Inter',sans-serif", color: '#1c1917', boxSizing: 'border-box' };
+const th = { padding: '10px 14px', textAlign: 'left', fontSize: '.75rem', fontWeight: 700, color: '#92400e', letterSpacing: .4, textTransform: 'uppercase', borderBottom: '1px solid #fed7aa' };
+const td = { padding: '10px 14px', color: '#44403c', verticalAlign: 'middle' };

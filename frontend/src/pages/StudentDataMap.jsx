@@ -26,19 +26,21 @@ function Modal({ title, onClose, width = 520, children }) {
 }
 
 const emptyStudent = {
-    student_id: '', first_name: '', middle_name: '', last_name: '',
+    student_id: '', department: '', first_name: '', middle_name: '', last_name: '',
     age: '', gender: 'Male', guardian_name: '', date_of_birth: '',
-    address: '', contact_number: '', email: '', enrollment_date: '', status: 'active'
+    address: '', contact_number: '09', email: '', enrollment_date: '', status: 'active'
 };
 
 export default function StudentDataMap() {
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [filters, setFilters] = useState({ status: 'active', search: '', gender: '' });
+    const [filters, setFilters] = useState({ status: 'active', search: '', gender: '', department: '' });
     const [modal, setModal] = useState(null);
     const [form, setForm] = useState(emptyStudent);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
+    const [deptPages, setDeptPages] = useState({});
+    const PAGE_SIZE = 5;
 
     const printRef = useRef();
 
@@ -54,11 +56,13 @@ export default function StudentDataMap() {
     };
 
     useEffect(loadData, [filters]);
+    useEffect(() => setDeptPages({}), [filters]);
 
     const openAdd = () => { setForm(emptyStudent); setModal('add'); };
     const openEdit = (s) => {
         setForm({
             student_id: s.student_id || '',
+            department: s.department || '',
             first_name: s.first_name || '',
             middle_name: s.middle_name || '',
             last_name: s.last_name || '',
@@ -67,7 +71,7 @@ export default function StudentDataMap() {
             guardian_name: s.guardian_name || '',
             date_of_birth: s.date_of_birth || '',
             address: s.address || '',
-            contact_number: s.contact_number || '',
+            contact_number: s.contact_number || '09',
             email: s.email || '',
             enrollment_date: s.enrollment_date || '',
             status: s.status || 'active'
@@ -94,18 +98,120 @@ export default function StudentDataMap() {
         }
     };
 
+    const handleContactChange = (e) => {
+        let val = e.target.value.replace(/\D/g, '');
+        if (!val.startsWith('09')) val = '09' + val.replace(/^0*9*/, '');
+        if (val.length > 11) val = val.slice(0, 11);
+        setForm(f => ({ ...f, contact_number: val }));
+    };
+
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this student record?')) return;
         await deleteStudent(id);
         loadData();
     };
 
-    const grouped = students.reduce((acc, s) => {
-        const key = s.status ? s.status.charAt(0).toUpperCase() + s.status.slice(1) : 'Unknown';
+    const visibleStudents = filters.department
+        ? students.filter(s => s.department === filters.department)
+        : students;
+
+    // Group by department label
+    const DEPT_LABELS = { IT: 'Information Technology', CS: 'Computer Science' };
+    const grouped = visibleStudents.reduce((acc, s) => {
+        const key = s.department || 'Unknown';
         if (!acc[key]) acc[key] = [];
         acc[key].push(s);
         return acc;
     }, {});
+
+    const getDeptPage = (dept) => deptPages[dept] || 1;
+    const setDeptPage = (dept, p) => setDeptPages(prev => ({ ...prev, [dept]: p }));
+
+    const renderDeptTable = (dept, deptStudents) => {
+        const label = DEPT_LABELS[dept] || dept;        const page = getDeptPage(dept);
+        const totalPages = Math.ceil(deptStudents.length / PAGE_SIZE);
+        const paginated = deptStudents.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+        return (
+            <div key={dept} className="card" style={{ marginBottom: 28 }}>
+                <div className="card-header" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fff' }}>
+                    <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Building size={17} strokeWidth={2} />{label}
+                    </h2>
+                    <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{deptStudents.length} students</span>
+                </div>
+                <div className="card-body" style={{ padding: 0 }}>
+                    <div className="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th><th>Student ID</th><th>Full Name</th>
+                                    <th>Age</th><th>Gender</th><th>Guardian</th>
+                                    <th>Affiliations</th><th>Skills</th>
+                                    <th>Violations</th><th className="no-print">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {paginated.map((stu, idx) => (
+                                    <tr key={stu.id}>
+                                        <td>{(page - 1) * PAGE_SIZE + idx + 1}</td>
+                                        <td><strong>{stu.student_id || `STU-${stu.id}`}</strong></td>
+                                        <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
+                                        <td>{stu.age || '—'}</td>
+                                        <td>{stu.gender || '—'}</td>
+                                        <td style={{ fontSize: '.75rem' }}>{stu.guardian_name || '—'}</td>
+                                        <td style={{ minWidth: 140 }}>
+                                            {stu.affiliations?.length > 0
+                                                ? stu.affiliations.map(a => (
+                                                    <div key={a.id} style={{ fontSize: '.75rem', marginBottom: 2 }}>
+                                                        <strong>{a.role || 'Member'}</strong> — {a.name}
+                                                    </div>
+                                                ))
+                                                : '—'}
+                                        </td>
+                                        <td style={{ minWidth: 110 }}>
+                                            {stu.skills?.length > 0
+                                                ? <div className="tags">{stu.skills.map(sk => <SkillTag key={sk.id} skill={sk} />)}</div>
+                                                : '—'}
+                                        </td>
+                                        <td style={{ minWidth: 110 }}>
+                                            {stu.violations?.length > 0
+                                                ? stu.violations.map(v => (
+                                                    <div key={v.id} style={{ fontSize: '.75rem', marginBottom: 2 }}>
+                                                        <Badge value={v.severity_level} /> {v.violation_type}
+                                                    </div>
+                                                ))
+                                                : <span style={{ color: '#16a34a', fontSize: '.75rem' }}>No violations</span>}
+                                        </td>
+                                        <td className="no-print">
+                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit Student"><Pencil size={13} /></button>
+                                                <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(stu.id)} title="Delete Student"><Trash2 size={13} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                {totalPages > 1 && (
+                    <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
+                        <button onClick={() => setDeptPage(dept, Math.max(1, page - 1))} disabled={page === 1} style={{ ...pageBtn, opacity: page === 1 ? 0.4 : 1 }}>‹</button>
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                            <button key={p} onClick={() => setDeptPage(dept, p)}
+                                style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
+                            >{p}</button>
+                        ))}
+                        <button onClick={() => setDeptPage(dept, Math.min(totalPages, page + 1))} disabled={page === totalPages} style={{ ...pageBtn, opacity: page === totalPages ? 0.4 : 1 }}>›</button>
+                        <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 8 }}>
+                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, deptStudents.length)} of {deptStudents.length}
+                        </span>
+                    </div>
+                )}
+            </div>
+        );
+    };
 
     return (
         <div>
@@ -116,7 +222,27 @@ export default function StudentDataMap() {
                             <div style={iconWrap}><GraduationCap size={22} color="#f97316" /></div>
                             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Student Data Map</h1>
                         </div>
-                        <p style={{ color: '#78716c' }}>Manage and Print comprehensive student profiles including academic records and history</p>
+                        <p style={{ color: '#78716c', marginBottom: 10 }}>Manage and Print comprehensive student profiles including academic records and history</p>
+                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                            {[['', 'All Students'], ['IT', 'Information Technology (IT)'], ['CS', 'Computer Science (CS)']].map(([val, label]) => (
+                                <button
+                                    key={val}
+                                    onClick={() => setFilters(f => ({ ...f, department: val }))}
+                                    style={{
+                                        padding: '8px 20px',
+                                        borderRadius: 10,
+                                        border: '1.5px solid',
+                                        borderColor: filters.department === val ? '#f97316' : '#e7e5e4',
+                                        background: filters.department === val ? '#f97316' : '#fff',
+                                        color: filters.department === val ? '#fff' : '#78716c',
+                                        fontWeight: filters.department === val ? 700 : 500,
+                                        fontSize: '.875rem',
+                                        cursor: 'pointer',
+                                        transition: 'all .15s',
+                                    }}
+                                >{label}</button>
+                            ))}
+                        </div>
                     </div>
                     <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Student</button>
                 </div>
@@ -145,6 +271,7 @@ export default function StudentDataMap() {
                     <option value="graduated">Graduated</option>
                     <option value="dropped">Dropped</option>
                 </select>
+
                 <div style={{ flex: 1 }} />
                 <button className="btn btn-outline" onClick={handlePrint}>
                     <Printer size={15} /> Print Map
@@ -155,7 +282,7 @@ export default function StudentDataMap() {
                 <div className="print-header">
                     <h1>CCS COMPREHENSIVE PROFILING SYSTEM</h1>
                     <p>Student Data Map — Generated {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p>Total Students: {students.length}</p>
+                    <p>Total Students: {visibleStudents.length}{filters.department ? ` — ${filters.department === 'IT' ? 'Information Technology' : 'Computer Science'}` : ''}</p>
                     <hr style={{ margin: '6px 0' }} />
                 </div>
 
@@ -164,81 +291,24 @@ export default function StudentDataMap() {
                 ) : students.length === 0 ? (
                     <div className="empty"><GraduationCap size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No student records found.</p></div>
                 ) : (
-                    Object.entries(grouped).map(([groupName, groupStudents]) => (
-                        <div key={groupName} className="card" style={{ marginBottom: 28 }}>
-                            <div className="card-header" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fff' }}>
-                                <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Building size={17} strokeWidth={2} />{groupName}
-                                </h2>
-                                <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{groupStudents.length} students</span>
-                            </div>
-                            <div className="card-body" style={{ padding: 0 }}>
-                                <div className="table-wrap">
-                                    <table>
-                                        <thead>
-                                            <tr>
-                                                <th>#</th><th>Student ID</th><th>Full Name</th>
-                                                <th>Age</th><th>Gender</th><th>Guardian</th>
-                                                <th>Affiliations</th><th>Skills</th>
-                                                <th>Violations</th><th className="no-print">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {groupStudents.map((stu, idx) => (
-                                                <tr key={stu.id}>
-                                                    <td>{idx + 1}</td>
-                                                    <td><strong>{stu.student_id || `STU-${stu.id}`}</strong></td>
-                                                    <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
-                                                    <td>{stu.age || '—'}</td>
-                                                    <td>{stu.gender || '—'}</td>
-                                                    <td style={{ fontSize: '.75rem' }}>{stu.guardian_name || '—'}</td>
-                                                    <td style={{ minWidth: 140 }}>
-                                                        {stu.affiliations?.length > 0
-                                                            ? stu.affiliations.map(a => (
-                                                                <div key={a.id} style={{ fontSize: '.75rem', marginBottom: 2 }}>
-                                                                    <strong>{a.role || 'Member'}</strong> — {a.name}
-                                                                </div>
-                                                            ))
-                                                            : '—'}
-                                                    </td>
-                                                    <td style={{ minWidth: 110 }}>
-                                                        {stu.skills?.length > 0
-                                                            ? <div className="tags">{stu.skills.map(sk => <SkillTag key={sk.id} skill={sk} />)}</div>
-                                                            : '—'}
-                                                    </td>
-                                                    <td style={{ minWidth: 110 }}>
-                                                        {stu.violations?.length > 0
-                                                            ? stu.violations.map(v => (
-                                                                <div key={v.id} style={{ fontSize: '.75rem', marginBottom: 2 }}>
-                                                                    <Badge value={v.severity_level} /> {v.violation_type}
-                                                                </div>
-                                                            ))
-                                                            : <span style={{ color: '#16a34a', fontSize: '.75rem' }}>No violations</span>}
-                                                    </td>
-                                                    <td className="no-print">
-                                                        <div style={{ display: 'flex', gap: 6 }}>
-                                                            <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit Student"><Pencil size={13} /></button>
-                                                            <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(stu.id)} title="Delete Student"><Trash2 size={13} /></button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                    ))
-                )}
+                    ['CS', 'IT', 'Unknown'].map(dept => grouped[dept] ? renderDeptTable(dept, grouped[dept]) : null)                )}
             </div>
 
             {modal && (
                 <Modal title={modal === 'add' ? 'Add New Student' : 'Edit Student'} onClose={() => setModal(null)} width={640}>
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr 1fr', gap: 12 }}>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
                             <div>
                                 <label style={lStyle}>Student ID</label>
-                                <input style={iStyle} value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })} placeholder="STU-2024-XXXX" />
+                                <input style={iStyle} value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })} placeholder="e.g. 2202184" />
+                            </div>
+                            <div>
+                                <label style={lStyle}>Department</label>
+                                <select style={iStyle} value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}>
+                                    <option value="">— Select —</option>
+                                    <option value="IT">Information Technology (IT)</option>
+                                    <option value="CS">Computer Science (CS)</option>
+                                </select>
                             </div>
                             <div>
                                 <label style={lStyle}>Status</label>
@@ -301,7 +371,7 @@ export default function StudentDataMap() {
                             </div>
                             <div>
                                 <label style={lStyle}>Contact No.</label>
-                                <input style={iStyle} value={form.contact_number} onChange={e => setForm({ ...form, contact_number: e.target.value })} />
+                                <input style={iStyle} value={form.contact_number} onChange={handleContactChange} placeholder="09XXXXXXXXX" maxLength={11} />
                             </div>
                         </div>
 
@@ -330,3 +400,4 @@ const modalCard = { background: '#fff', borderRadius: 20, padding: '28px 32px', 
 const iconBtnStyle = { background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#78716c' };
 const lStyle = { display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5, letterSpacing: .3 };
 const iStyle = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', fontFamily: "'Inter',sans-serif", color: '#1c1917', boxSizing: 'border-box' };
+const pageBtn = { minWidth: 34, height: 34, borderRadius: 8, border: '1.5px solid #e7e5e4', background: '#fff', color: '#78716c', fontSize: '.875rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .15s' };

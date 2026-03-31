@@ -17,16 +17,22 @@ class SubjectController extends Controller
             $query->where(fn($q) => $q->where('subject_code', 'like', "%$s%")
                 ->orWhere('subject_name', 'like', "%$s%"));
         }
+        if ($request->filled('program')) {
+            $query->where('program', $request->program);
+        }
         return response()->json($query->orderBy('subject_code')->get());
     }
 
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'subject_code'   => 'required|string|max:30|unique:subjects',
+            'subject_code'   => 'required|string|max:30|unique:subjects,subject_code,NULL,id,program,' . ($request->program ?? ''),
             'subject_name'   => 'required|string|max:200',
             'units'          => 'required|integer|min:1|max:9',
             'pre_requisite'  => 'nullable|string|max:200',
+            'year_level'    => 'nullable|string|max:50',
+            'semester'      => 'nullable|string|max:50',
+            'program'       => 'nullable|string|max:100',
         ]);
         return response()->json(Subject::create($data), 201);
     }
@@ -45,10 +51,13 @@ class SubjectController extends Controller
     public function update(Request $request, Subject $subject): JsonResponse
     {
         $data = $request->validate([
-            'subject_code'  => "sometimes|string|max:30|unique:subjects,subject_code,{$subject->id}",
+            'subject_code'  => "sometimes|string|max:30|unique:subjects,subject_code,{$subject->id},id,program," . ($request->program ?? $subject->program),
             'subject_name'  => 'sometimes|string|max:200',
             'units'         => 'sometimes|integer|min:1|max:9',
             'pre_requisite' => 'nullable|string|max:200',
+            'year_level'    => 'nullable|string|max:50',
+            'semester'      => 'nullable|string|max:50',
+            'program'       => 'nullable|string|max:100',
         ]);
         $subject->update($data);
         return response()->json($subject);

@@ -36,10 +36,7 @@ export default function Login() {
                 setSuccess(true);
             }
         } catch (err) {
-            const detail = err.response?.data?.errors?.email?.[0]
-                || err.response?.data?.message
-                || 'Invalid email or password. Please try again.';
-            setError(`${err.response?.status ?? ''} ${detail}`);
+            setError('Invalid email or password. Please try again.');
         } finally {
             setLoading(false);
         }
@@ -66,6 +63,16 @@ export default function Login() {
                 <div style={styles.bgOverlay} />
                 <div style={styles.bgNoise} />
             </div>
+
+            {/* --- SUCCESS LOADING OVERLAY --- */}
+            {success && (
+                <div style={styles.successOverlay} className="success-overlay-in">
+                    <div style={styles.successBox}>
+                        <div style={styles.successSpinner} />
+                        <p style={styles.successText}>Signing you in…</p>
+                    </div>
+                </div>
+            )}
 
             <div style={styles.contentWrapper}>
                 <div style={styles.glassCard} className="fade-in-up">
@@ -250,7 +257,10 @@ export default function Login() {
                 @keyframes shakeError  { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
                 @keyframes overlayIn   { from { opacity: 0; } to { opacity: 1; } }
                 @keyframes modalIn     { from { opacity: 0; transform: translateY(24px) scale(0.95); } to { opacity: 1; transform: translateY(0) scale(1); } }
+                @keyframes successIn   { from { opacity: 0; } to { opacity: 1; } }
+                @keyframes pulse       { 0%,100% { transform: scale(1); opacity: 1; } 50% { transform: scale(1.08); opacity: 0.8; } }
 
+                .success-overlay-in { animation: successIn 0.3s ease forwards; }
                 .fade-in-up      { animation: fadeInUp   0.75s cubic-bezier(0.16,1,0.3,1) forwards; }
                 .shake-error     { animation: shakeError 0.45s ease-in-out; }
                 .spin-icon       { animation: spin 1s linear infinite; }
@@ -526,5 +536,30 @@ const styles = {
         background: 'none', border: 'none',
         color: '#a8a29e', fontSize: '0.82rem',
         cursor: 'pointer', marginTop: '0.25rem',
+    },
+
+    /* Success loading overlay */
+    successOverlay: {
+        position: 'fixed', inset: 0, zIndex: 100,
+        background: 'rgba(10,15,40,0.85)',
+        backdropFilter: 'blur(10px)',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+    },
+    successBox: {
+        display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '1.25rem',
+    },
+    successSpinner: {
+        width: 56, height: 56,
+        borderRadius: '50%',
+        border: '4px solid rgba(249,115,22,0.2)',
+        borderTopColor: '#f97316',
+        animation: 'spin 0.8s linear infinite',
+    },
+    successText: {
+        margin: 0,
+        color: 'rgba(255,255,255,0.85)',
+        fontSize: '1rem', fontWeight: 600,
+        letterSpacing: '0.03em',
+        animation: 'pulse 1.4s ease-in-out infinite',
     },
 };
