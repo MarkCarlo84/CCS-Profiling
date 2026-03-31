@@ -3,11 +3,10 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\OtpMail;
 use App\Models\OtpVerification;
+use App\Services\BrevoMailService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Mail;
 
 class OtpController extends Controller
 {
@@ -42,7 +41,13 @@ class OtpController extends Controller
         ]);
 
         try {
-            Mail::to($targetEmail)->send(new OtpMail($otp, $request->action));
+            $subject = match($request->action) {
+                'add_faculty' => 'OTP: Confirm Add Faculty',
+                'add_student' => 'OTP: Confirm Add Student',
+                default       => 'OTP: Verify Your Email',
+            };
+            $html = view('emails.otp', ['otp' => $otp, 'action' => $request->action])->render();
+            app(BrevoMailService::class)->send($targetEmail, $targetEmail, $subject, $html);
         } catch (\Exception $e) {
             \Log::error('OTP email failed: ' . $e->getMessage());
             return response()->json(['message' => 'Failed to send OTP email. Please try again.'], 500);

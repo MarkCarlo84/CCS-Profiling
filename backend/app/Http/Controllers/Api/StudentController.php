@@ -3,17 +3,16 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\WelcomeMail;
 use App\Models\Student;
 use App\Models\User;
 use App\Models\Violation;
 use App\Models\Affiliation;
 use App\Models\Skill;
 use App\Models\AcademicRecord;
+use App\Services\BrevoMailService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 
 class StudentController extends Controller
 {
@@ -71,7 +70,13 @@ class StudentController extends Controller
         ]);
 
         try {
-            Mail::to($student->email)->send(new WelcomeMail($user->name, $student->email, $defaultPassword, 'student'));
+            $html = view('emails.welcome', [
+                'name'     => $user->name,
+                'email'    => $student->email,
+                'password' => $defaultPassword,
+                'role'     => 'student',
+            ])->render();
+            app(BrevoMailService::class)->send($student->email, $user->name, 'Welcome! Your Account Has Been Created', $html);
         } catch (\Exception $e) {
             \Log::error('Student welcome email failed: ' . $e->getMessage());
         }

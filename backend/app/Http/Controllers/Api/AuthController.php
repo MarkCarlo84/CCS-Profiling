@@ -3,13 +3,12 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Mail\OtpMail;
 use App\Models\OtpVerification;
 use App\Models\User;
+use App\Services\BrevoMailService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
@@ -47,7 +46,8 @@ class AuthController extends Controller
             ]);
 
             try {
-                Mail::to($user->email)->send(new OtpMail($otp, 'first_login'));
+                $html = view('emails.otp', ['otp' => $otp, 'action' => 'first_login'])->render();
+                app(BrevoMailService::class)->send($user->email, $user->name, 'OTP: Verify Your New Account', $html);
             } catch (\Exception $e) {
                 \Log::error('Login OTP email failed: ' . $e->getMessage());
                 return response()->json(['message' => 'Failed to send OTP email. Please try again later.'], 500);
