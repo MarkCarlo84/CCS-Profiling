@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { getStudents, createStudent, updateStudent, deleteStudent } from '../api';
-import { GraduationCap, Search, Printer, Building, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { getStudents, createStudent, updateStudent, deleteStudent, sendOtp, verifyOtp } from '../api';
+import { GraduationCap, Search, Printer, Building, Plus, Pencil, Trash2, X, Check, ShieldCheck, Mail, AlertCircle } from 'lucide-react';
 
 function Badge({ value }) {
     return <span className={`badge badge-${value?.toLowerCase().replace(/\s/g, '_')}`}>{value?.replace(/_/g, ' ')}</span>;
@@ -42,6 +42,13 @@ export default function StudentDataMap() {
     const [deptPages, setDeptPages] = useState({});
     const PAGE_SIZE = 5;
 
+    // OTP flow state
+    const [otpStep, setOtpStep] = useState(false);
+    const [otpValue, setOtpValue] = useState('');
+    const [otpSending, setOtpSending] = useState(false);
+    const [otpError, setOtpError] = useState('');
+    const [pendingForm, setPendingForm] = useState(null);
+
     const printRef = useRef();
 
     const handlePrint = useReactToPrint({
@@ -81,18 +88,50 @@ export default function StudentDataMap() {
 
     const handleSave = async (e) => {
         e.preventDefault();
-        setSaving(true);
         setSaveError('');
-        try {
-            if (modal === 'add') {
-                await createStudent(form);
-            } else {
+        // Edit mode — no OTP needed
+        if (modal !== 'add') {
+            setSaving(true);
+            try {
                 await updateStudent(modal.edit.id, form);
+                setModal(null);
+                loadData();
+            } catch (err) {
+                setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
+            } finally {
+                setSaving(false);
             }
+            return;
+        }
+        // Add mode — send OTP to student email first
+        setOtpSending(true);
+        setOtpError('');
+        try {
+            await sendOtp('add_student', form.email);
+            setPendingForm(form);
+            setOtpStep(true);
+            setOtpValue('');
+        } catch (err) {
+            setSaveError(err.response?.data?.message || 'Failed to send OTP. Check the email address.');
+        } finally {
+            setOtpSending(false);
+        }
+    };
+
+    // Step 2: verify OTP then actually create student
+    const handleOtpConfirm = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setOtpError('');
+        try {
+            await verifyOtp(otpValue, 'add_student', pendingForm.email);
+            await createStudent(pendingForm);
+            setOtpStep(false);
             setModal(null);
+            setPendingForm(null);
             loadData();
         } catch (err) {
-            setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
+            setOtpError(err.response?.data?.message || 'Invalid or expired OTP.');
         } finally {
             setSaving(false);
         }
@@ -295,7 +334,44 @@ export default function StudentDataMap() {
             </div>
 
             {modal && (
-                <Modal title={modal === 'add' ? 'Add New Student' : 'Edit Student'} onClose={() => setModal(null)} width={640}>
+                <Modal title={modal === 'add' ? 'Add New Student' : 'Edit Student'} onClose={() => { setModal(null); setOtpStep(false); setOtpError(''); }} width={640}>
+                    {/* OTP verification step */}
+                    {otpStep ? (
+                        <form onSubmit={handleOtpConfirm} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                            <div style={{ textAlign: 'center', padding: '10px 0 6px' }}>
+                                <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff7ed', border: '2px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px' }}>
+                                    <ShieldCheck size={26} color="#f97316" />
+                                </div>
+                                <p style={{ fontSize: '.9rem', fontWeight: 700, color: '#1c1917', margin: '0 0 4px' }}>Verify OTP</p>
+                                <p style={{ fontSize: '.8rem', color: '#78716c', margin: 0 }}>
+                                    A 6-digit OTP was sent to <strong style={{ color: '#f97316' }}>{pendingForm?.email}</strong>. Enter it below to confirm.
+                                </p>
+                            </div>
+                            {otpError && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '8px 12px', color: '#dc2626', fontSize: '.82rem' }}>
+                                    <AlertCircle size={14} />{otpError}
+                                </div>
+                            )}
+                            <div style={{ position: 'relative' }}>
+                                <ShieldCheck size={16} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                                <input
+                                    style={{ ...iStyle, paddingLeft: 36, letterSpacing: 6, fontSize: '1.1rem', textAlign: 'center' }}
+                                    placeholder="000000"
+                                    value={otpValue}
+                                    onChange={e => setOtpValue(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                    maxLength={6}
+                                    autoFocus
+                                    required
+                                />
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 10, marginTop: 4 }}>
+                                <button type="button" className="btn btn-outline" onClick={() => { setOtpStep(false); setOtpError(''); setOtpValue(''); }}>← Back</button>
+                                <button type="submit" className="btn btn-primary" disabled={saving || otpValue.length !== 6}>
+                                    <Check size={14} /> {saving ? 'Verifying...' : 'Confirm & Add Student'}
+                                </button>
+                            </div>
+                        </form>
+                    ) : (
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
                             <div>
@@ -383,11 +459,15 @@ export default function StudentDataMap() {
                         {saveError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{saveError}</p>}
                         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 10 }}>
                             <button type="button" className="btn btn-outline" onClick={() => setModal(null)}>Cancel</button>
-                            <button type="submit" className="btn btn-primary" disabled={saving}>
-                                <Check size={14} /> {saving ? 'Saving...' : modal === 'add' ? 'Add Student' : 'Save Student'}
+                            <button type="submit" className="btn btn-primary" disabled={saving || otpSending}>
+                                {modal === 'add'
+                                    ? <><Mail size={14} /> {otpSending ? 'Sending OTP...' : 'Send OTP & Add'}</>
+                                    : <><Check size={14} /> {saving ? 'Saving...' : 'Save Student'}</>
+                                }
                             </button>
                         </div>
                     </form>
+                    )}
                 </Modal>
             )}
         </div>

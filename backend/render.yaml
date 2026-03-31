@@ -8,7 +8,7 @@ services:
       php artisan cache:clear
       php artisan route:clear
       php artisan view:clear
-      php artisan migrate:fresh --seed --force
+      php artisan migrate --force
     startCommand: php artisan serve --host=0.0.0.0 --port=$PORT
     envVars:
       - key: APP_ENV
@@ -16,7 +16,7 @@ services:
       - key: APP_DEBUG
         value: false
       - key: APP_KEY
-        generateValue: true
+        sync: false
       - key: APP_URL
         value: https://ccs-profiling.onrender.com
       - key: FRONTEND_URL
