@@ -19,10 +19,7 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_values(array_filter([
-        'https://ccs-profiling.vercel.app',
-        env('FRONTEND_URL', 'http://localhost:5173'),
-    ])),
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 
