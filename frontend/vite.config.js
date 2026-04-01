@@ -5,10 +5,14 @@ export default defineConfig({
   plugins: [react()],
   build: {
     chunkSizeWarningLimit: 1000,
+    minify: 'esbuild',
     rollupOptions: {
       output: {
         manualChunks: {
-          vendor: ['react', 'react-dom'],
+          'react-core':   ['react', 'react-dom'],
+          'react-router': ['react-router-dom'],
+          'lucide':       ['lucide-react'],
+          'axios':        ['axios'],
         },
       },
     },
