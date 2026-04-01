@@ -13,12 +13,189 @@ const TABS = [
 const tabColor = { all: '#f97316', students: '#3b82f6', faculty: '#8b5cf6', courses: '#f59e0b', events: '#ec4899' };
 const StatusPill = ({ val }) => <span style={{ background: '#fff7ed', color: '#c2410c', border: '1px solid #fed7aa', borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 700 }}>{val}</span>;
 
+const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 };
+
+function StudentQuickModal({ s, onClose }) {
+    const fmt = d => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+    const deptLabel = { IT: 'Information Technology', CS: 'Computer Science' };
+
+    const Section = ({ label, color = '#f97316' }) => (
+        <div style={{ fontSize: '.68rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '.1em', margin: '20px 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
+            <div style={{ height: 2, width: 18, background: color, borderRadius: 2 }} />
+            {label}
+            <div style={{ height: 2, flex: 1, background: `${color}22`, borderRadius: 2 }} />
+        </div>
+    );
+
+    return (
+        <div style={overlay}>
+            <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 680, maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)', padding: 0 }}>
+
+                {/* Header */}
+                <div style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', padding: '24px 28px', borderRadius: '20px 20px 0 0', position: 'relative' }}>
+                    <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+                        <X size={16} />
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 20 }}>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.25)', border: '3px solid rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ color: '#fff', fontWeight: 800, fontSize: '1.1rem' }}>{s.first_name?.[0]}{s.last_name?.[0]}</span>
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#fff' }}>{s.first_name} {s.middle_name ? s.middle_name + ' ' : ''}{s.last_name}</div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)', fontFamily: 'monospace', fontWeight: 600 }}>{s.student_id}</span>
+                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)' }}>{deptLabel[s.department] || s.department}</span>
+                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', color: '#fff', textTransform: 'capitalize' }}>{s.status}</span>
+                            </div>
+                        </div>
+                    </div>
+                    {/* Quick stats */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10 }}>
+                        {[
+                            { label: 'Violations', value: s.violations?.filter(v => !v.is_resolved).length ?? 0, warn: true },
+                            { label: 'Skills', value: s.skills?.length ?? 0 },
+                            { label: 'Affiliations', value: s.affiliations?.length ?? 0 },
+                            { label: 'Activities', value: s.non_academic_histories?.length ?? 0 },
+                        ].map(({ label, value, warn }) => (
+                            <div key={label} style={{ background: 'rgba(255,255,255,.15)', borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: warn && value > 0 ? '#fde68a' : '#fff' }}>{value}</div>
+                                <div style={{ fontSize: '.7rem', color: 'rgba(255,255,255,.75)', fontWeight: 600, marginTop: 2 }}>{label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div style={{ padding: '4px 28px 24px' }}>
+                    <Section label="Personal Information" />
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+                        {[
+                            ['Student ID', s.student_id],
+                            ['Date of Birth', fmt(s.date_of_birth)],
+                            ['Full Name', `${s.first_name || ''} ${s.middle_name || ''} ${s.last_name || ''}`.trim()],
+                            ['Age', s.age],
+                            ['Gender', s.gender],
+                            ['Contact', s.contact_number],
+                            ['Email', s.email],
+                            ['Guardian', s.guardian_name],
+                            ['Department', deptLabel[s.department] || s.department],
+                            ['Enrolled', fmt(s.enrollment_date)],
+                        ].map(([label, value]) => (
+                            <div key={label} style={{ display: 'flex', alignItems: 'baseline', padding: '8px 0', borderBottom: '1px solid #f5f5f4' }}>
+                                <span style={{ width: 110, flexShrink: 0, color: '#a8a29e', fontWeight: 600, fontSize: '.8rem' }}>{label}</span>
+                                <span style={{ color: '#1c1917', fontWeight: 500, fontSize: '.875rem', wordBreak: 'break-word', flex: 1 }}>{value || '—'}</span>
+                            </div>
+                        ))}
+                        <div style={{ gridColumn: '1 / -1', display: 'flex', alignItems: 'baseline', padding: '8px 0', borderBottom: '1px solid #f5f5f4' }}>
+                            <span style={{ width: 110, flexShrink: 0, color: '#a8a29e', fontWeight: 600, fontSize: '.8rem' }}>Address</span>
+                            <span style={{ color: '#1c1917', fontWeight: 500, fontSize: '.875rem', flex: 1 }}>{s.address || '—'}</span>
+                        </div>
+                    </div>
+
+                    {/* Violations */}
+                    {s.violations?.length > 0 && <>
+                        <Section label="Violations" color="#dc2626" />
+                        {s.violations.map(v => (
+                            <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '10px 14px', borderRadius: 8, background: v.is_resolved ? '#f0fdf4' : '#fef2f2', border: `1px solid ${v.is_resolved ? '#bbf7d0' : '#fecaca'}`, marginBottom: 6 }}>
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917' }}>{v.violation_type}</div>
+                                    {v.description && <div style={{ fontSize: '.75rem', color: '#78716c', marginTop: 2 }}>{v.description}</div>}
+                                    {v.action_taken && <div style={{ fontSize: '.75rem', color: '#78716c', marginTop: 1 }}>Action: {v.action_taken}</div>}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0, marginLeft: 12 }}>
+                                    <span style={{ fontSize: '.72rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: v.severity_level === 'grave' ? '#fee2e2' : v.severity_level === 'major' ? '#fef3c7' : '#fff7ed', color: v.severity_level === 'grave' ? '#dc2626' : v.severity_level === 'major' ? '#d97706' : '#f97316', border: `1px solid ${v.severity_level === 'grave' ? '#fecaca' : v.severity_level === 'major' ? '#fde68a' : '#fed7aa'}` }}>{v.severity_level}</span>
+                                    <span style={{ fontSize: '.72rem', color: '#a8a29e' }}>{fmt(v.date_committed)}</span>
+                                </div>
+                            </div>
+                        ))}
+                    </>}
+
+                    {/* Skills */}
+                    {s.skills?.length > 0 && <>
+                        <Section label="Skills" color="#7c3aed" />
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                            {s.skills.map(sk => (
+                                <div key={sk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: '#f5f3ff', border: '1px solid #ddd6fe', fontSize: '.8rem', fontWeight: 600, color: '#7c3aed' }}>
+                                    {sk.skill_name} <span style={{ fontSize: '.7rem', color: '#a78bfa' }}>· {sk.skill_level}</span>
+                                    {sk.certification && <span style={{ fontSize: '.68rem', background: '#7c3aed', color: '#fff', borderRadius: 4, padding: '1px 5px' }}>cert</span>}
+                                </div>
+                            ))}
+                        </div>
+                    </>}
+
+                    {/* Affiliations */}
+                    {s.affiliations?.length > 0 && <>
+                        <Section label="Affiliations" color="#0891b2" />
+                        {s.affiliations.map(a => (
+                            <div key={a.id} style={{ padding: '9px 14px', borderRadius: 8, background: '#f0f9ff', border: '1px solid #bae6fd', marginBottom: 6 }}>
+                                <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#0c4a6e' }}>{a.name}</div>
+                                <div style={{ fontSize: '.75rem', color: '#0369a1', marginTop: 2 }}>{a.role} · {a.type}</div>
+                            </div>
+                        ))}
+                    </>}
+
+                    {/* Non-Academic */}
+                    {s.non_academic_histories?.length > 0 && <>
+                        <Section label="Non-Academic Activities" color="#d97706" />
+                        {s.non_academic_histories.map(h => (
+                            <div key={h.id} style={{ padding: '9px 14px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a', marginBottom: 6 }}>
+                                <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#92400e' }}>{h.activity_title}</div>
+                                <div style={{ fontSize: '.75rem', color: '#b45309', marginTop: 2 }}>{h.category} · {h.role}</div>
+                            </div>
+                        ))}
+                    </>}
+                </div>
+            </div>
+        </div>
+    );
+}
+
+function FacultyQuickModal({ f, onClose }) {
+    const deptLabel = { IT: 'Information Technology', CS: 'Computer Science' };
+    const Row = ({ label, value }) => (
+        <div style={{ display: 'flex', alignItems: 'baseline', padding: '9px 0', borderBottom: '1px solid #f5f5f4' }}>
+            <span style={{ width: 130, flexShrink: 0, color: '#a8a29e', fontWeight: 700, fontSize: '.8rem', textTransform: 'uppercase', letterSpacing: '.03em' }}>{label}</span>
+            <span style={{ color: '#1c1917', fontWeight: 500, fontSize: '.875rem', wordBreak: 'break-word', flex: 1 }}>{value || '—'}</span>
+        </div>
+    );
+    return (
+        <div style={overlay}>
+            <div style={{ background: '#fff', borderRadius: 20, width: '100%', maxWidth: 480, maxHeight: '90vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,.2)', padding: 0 }}>
+                <div style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', padding: '22px 26px', borderRadius: '20px 20px 0 0', position: 'relative' }}>
+                    <button onClick={onClose} style={{ position: 'absolute', top: 14, right: 14, background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 8, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}><X size={15} /></button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+                        <div style={{ width: 50, height: 50, borderRadius: '50%', background: 'rgba(255,255,255,.25)', border: '3px solid rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ color: '#fff', fontWeight: 800, fontSize: '1rem' }}>{f.first_name?.[0]}{f.last_name?.[0]}</span>
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: 800, fontSize: '1.1rem', color: '#fff' }}>{f.first_name} {f.last_name}</div>
+                            <div style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)', marginTop: 3 }}>{f.faculty_id} · {deptLabel[f.department] || f.department} · {f.position}</div>
+                        </div>
+                    </div>
+                </div>
+                <div style={{ padding: '20px 26px' }}>
+                    <Row label="Faculty ID"  value={f.faculty_id} />
+                    <Row label="Full Name"   value={`${f.first_name || ''} ${f.middle_name || ''} ${f.last_name || ''}`.trim()} />
+                    <Row label="Department"  value={deptLabel[f.department] || f.department} />
+                    <Row label="Position"    value={f.position} />
+                    <Row label="Email"       value={f.email} />
+                    <Row label="Contact"     value={f.contact_number} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function SearchPage() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState(null);
     const [loading, setLoading] = useState(false);
     const [activeTab, setActiveTab] = useState('all');
     const [timer, setTimer] = useState(null);
+    const [viewingStudent, setViewingStudent] = useState(null);
+    const [viewingFaculty, setViewingFaculty] = useState(null);
 
     const runSearch = async (q) => {
         if (!q.trim()) { setResults(null); return; }
@@ -41,7 +218,7 @@ export default function SearchPage() {
 
     const counts = results ? {
         students: results.students?.length ?? 0,
-        faculty: results.faculty?.length ?? 0,
+        faculty: results.faculties?.length ?? 0,
         courses: results.courses?.length ?? 0,
         events: results.events?.length ?? 0,
     } : {};
@@ -138,19 +315,26 @@ export default function SearchPage() {
                                 <span style={{ fontSize: 12, color: '#a8a29e', fontWeight: 500 }}>{results.students.length} result(s)</span>
                             </div>
                             <div className="table-wrap">
-                                <table>
+                                <table style={{ tableLayout: 'fixed', width: '100%' }}>
                                     <thead>
-                                        <tr>{['Student No.', 'Name', 'Department', 'Year', 'GPA', 'Status'].map(h => <th key={h}>{h}</th>)}</tr>
+                                        <tr>
+                                            <th style={{ width: '14%' }}>Student ID</th>
+                                            <th style={{ width: '22%' }}>Name</th>
+                                            <th style={{ width: '12%' }}>Department</th>
+                                            <th style={{ width: '10%' }}>Gender</th>
+                                            <th style={{ width: '10%' }}>Status</th>
+                                            <th style={{ width: '18%' }}>Contact</th>
+                                        </tr>
                                     </thead>
                                     <tbody>
                                         {results.students.map(s => (
                                             <tr key={s.id}>
-                                                <td><strong style={{ color: '#3b82f6' }}>{s.student_number}</strong></td>
-                                                <td style={{ fontWeight: 600 }}>{s.last_name}, {s.first_name}</td>
-                                                <td style={{ color: '#78716c', fontSize: 13 }}>{s.department?.code ?? '—'}</td>
-                                                <td>{s.year_level}</td>
-                                                <td><strong style={{ color: s.gpa <= 1.75 ? '#15803d' : '#18120e' }}>{s.gpa ? parseFloat(s.gpa).toFixed(2) : '—'}</strong></td>
+                                                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><strong style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewingStudent(s)}>{s.student_id || '—'}</strong></td>
+                                                <td style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.last_name}, {s.first_name}</td>
+                                                <td style={{ color: '#78716c', fontSize: 13 }}>{s.department || '—'}</td>
+                                                <td style={{ fontSize: 13 }}>{s.gender || '—'}</td>
                                                 <td><StatusPill val={s.status} /></td>
+                                                <td style={{ fontSize: 13, color: '#78716c', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.contact_number || '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -160,26 +344,31 @@ export default function SearchPage() {
                     )}
 
                     {/* Faculty */}
-                    {(activeTab === 'all' || activeTab === 'faculty') && results.faculty?.length > 0 && (
+                    {(activeTab === 'all' || activeTab === 'faculty') && results.faculties?.length > 0 && (
                         <div className="card">
                             <div className="card-header">
                                 <h2><Users size={15} color="#8b5cf6" />Faculty</h2>
-                                <span style={{ fontSize: 12, color: '#a8a29e', fontWeight: 500 }}>{results.faculty.length} result(s)</span>
+                                <span style={{ fontSize: 12, color: '#a8a29e', fontWeight: 500 }}>{results.faculties.length} result(s)</span>
                             </div>
                             <div className="table-wrap">
-                                <table>
+                                <table style={{ tableLayout: 'fixed', width: '100%' }}>
                                     <thead>
-                                        <tr>{['Employee No.', 'Name', 'Department', 'Position', 'Type', 'Status'].map(h => <th key={h}>{h}</th>)}</tr>
+                                        <tr>
+                                            <th style={{ width: '16%' }}>Faculty ID</th>
+                                            <th style={{ width: '22%' }}>Name</th>
+                                            <th style={{ width: '12%' }}>Department</th>
+                                            <th style={{ width: '14%' }}>Position</th>
+                                            <th style={{ width: '24%' }}>Email</th>
+                                        </tr>
                                     </thead>
                                     <tbody>
-                                        {results.faculty.map(f => (
+                                        {results.faculties.map(f => (
                                             <tr key={f.id}>
-                                                <td><strong style={{ color: '#8b5cf6' }}>{f.employee_number}</strong></td>
-                                                <td style={{ fontWeight: 600 }}>{f.last_name}, {f.first_name}</td>
-                                                <td style={{ color: '#78716c', fontSize: 13 }}>{f.department?.code ?? '—'}</td>
-                                                <td style={{ fontSize: 13 }}>{f.position}</td>
-                                                <td><StatusPill val={f.employment_type} /></td>
-                                                <td><StatusPill val={f.status} /></td>
+                                                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><strong style={{ color: '#8b5cf6', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewingFaculty(f)}>{f.faculty_id || '—'}</strong></td>
+                                                <td style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.last_name}, {f.first_name}</td>
+                                                <td style={{ color: '#78716c', fontSize: 13 }}>{f.department || '—'}</td>
+                                                <td style={{ fontSize: 13, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.position || '—'}</td>
+                                                <td style={{ fontSize: 13, color: '#78716c' }}>{f.email || '—'}</td>
                                             </tr>
                                         ))}
                                     </tbody>
@@ -254,6 +443,8 @@ export default function SearchPage() {
                     )}
                 </div>
             )}
+            {viewingStudent && <StudentQuickModal s={viewingStudent} onClose={() => setViewingStudent(null)} />}
+            {viewingFaculty && <FacultyQuickModal f={viewingFaculty} onClose={() => setViewingFaculty(null)} />}
         </div>
     );
 }

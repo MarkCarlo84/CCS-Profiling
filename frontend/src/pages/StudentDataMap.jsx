@@ -25,6 +25,185 @@ function Modal({ title, onClose, width = 520, children }) {
     );
 }
 
+function StudentDetailModal({ student: s, onClose }) {
+    const fmt = (d) => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+
+    const Section = ({ label, color = '#f97316', children }) => (
+        <div style={{ marginBottom: 20 }}>
+            <div style={{ fontSize: '.68rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <div style={{ height: 2, width: 18, background: color, borderRadius: 2 }} />
+                {label}
+                <div style={{ height: 2, flex: 1, background: `${color}22`, borderRadius: 2 }} />
+            </div>
+            {children}
+        </div>
+    );
+
+    const Row = ({ label, value }) => (
+        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #f5f5f4' }}>
+            <span style={{ color: '#a8a29e', fontWeight: 600, fontSize: '.78rem', paddingTop: 1 }}>{label}</span>
+            <span style={{ color: '#1c1917', fontWeight: 500, fontSize: '.875rem', wordBreak: 'break-word' }}>{value || '—'}</span>
+        </div>
+    );
+
+    const statusColor = { active: '#16a34a', inactive: '#78716c', graduated: '#2563eb', dropped: '#dc2626' };
+    const deptLabel = { IT: 'Information Technology', CS: 'Computer Science' };
+
+    return (
+        <div style={overlay}>
+            <div style={{ ...modalCard, maxWidth: 700, maxHeight: '92vh', overflowY: 'auto', padding: 0, borderRadius: 20 }}>
+
+                {/* Header */}
+                <div style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', padding: '24px 28px', borderRadius: '20px 20px 0 0', position: 'relative' }}>
+                    <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+                        <X size={16} />
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.25)', border: '3px solid rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ color: '#fff', fontWeight: 800, fontSize: '1.1rem' }}>{s.first_name?.[0]}{s.last_name?.[0]}</span>
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: 800, fontSize: '1.25rem', color: '#fff', letterSpacing: '-.01em' }}>
+                                {s.first_name} {s.middle_name ? s.middle_name + ' ' : ''}{s.last_name}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)', fontFamily: 'monospace', fontWeight: 600 }}>{s.student_id}</span>
+                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)' }}>{deptLabel[s.department] || s.department}</span>
+                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', color: '#fff', textTransform: 'capitalize' }}>
+                                    {s.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Quick stats */}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginTop: 20 }}>
+                        {[
+                            { label: 'Violations', value: s.violations?.filter(v => !v.is_resolved).length ?? 0, warn: true },
+                            { label: 'Skills', value: s.skills?.length ?? 0 },
+                            { label: 'Affiliations', value: s.affiliations?.length ?? 0 },
+                            { label: 'Activities', value: s.non_academic_histories?.length ?? 0 },
+                        ].map(({ label, value, warn }) => (
+                            <div key={label} style={{ background: 'rgba(255,255,255,.15)', borderRadius: 10, padding: '10px 14px', textAlign: 'center' }}>
+                                <div style={{ fontSize: '1.3rem', fontWeight: 800, color: warn && value > 0 ? '#fde68a' : '#fff' }}>{value}</div>
+                                <div style={{ fontSize: '.7rem', color: 'rgba(255,255,255,.75)', fontWeight: 600, marginTop: 2 }}>{label}</div>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* Body */}
+                <div style={{ padding: '24px 28px' }}>
+
+                    <Section label="Personal Information">
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+                            <Row label="Student ID"    value={s.student_id} />
+                            <Row label="Date of Birth" value={fmt(s.date_of_birth)} />
+                            <Row label="Full Name"     value={`${s.first_name || ''} ${s.middle_name || ''} ${s.last_name || ''}`.trim()} />
+                            <Row label="Age"           value={s.age} />
+                            <Row label="Gender"        value={s.gender} />
+                            <Row label="Contact"       value={s.contact_number} />
+                            <Row label="Email"         value={s.email} />
+                            <Row label="Guardian"      value={s.guardian_name} />
+                            <Row label="Department"    value={deptLabel[s.department] || s.department} />
+                            <Row label="Enrolled"      value={fmt(s.enrollment_date)} />
+                            <div style={{ gridColumn: '1 / -1' }}>
+                                <Row label="Address" value={s.address} />
+                            </div>
+                        </div>
+                    </Section>
+
+                    {/* Academic Records */}
+                    {s.academic_records?.length > 0 && (
+                        <Section label="Academic Records" color="#2563eb">
+                            {s.academic_records.map(rec => (
+                                <div key={rec.id} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', marginBottom: 10 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+                                        <span style={{ fontWeight: 700, fontSize: '.875rem', color: '#1e40af' }}>{rec.school_year} — {rec.semester}</span>
+                                        <span style={{ padding: '2px 10px', borderRadius: 999, background: '#dcfce7', color: '#16a34a', fontSize: '.75rem', fontWeight: 700 }}>GPA: {rec.gpa ?? '—'}</span>
+                                    </div>
+                                    {rec.grades?.map(g => (
+                                        <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.78rem', color: '#64748b', padding: '3px 0', borderTop: '1px solid #dbeafe' }}>
+                                            <span>{g.subject_name}</span>
+                                            <span style={{ fontWeight: 600, color: '#1e40af' }}>{g.score} — {g.remarks}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ))}
+                        </Section>
+                    )}
+
+                    {/* Violations */}
+                    {s.violations?.length > 0 && (
+                        <Section label="Violations" color="#dc2626">
+                            {s.violations.map(v => (
+                                <div key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 14px', borderRadius: 8, background: v.is_resolved ? '#f0fdf4' : '#fef2f2', border: `1px solid ${v.is_resolved ? '#bbf7d0' : '#fecaca'}`, marginBottom: 6 }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917' }}>{v.violation_type}</div>
+                                        {v.description && <div style={{ fontSize: '.75rem', color: '#78716c', marginTop: 2 }}>{v.description}</div>}
+                                        {v.action_taken && <div style={{ fontSize: '.75rem', color: '#78716c', marginTop: 1 }}>Action: {v.action_taken}</div>}
+                                    </div>
+                                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0, marginLeft: 12 }}>
+                                        <Badge value={v.severity_level} />
+                                        <span style={{ fontSize: '.72rem', color: '#a8a29e' }}>{fmt(v.date_committed)}</span>
+                                        {v.is_resolved && <span style={{ fontSize: '.68rem', fontWeight: 700, color: '#16a34a' }}>✓ Resolved</span>}
+                                    </div>
+                                </div>
+                            ))}
+                        </Section>
+                    )}
+
+                    {/* Skills */}
+                    {s.skills?.length > 0 && (
+                        <Section label="Skills" color="#7c3aed">
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                                {s.skills.map(sk => (
+                                    <div key={sk.id} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 12px', borderRadius: 999, background: '#f5f3ff', border: '1px solid #ddd6fe', fontSize: '.8rem', fontWeight: 600, color: '#7c3aed' }}>
+                                        {sk.skill_name}
+                                        <span style={{ fontSize: '.7rem', color: '#a78bfa' }}>· {sk.skill_level}</span>
+                                        {sk.certification && <span style={{ fontSize: '.68rem', background: '#7c3aed', color: '#fff', borderRadius: 4, padding: '1px 5px' }}>cert</span>}
+                                    </div>
+                                ))}
+                            </div>
+                        </Section>
+                    )}
+
+                    {/* Affiliations */}
+                    {s.affiliations?.length > 0 && (
+                        <Section label="Affiliations" color="#0891b2">
+                            {s.affiliations.map(a => (
+                                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '9px 14px', borderRadius: 8, background: '#f0f9ff', border: '1px solid #bae6fd', marginBottom: 6 }}>
+                                    <div>
+                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#0c4a6e' }}>{a.name}</div>
+                                        <div style={{ fontSize: '.75rem', color: '#0369a1', marginTop: 2 }}>{a.role} · {a.type}</div>
+                                    </div>
+                                    {a.date_joined && <span style={{ fontSize: '.75rem', color: '#7dd3fc', alignSelf: 'center' }}>{fmt(a.date_joined)}</span>}
+                                </div>
+                            ))}
+                        </Section>
+                    )}
+
+                    {/* Non-Academic */}
+                    {s.non_academic_histories?.length > 0 && (
+                        <Section label="Non-Academic Activities" color="#d97706">
+                            {s.non_academic_histories.map(h => (
+                                <div key={h.id} style={{ padding: '9px 14px', borderRadius: 8, background: '#fffbeb', border: '1px solid #fde68a', marginBottom: 6 }}>
+                                    <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#92400e' }}>{h.activity_title}</div>
+                                    <div style={{ fontSize: '.75rem', color: '#b45309', marginTop: 2 }}>{h.category} · {h.role} · {h.organizer}</div>
+                                    {h.game_result && <div style={{ fontSize: '.75rem', color: '#d97706', fontWeight: 600, marginTop: 2 }}>Result: {h.game_result}</div>}
+                                </div>
+                            ))}
+                        </Section>
+                    )}
+
+                </div>
+            </div>
+        </div>
+    );
+}
+
 const emptyStudent = {
     student_id: '', department: '', first_name: '', middle_name: '', last_name: '',
     age: '', gender: 'Male', guardian_name: '', date_of_birth: '',
@@ -36,6 +215,7 @@ export default function StudentDataMap() {
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ status: 'active', search: '', gender: '', department: '' });
     const [modal, setModal] = useState(null);
+    const [viewing, setViewing] = useState(null);
     const [form, setForm] = useState(emptyStudent);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
@@ -155,7 +335,7 @@ export default function StudentDataMap() {
                                 {paginated.map((stu, idx) => (
                                     <tr key={stu.id}>
                                         <td>{(page - 1) * PAGE_SIZE + idx + 1}</td>
-                                        <td><strong>{stu.student_id || `STU-${stu.id}`}</strong></td>
+                                        <td><strong style={{ color: '#f97316', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong></td>
                                         <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
                                         <td>{stu.age || '—'}</td>
                                         <td>{stu.gender || '—'}</td>
@@ -294,8 +474,8 @@ export default function StudentDataMap() {
                     ['CS', 'IT', 'Unknown'].map(dept => grouped[dept] ? renderDeptTable(dept, grouped[dept]) : null)                )}
             </div>
 
-            {modal && (
-                <Modal title={modal === 'add' ? 'Add New Student' : 'Edit Student'} onClose={() => setModal(null)} width={640}>
+            {viewing && <StudentDetailModal student={viewing} onClose={() => setViewing(null)} />}
+            {modal && (                <Modal title={modal === 'add' ? 'Add New Student' : 'Edit Student'} onClose={() => setModal(null)} width={640}>
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
                             <div>

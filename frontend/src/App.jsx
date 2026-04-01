@@ -22,6 +22,8 @@ import EligibilityCriteriaMap from './pages/EligibilityCriteriaMap';
 import AdminFacultyReports from './pages/AdminFacultyReports';
 import AdminFacultyEvaluations from './pages/AdminFacultyEvaluations';
 import AdminEvents from './pages/AdminEvents';
+import AcademicPeriodSettings from './pages/AcademicPeriodSettings';
+import FacultySubjectAssignment from './pages/FacultySubjectAssignment';
 import Events from './pages/Events';
 import StudentEvaluateFaculty from './pages/StudentEvaluateFaculty';
 
@@ -34,7 +36,7 @@ import StudentAffiliations from './pages/StudentAffiliations';
 import StudentNonAcademicActivities from './pages/StudentNonAcademicActivities';
 import TeacherCreateReport from './pages/TeacherCreateReport';
 import TeacherMyEvaluations from './pages/TeacherMyEvaluations';
-import TeacherRecordViolation from './pages/TeacherRecordViolation';
+import TeacherMySubjects from './pages/TeacherMySubjects';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -69,22 +71,17 @@ function AppRoutes() {
                 <Route path="/faculty-reports" element={<AdminFacultyReports />} />
                 <Route path="/faculty-evaluations" element={<AdminFacultyEvaluations />} />
                 <Route path="/events" element={<AdminEvents />} />
+                <Route path="/academic-period" element={<AcademicPeriodSettings />} />
+                <Route path="/faculty-subject-assignment" element={<FacultySubjectAssignment />} />
               </>}
 
               {/* ── Teacher ── */}
               {role === 'teacher' && <>
                 <Route path="/" element={<DashboardTeacher />} />
-                <Route path="/student-map" element={<StudentDataMap />} />
-                <Route path="/violations" element={<ViolationsMap />} />
-                <Route path="/record-violation" element={<TeacherRecordViolation />} />
-                <Route path="/affiliations" element={<AffiliationsMap />} />
-                <Route path="/skills" element={<SkillsMap />} />
-                <Route path="/academic-records" element={<AcademicRecordsMap />} />
-                <Route path="/non-academic-histories" element={<NonAcademicHistoriesMap />} />
                 <Route path="/eligibility-criteria" element={<EligibilityCriteriaMap />} />
-                <Route path="/reports" element={<Reports />} />
                 <Route path="/create-report" element={<TeacherCreateReport />} />
                 <Route path="/my-evaluations" element={<TeacherMyEvaluations />} />
+                <Route path="/my-subjects" element={<TeacherMySubjects />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/change-password" element={<ChangePassword />} />
               </>}

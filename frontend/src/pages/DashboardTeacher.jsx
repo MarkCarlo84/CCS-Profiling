@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import { useActivePeriod } from '../useActivePeriod';
 import {
     GraduationCap, ShieldAlert, Zap, Trophy,
     Network, ClipboardCheck, Award, BarChart3,
     ArrowRight, Users, TrendingUp, CheckCircle,
-    UserCircle, PartyPopper, CalendarRange, MapPin,
+    UserCircle, PartyPopper, CalendarRange, MapPin, CalendarClock,
 } from 'lucide-react';
 
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -31,6 +32,7 @@ const QUICK_ACTIONS = [
 
 export default function DashboardTeacher() {
     const { user } = useAuth();
+    const { period } = useActivePeriod();
     const [students, setStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [events, setEvents] = useState([]);
@@ -83,6 +85,14 @@ export default function DashboardTeacher() {
                     </div>
                 </div>
             </div>
+
+            {/* Active Period Banner */}
+            {period && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: '.85rem', color: '#5b21b6' }}>
+                    <CalendarClock size={15} color="#8b5cf6" />
+                    <span>Current Academic Period: <strong>{period.school_year} — {period.semester === '1st' ? '1st Semester' : '2nd Semester'}</strong></span>
+                </div>
+            )}
 
             {/* Faculty profile card */}
             {profile && (
@@ -149,26 +159,8 @@ export default function DashboardTeacher() {
                     </div>
 
                     {/* Quick Actions */}
-                    <div style={{ marginBottom: 4 }}>
-                        <div className="section-divider"><h2>Quick Access</h2></div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 12 }}>
-                            {QUICK_ACTIONS.map(({ to, label, Icon, desc, color }) => (
-                                <Link key={to} to={to} className="action-card">
-                                    <div className="action-icon" style={{ background: `linear-gradient(135deg,${color},${color}cc)` }}>
-                                        <Icon size={17} color="#fff" strokeWidth={2} />
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', lineHeight: 1.2 }}>{label}</div>
-                                        <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 2 }}>{desc}</div>
-                                    </div>
-                                    <ArrowRight size={14} color="#d6d3d1" style={{ flexShrink: 0 }} />
-                                </Link>
-                            ))}
-                        </div>
-                    </div>
-
                     {/* Events widget */}
-                    <div className="card" style={{ marginTop: 20 }}>
+                    <div className="card" style={{ marginBottom: 20 }}>
                         <div className="card-header">
                             <h2><PartyPopper size={16} color="#f97316" /> Upcoming Events</h2>
                             <Link to="/events" style={{ fontSize: 12, color: '#f97316', fontWeight: 600, textDecoration: 'none' }}>View all →</Link>
@@ -197,39 +189,26 @@ export default function DashboardTeacher() {
                         </div>
                     </div>
 
-                    {/* Recent students table */}
-                    <div className="card" style={{ marginTop: 20 }}>
-                        <div className="card-header">
-                            <h2><GraduationCap size={16} color="#8b5cf6" /> Recent Active Students</h2>
-                            <Link to="/student-map" style={{ fontSize: 12, color: '#8b5cf6', fontWeight: 600, textDecoration: 'none' }}>View all →</Link>
-                        </div>
-                        <div className="card-body" style={{ padding: 0 }}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                                <thead>
-                                    <tr style={{ background: '#fafaf9' }}>
-                                        {['Student ID', 'Name', 'Status', 'Violations', 'Skills'].map(h => (
-                                            <th key={h} style={{ padding: '10px 16px', textAlign: 'left', fontWeight: 700, color: '#78716c', fontSize: 11, textTransform: 'uppercase', letterSpacing: '.05em', borderBottom: '1px solid #f5f5f4' }}>{h}</th>
-                                        ))}
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {students.slice(0, 8).map((s, i) => (
-                                        <tr key={s.id} style={{ borderBottom: i < 7 ? '1px solid #f5f5f4' : 'none' }}>
-                                            <td style={{ padding: '10px 16px', color: '#a8a29e', fontFamily: 'monospace', fontSize: 12 }}>{s.student_id}</td>
-                                            <td style={{ padding: '10px 16px', fontWeight: 600, color: '#18120e' }}>{s.first_name} {s.last_name}</td>
-                                            <td style={{ padding: '10px 16px' }}>
-                                                <span style={{ padding: '2px 10px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: '#dcfce7', color: '#16a34a' }}>
-                                                    {s.status}
-                                                </span>
-                                            </td>
-                                            <td style={{ padding: '10px 16px', color: s.violations?.length ? '#ef4444' : '#a8a29e', fontWeight: 600 }}>{s.violations?.length ?? 0}</td>
-                                            <td style={{ padding: '10px 16px', color: '#7c3aed', fontWeight: 600 }}>{s.skills?.length ?? 0}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                    {/* Quick Actions */}
+                    <div style={{ marginBottom: 4 }}>
+                        <div className="section-divider"><h2>Quick Access</h2></div>
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 12 }}>
+                            {QUICK_ACTIONS.map(({ to, label, Icon, desc, color }) => (
+                                <Link key={to} to={to} className="action-card">
+                                    <div className="action-icon" style={{ background: `linear-gradient(135deg,${color},${color}cc)` }}>
+                                        <Icon size={17} color="#fff" strokeWidth={2} />
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', lineHeight: 1.2 }}>{label}</div>
+                                        <div style={{ fontSize: 11, color: '#a8a29e', marginTop: 2 }}>{desc}</div>
+                                    </div>
+                                    <ArrowRight size={14} color="#d6d3d1" style={{ flexShrink: 0 }} />
+                                </Link>
+                            ))}
                         </div>
                     </div>
+
+                    {/* Recent students table */}
                 </>
             )}
         </div>

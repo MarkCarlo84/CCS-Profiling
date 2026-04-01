@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAdminFacultyEvaluationSummary, getAdminFacultyEvaluations } from '../api';
-import { Star, Users, ChevronLeft } from 'lucide-react';
+import { Star, Users, ChevronLeft, UserCircle } from 'lucide-react';
 
 const CRITERIA = [
     { key: 'teaching_effectiveness', label: 'Teaching' },
@@ -115,13 +115,18 @@ export default function AdminFacultyEvaluations() {
                         <div key={f.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setSelected(f)}>
                             <div className="card-body">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                                    <div>
-                                        <div style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>
-                                            {f.first_name} {f.last_name}
+                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                        <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#f97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                            <UserCircle size={20} color="#fff" strokeWidth={1.8} />
                                         </div>
-                                        <div style={{ fontSize: '.78rem', color: '#78716c' }}>{f.department} — {f.position}</div>
-                                        <div style={{ fontSize: '.72rem', color: '#a8a29e', marginTop: 2 }}>
-                                            {f.evaluation_count} evaluation{f.evaluation_count !== 1 ? 's' : ''}
+                                        <div>
+                                            <div style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>
+                                                {f.first_name} {f.last_name}
+                                            </div>
+                                            <div style={{ fontSize: '.78rem', color: '#78716c' }}>{f.department} — {f.position}</div>
+                                            <div style={{ fontSize: '.72rem', color: '#a8a29e', marginTop: 2 }}>
+                                                {f.evaluation_count} evaluation{f.evaluation_count !== 1 ? 's' : ''}
+                                            </div>
                                         </div>
                                     </div>
                                     <div style={{ textAlign: 'right' }}>

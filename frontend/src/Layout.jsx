@@ -6,7 +6,7 @@ import {
     GraduationCap, Users, BookOpen,
     ShieldAlert, Network, Zap, Trophy,
     ClipboardCheck, Award, ChevronLeft,
-    ChevronRight, LogOut, Activity, UserCircle, KeyRound, FileText, Star, PartyPopper,
+    ChevronRight, LogOut, Activity, UserCircle, KeyRound, FileText, Star, PartyPopper, CalendarClock, UserCheck,
 } from 'lucide-react';
 import { useLoading } from './LoadingContext';
 import './Layout.css';
@@ -52,6 +52,8 @@ const NAV_BY_ROLE = {
                 { to: '/faculty-reports', label: 'Faculty Reports', Icon: FileText },
                 { to: '/faculty-evaluations', label: 'Faculty Evaluations', Icon: Star },
                 { to: '/events', label: 'Events', Icon: PartyPopper },
+                { to: '/faculty-subject-assignment', label: 'Subject Assignment', Icon: UserCheck },
+                { to: '/academic-period', label: 'Academic Period', Icon: CalendarClock },
             ],
         },
     ],
@@ -61,29 +63,12 @@ const NAV_BY_ROLE = {
             label: 'Overview',
             items: [
                 { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
-                { to: '/reports', label: 'Reports', Icon: BarChart3 },
             ],
         },
         {
-            label: 'Students',
+            label: 'Faculty',
             items: [
-                { to: '/student-map', label: 'Student Profiles', Icon: GraduationCap },
-                { to: '/academic-records', label: 'Academic Records', Icon: Award },
-                { to: '/violations', label: 'Violations', Icon: ShieldAlert },
-                { to: '/record-violation', label: 'Record Violation', Icon: ShieldAlert },
-            ],
-        },
-        {
-            label: 'Student Records',
-            items: [
-                { to: '/affiliations', label: 'Affiliations', Icon: Network },
-                { to: '/skills', label: 'Skills', Icon: Zap },
-                { to: '/non-academic-histories', label: 'Non-Academic', Icon: Trophy },
-            ],
-        },
-        {
-            label: 'Tools',
-            items: [
+                { to: '/my-subjects', label: 'My Assigned Subjects', Icon: BookOpen },
                 { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck },
                 { to: '/my-evaluations', label: 'My Evaluations', Icon: Star },
                 { to: '/create-report', label: 'My Reports', Icon: FileText },

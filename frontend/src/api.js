@@ -87,6 +87,7 @@ export const updateViolation = (id, data) => api.put(`/violations/${id}`, data);
 export const deleteViolation = (id) => api.delete(`/violations/${id}`);
 export const getViolationDetails = (id) => api.get(`/violations/${id}/details`);
 export const updateViolationAction = (id, action) => api.patch(`/violations/${id}/update-action`, { action_taken: action });
+export const resolveViolation = (id) => api.patch(`/violations/${id}/resolve`);
 
 // ── Academic Records ──────────────────────────────────────────────────────────
 export const getAcademicRecords = (params = {}) => api.get('/academic-records', { params });
@@ -120,6 +121,7 @@ export const updateNonAcademicActivity = (id, description) => api.patch(`/non-ac
 export const getReportStudents = (params = {}) => api.get('/reports/students', { params });
 export const getReportFaculties = (params = {}) => api.get('/reports/faculties', { params });
 export const getSummary = () => api.get('/reports/summary');
+export const getReportPresets = () => api.get('/reports/presets');
 
 // ── Teacher Reports (written) ─────────────────────────────────────────────────
 export const getTeacherReports = () => api.get('/teacher/reports');
@@ -145,8 +147,7 @@ export const getMyEvaluations = () => api.get('/teacher/my-evaluations');
 // ── Comprehensive Search ──────────────────────────────────────────────────────
 export const searchAll = async (query) => {
     const response = await api.get('/search', { params: { q: query } });
-    const data = response.data;
-    return { ...data, faculty: data.faculties };
+    return response;
 };
 
 export default api;

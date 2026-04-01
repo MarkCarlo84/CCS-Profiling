@@ -91,23 +91,23 @@ export default function SubjectsMap() {
                     <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.875rem' }}>
                         <thead>
                             <tr style={{ background: '#fff7ed' }}>
-                                <th style={th}>#</th>
-                                <th style={th}>Course Code</th>
-                                <th style={{ ...th, width: '45%' }}>Course Description</th>
-                                <th style={{ ...th, textAlign: 'center' }}>Units</th>
-                                <th style={th}>Pre-requisite</th>
-                                <th style={{ ...th, textAlign: 'center' }}>Actions</th>
+                                <th style={{ ...th, width: 36 }}>#</th>
+                                <th style={{ ...th, width: '15%' }}>Course Code</th>
+                                <th style={{ ...th, width: 'auto' }}>Course Description</th>
+                                <th style={{ ...th, width: '8%', textAlign: 'center' }}>Units</th>
+                                <th style={{ ...th, width: '20%' }}>Pre-Requisite</th>
+                                <th style={{ ...th, width: '10%', textAlign: 'center' }}>Actions</th>
                             </tr>
                         </thead>
                         <tbody>
                             {items.map((s, idx) => (
                                 <tr key={s.id} style={{ background: idx % 2 === 0 ? '#fff' : '#fffbf7', borderTop: '1px solid #fde8d0' }}>
-                                    <td style={{ ...td, color: '#a8a29e', fontSize: '.78rem', width: 36 }}>{idx + 1}</td>
-                                    <td style={td}>
+                                    <td style={{ ...td, color: '#a8a29e', fontSize: '.78rem', width: 36, textAlign: 'center' }}>{idx + 1}</td>
+                                    <td style={{ ...td, width: '15%' }}>
                                         <strong style={{ color: '#1c1917', fontSize: '.875rem' }}>{s.subject_code}</strong>
                                     </td>
                                     <td style={{ ...td, fontWeight: 500, color: '#1c1917' }}>{s.subject_name}</td>
-                                    <td style={{ ...td, textAlign: 'center' }}>
+                                    <td style={{ ...td, textAlign: 'center', width: '8%' }}>
                                         <span style={{
                                             display: 'inline-block', fontWeight: 700, fontSize: '.8rem',
                                             background: '#f0fdf4', color: '#16a34a',
@@ -115,10 +115,10 @@ export default function SubjectsMap() {
                                             padding: '2px 10px',
                                         }}>{s.units}</span>
                                     </td>
-                                    <td style={{ ...td, color: s.pre_requisite ? '#44403c' : '#a8a29e', fontSize: '.82rem', fontStyle: s.pre_requisite ? 'normal' : 'italic' }}>
+                                    <td style={{ ...td, width: '20%', color: s.pre_requisite ? '#44403c' : '#a8a29e', fontSize: '.82rem', fontStyle: s.pre_requisite ? 'normal' : 'italic' }}>
                                         {s.pre_requisite || 'none'}
                                     </td>
-                                    <td style={{ ...td, textAlign: 'center' }}>
+                                    <td style={{ ...td, textAlign: 'center', width: '10%' }}>
                                         <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
                                             <button style={iconBtn} onClick={() => openEdit(s)} title="Edit"><Pencil size={13} /></button>
                                             <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)} title="Delete"><Trash2 size={13} /></button>

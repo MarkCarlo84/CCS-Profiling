@@ -23,5 +23,7 @@ class DatabaseSeeder extends Seeder
         $this->command->info('✓ Admin user ready');
         $this->command->info('  Email: admin@ccs.edu.ph');
         $this->command->info('  Password: admin1234');
+
+        $this->call(SubjectSeeder::class);
     }
 }

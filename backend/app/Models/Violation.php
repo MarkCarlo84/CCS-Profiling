@@ -10,10 +10,13 @@ class Violation extends Model
     protected $fillable = [
         'student_id', 'violation_type', 'description',
         'date_committed', 'severity_level', 'action_taken',
+        'is_resolved', 'resolved_at',
     ];
 
     protected $casts = [
         'date_committed' => 'date',
+        'is_resolved'    => 'boolean',
+        'resolved_at'    => 'datetime',
     ];
 
     public function student(): BelongsTo

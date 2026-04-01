@@ -137,6 +137,32 @@ class TeacherController extends Controller
         return response()->json($updated);
     }
 
+    /** GET /api/teacher/my-subjects — subjects assigned to this teacher */
+    public function mySubjects(Request $request): JsonResponse
+    {
+        $faculty = $request->user()->faculty;
+
+        if (!$faculty) {
+            return response()->json(['message' => 'No faculty profile linked to this account.'], 404);
+        }
+
+        $query = $faculty->subjects();
+
+        if ($request->filled('school_year')) {
+            $query->wherePivot('school_year', $request->school_year);
+        }
+        if ($request->filled('semester')) {
+            $query->wherePivot('semester', $request->semester);
+        }
+
+        $subjects = $query->get()->map(fn($s) => array_merge($s->toArray(), [
+            'pivot_school_year' => $s->pivot->school_year,
+            'pivot_semester'    => $s->pivot->semester,
+        ]));
+
+        return response()->json($subjects);
+    }
+
     /** GET /api/teacher/students — list all students (read-only view) */
     public function students(Request $request): JsonResponse
     {

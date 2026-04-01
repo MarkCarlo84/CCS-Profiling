@@ -97,34 +97,68 @@ class ReportController extends Controller
     }
 
     /**
-     * Cross-module search across Students and Faculty.
+     * GET /api/reports/presets
+     * Returns distinct skills and activity categories for dynamic preset buttons.
      */
+    public function presets(): JsonResponse
+    {
+        $skills = \App\Models\Skill::select('skill_name')
+            ->distinct()
+            ->orderBy('skill_name')
+            ->pluck('skill_name');
+
+        $categories = \App\Models\NonAcademicHistory::select('category')
+            ->whereNotNull('category')
+            ->distinct()
+            ->orderBy('category')
+            ->pluck('category');
+
+        return response()->json([
+            'skills'     => $skills,
+            'categories' => $categories,
+        ]);
+    }
     public function search(Request $request): JsonResponse
     {
         $q = $request->get('q', '');
 
         if (strlen(trim($q)) < 2) {
-            return response()->json(['query' => $q, 'total' => 0, 'students' => [], 'faculties' => []]);
+            return response()->json(['query' => $q, 'total' => 0, 'students' => [], 'faculties' => [], 'courses' => [], 'events' => []]);
         }
 
-        $students = Student::where(fn($query) => $query
-            ->where('first_name', 'like', "%$q%")
-            ->orWhere('last_name', 'like', "%$q%")
-            ->orWhere('student_id', 'like', "%$q%")
-            ->orWhere('email', 'like', "%$q%"))
+        $students = Student::with(['violations', 'skills', 'academicRecords'])
+            ->where(fn($query) => $query
+                ->where('first_name', 'like', "%$q%")
+                ->orWhere('last_name', 'like', "%$q%")
+                ->orWhere('student_id', 'like', "%$q%")
+                ->orWhere('email', 'like', "%$q%"))
             ->limit(20)->get();
 
         $faculties = Faculty::where(fn($query) => $query
             ->where('first_name', 'like', "%$q%")
             ->orWhere('last_name', 'like', "%$q%")
-            ->orWhere('faculty_id', 'like', "%$q%"))
+            ->orWhere('faculty_id', 'like', "%$q%")
+            ->orWhere('department', 'like', "%$q%"))
+            ->limit(20)->get();
+
+        $courses = \App\Models\Course::with('department')
+            ->where(fn($query) => $query
+                ->where('name', 'like', "%$q%")
+                ->orWhere('code', 'like', "%$q%"))
+            ->limit(20)->get();
+
+        $events = \App\Models\Event::where(fn($query) => $query
+            ->where('title', 'like', "%$q%")
+            ->orWhere('venue', 'like', "%$q%"))
             ->limit(20)->get();
 
         return response()->json([
             'query'     => $q,
-            'total'     => $students->count() + $faculties->count(),
+            'total'     => $students->count() + $faculties->count() + $courses->count() + $events->count(),
             'students'  => $students,
             'faculties' => $faculties,
+            'courses'   => $courses,
+            'events'    => $events,
         ]);
     }
 }

@@ -21,6 +21,10 @@ class ViolationController extends Controller
         if ($request->filled('search')) {
             $query->where('violation_type', 'like', "%{$request->search}%");
         }
+        // Filter by resolved status
+        if ($request->filled('is_resolved')) {
+            $query->where('is_resolved', filter_var($request->is_resolved, FILTER_VALIDATE_BOOLEAN));
+        }
         return response()->json($query->orderBy('date_committed', 'desc')->get());
     }
 
@@ -74,5 +78,15 @@ class ViolationController extends Controller
     {
         $violation->delete();
         return response()->json(['message' => 'Violation deleted.']);
+    }
+
+    /** PATCH /api/violations/{violation}/resolve */
+    public function resolve(Violation $violation): JsonResponse
+    {
+        $violation->update([
+            'is_resolved' => true,
+            'resolved_at' => now(),
+        ]);
+        return response()->json($violation->fresh()->load('student'));
     }
 }

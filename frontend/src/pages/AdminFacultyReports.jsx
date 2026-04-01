@@ -130,7 +130,7 @@ export default function AdminFacultyReports() {
                         placeholder="Search title, faculty, subject…"
                         value={search}
                         onChange={e => setSearch(e.target.value)}
-                        style={{ paddingLeft: 36 }}
+                        style={{ paddingLeft: 36, border: '1px solid #fde8d0', borderRadius: 8, padding: '8px 12px 8px 36px', fontSize: '.875rem', outline: 'none', fontFamily: "'Inter',sans-serif", minWidth: 280 }}
                     />
                 </div>
                 <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>

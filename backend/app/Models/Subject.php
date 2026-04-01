@@ -16,6 +16,13 @@ class Subject extends Model
         return $this->hasMany(Grade::class);
     }
 
+    public function faculties()
+    {
+        return $this->belongsToMany(Faculty::class, 'faculty_subjects')
+            ->withPivot('school_year', 'semester')
+            ->withTimestamps();
+    }
+
     /** + getSubjectInfo() : String */
     public function getSubjectInfo(): string
     {

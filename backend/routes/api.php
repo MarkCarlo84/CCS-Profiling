@@ -27,6 +27,8 @@ use App\Http\Controllers\Api\SyllabusController;
 use App\Http\Controllers\Api\LessonController;
 use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\EventController;
+use App\Http\Controllers\Api\AcademicPeriodController;
+use App\Http\Controllers\Api\FacultySubjectController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -34,6 +36,9 @@ use Illuminate\Support\Facades\Route;
 Route::options('{any}', function () {
     return response()->json([], 200);
 })->where('any', '.*');
+
+// ── Academic Period (public read) ─────────────────────────────────────────────
+Route::get('academic-period/active', [AcademicPeriodController::class, 'active']);
 
 // ── Auth (public) ─────────────────────────────────────────────────────────────
 Route::post('/auth/login',  [AuthController::class, 'login']);
@@ -99,6 +104,7 @@ Route::get('affiliations/{affiliation}/details',                          [Affil
 Route::apiResource('violations', ViolationController::class);
 Route::get('violations/{violation}/details',                              [ViolationController::class, 'violationDetails']);
 Route::patch('violations/{violation}/update-action',                      [ViolationController::class, 'updateAction']);
+Route::patch('violations/{violation}/resolve',                            [ViolationController::class, 'resolve']);
 
 // ── Academic Records ──────────────────────────────────────────────────────────
 Route::apiResource('academic-records', AcademicRecordController::class);
@@ -121,6 +127,7 @@ Route::prefix('reports')->group(function () {
     Route::get('students',  [ReportController::class, 'students']);
     Route::get('faculties', [ReportController::class, 'faculties']);
     Route::get('summary',   [ReportController::class, 'summary']);
+    Route::get('presets',   [ReportController::class, 'presets']);
 });
 
 // ── Cross-Module Comprehensive Search ─────────────────────────────────────────
@@ -157,6 +164,7 @@ Route::apiResource('lessons', LessonController::class);
 Route::middleware(['auth:sanctum', 'role:teacher'])->prefix('teacher')->group(function () {
     Route::get('profile',                                    [TeacherController::class, 'profile']);
     Route::patch('profile',                                  [TeacherController::class, 'updateProfile']);
+    Route::get('my-subjects',                                [TeacherController::class, 'mySubjects']);
     Route::get('students',                                   [TeacherController::class, 'students']);
     Route::get('evaluate-student/{student}',                 [TeacherController::class, 'evaluateStudent']);
     Route::post('record-violation/{student}',                [TeacherController::class, 'recordViolation']);
@@ -218,6 +226,15 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::put('departments/{department}',                   [DepartmentController::class, 'update']);
     Route::patch('departments/{department}',                 [DepartmentController::class, 'update']);
     Route::delete('departments/{department}',                [DepartmentController::class, 'destroy']);
+    // Academic Period management
+    Route::get('academic-period',                            [AcademicPeriodController::class, 'index']);
+    Route::post('academic-period',                           [AcademicPeriodController::class, 'setActive']);
+    Route::post('academic-period/advance',                   [AcademicPeriodController::class, 'advance']);
+    // Faculty-Subject assignments
+    Route::get('faculty-subjects',                           [FacultySubjectController::class, 'index']);
+    Route::post('faculty-subjects',                          [FacultySubjectController::class, 'store']);
+    Route::get('faculty-subjects/{faculty}',                 [FacultySubjectController::class, 'facultySubjects']);
+    Route::delete('faculty-subjects/{faculty}/{subject}',    [FacultySubjectController::class, 'destroy']);
 });
 
 // ── OTP (admin only) ──────────────────────────────────────────────────────────

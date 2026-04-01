@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use App\Models\Subject;
 
 class Faculty extends Model
 {
@@ -15,6 +16,13 @@ class Faculty extends Model
     public function evaluations(): HasMany
     {
         return $this->hasMany(FacultyEvaluation::class);
+    }
+
+    public function subjects()
+    {
+        return $this->belongsToMany(Subject::class, 'faculty_subjects')
+            ->withPivot('school_year', 'semester')
+            ->withTimestamps();
     }
 
     public function getFullNameAttribute(): string

@@ -1,22 +1,23 @@
-import React, { useState } from 'react';
-import { getReportStudents, getReportFaculties } from '../api';
+import React, { useState, useEffect } from 'react';
+import { getReportStudents, getReportFaculties, getReportPresets } from '../api';
 import {
     BarChart3, Zap, Settings2, Play, Loader2,
-    Search, Dumbbell, Code2, BookOpenCheck, AlertTriangle, Trophy, Users,
+    Search, Dumbbell, Code2, BookOpenCheck, AlertTriangle, Trophy, Users, Activity,
 } from 'lucide-react';
 
 function Badge({ value }) {
     return value ? <span className={`badge badge-${value.toLowerCase().replace(/\s/g, '_')}`}>{value.replace(/_/g, ' ')}</span> : null;
 }
 
-const PRESET_REPORTS = [
-    { label: 'Basketball Try-out Qualifiers', Icon: Dumbbell, params: { skill: 'Basketball', status: 'active' }, type: 'students' },
-    { label: 'Programming Contest Qualifiers', Icon: Code2, params: { skill_level: 'advanced', status: 'active' }, type: 'students' },
-    { label: 'Students with Major Violations', Icon: AlertTriangle, params: { violation_severity: 'major', status: 'active' }, type: 'students' },
-    { label: 'Academic Achievement Winners', Icon: Trophy, params: { activity_category: 'Academic', status: 'active' }, type: 'students' },
-    { label: 'Certified Skill Holders', Icon: BookOpenCheck, params: { status: 'active' }, type: 'students' },
-    { label: 'All Active Faculty', Icon: Users, params: { status: 'active' }, type: 'faculties' },
-];
+// Icon picker based on skill/category name
+function presetIcon(name) {
+    const n = name.toLowerCase();
+    if (n.includes('basketball') || n.includes('volleyball') || n.includes('sport')) return Dumbbell;
+    if (n.includes('program') || n.includes('coding') || n.includes('dev') || n.includes('tech')) return Code2;
+    if (n.includes('academic') || n.includes('research') || n.includes('scholar')) return BookOpenCheck;
+    if (n.includes('art') || n.includes('music') || n.includes('dance') || n.includes('theater')) return Trophy;
+    return Activity;
+}
 
 const formField = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #fed7aa', fontSize: '.875rem', fontFamily: 'Inter,sans-serif', background: '#fff', color: '#1c1917', outline: 'none' };
 const label = { fontSize: '.78rem', fontWeight: 700, display: 'block', marginBottom: 5, color: '#44403c', letterSpacing: .3 };
@@ -26,6 +27,14 @@ export default function Reports() {
     const [resultType, setResultType] = useState('students');
     const [loading, setLoading] = useState(false);
     const [activePreset, setActivePreset] = useState(null);
+    const [presets, setPresets] = useState({ skills: [], categories: [] });
+    const [presetsLoading, setPresetsLoading] = useState(true);
+
+    useEffect(() => {
+        getReportPresets()
+            .then(r => setPresets(r.data))
+            .finally(() => setPresetsLoading(false));
+    }, []);
 
     const [filters, setFilters] = useState({
         type: 'students',
@@ -49,8 +58,6 @@ export default function Reports() {
         } finally { setLoading(false); }
     };
 
-    const runPreset = (preset) => { setActivePreset(preset.label); runQuery(preset.params, preset.type); };
-
     return (
         <div>
             <div className="page-header">
@@ -64,21 +71,75 @@ export default function Reports() {
             {/* Preset Reports */}
             <div className="card" style={{ marginBottom: 24 }}>
                 <div className="card-header">
-                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Zap size={16} color="#f97316" />Preset Reports</h2>
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}><Zap size={16} color="#f97316" />Filter</h2>
                 </div>
-                <div className="card-body" style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {PRESET_REPORTS.map(p => {
-                        const IconComp = p.Icon;
-                        const active = activePreset === p.label;
-                        return (
-                            <button key={p.label}
-                                className={`btn ${active ? 'btn-primary' : 'btn-outline'}`}
-                                onClick={() => runPreset(p)}
-                            >
-                                <IconComp size={14} />{p.label}
-                            </button>
-                        );
-                    })}
+                <div className="card-body">
+                    {presetsLoading ? (
+                        <div style={{ color: '#a8a29e', fontSize: '.85rem' }}>Loading presets…</div>
+                    ) : (
+                        <>
+                            {/* Always-on presets */}
+                            <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>General</div>
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                                {[
+                                    { label: 'Students with Major Violations', Icon: AlertTriangle, params: { violation_severity: 'major', status: 'active' }, type: 'students' },
+                                    { label: 'Students with Grave Violations', Icon: AlertTriangle, params: { violation_severity: 'grave', status: 'active' }, type: 'students' },
+                                    { label: 'Certified Skill Holders', Icon: BookOpenCheck, params: { status: 'active' }, type: 'students' },
+                                    { label: 'All Active Faculty', Icon: Users, params: { status: 'active' }, type: 'faculties' },
+                                ].map(p => {
+                                    const IconComp = p.Icon;
+                                    const active = activePreset === p.label;
+                                    return (
+                                        <button key={p.label} className={`btn ${active ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActivePreset(p.label); runQuery(p.params, p.type); }}>
+                                            <IconComp size={14} />{p.label}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+
+                            {/* Skills-based presets */}
+                            {presets.skills.length > 0 && (
+                                <>
+                                    <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>By Skill</div>
+                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                                        {presets.skills.map(skill => {
+                                            const IconComp = presetIcon(skill);
+                                            const label = `${skill} Students`;
+                                            const active = activePreset === label;
+                                            return (
+                                                <button key={skill} className={`btn ${active ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActivePreset(label); runQuery({ skill, status: 'active' }, 'students'); }}>
+                                                    <IconComp size={14} />{label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Activity category presets */}
+                            {presets.categories.length > 0 && (
+                                <>
+                                    <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>By Activity Category</div>
+                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                                        {presets.categories.map(cat => {
+                                            const IconComp = presetIcon(cat);
+                                            const label = `${cat} Activities`;
+                                            const active = activePreset === label;
+                                            return (
+                                                <button key={cat} className={`btn ${active ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActivePreset(label); runQuery({ activity_category: cat, status: 'active' }, 'students'); }}>
+                                                    <IconComp size={14} />{label}
+                                                </button>
+                                            );
+                                        })}
+                                    </div>
+                                </>
+                            )}
+
+                            {presets.skills.length === 0 && presets.categories.length === 0 && (
+                                <p style={{ color: '#a8a29e', fontSize: '.85rem', margin: '8px 0 0' }}>No skill or activity data yet. Add student skills and activities to generate dynamic presets.</p>
+                            )}
+                        </>
+                    )}
                 </div>
             </div>
 

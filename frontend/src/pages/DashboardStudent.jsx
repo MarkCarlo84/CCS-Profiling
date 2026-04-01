@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import api from '../api';
 import { useAuth } from '../AuthContext';
+import { useActivePeriod } from '../useActivePeriod';
 import {
     GraduationCap, ShieldAlert, Zap, Trophy,
     Network, Award, TrendingUp, UserCircle,
     BookOpen, CheckCircle, Pencil, X, Plus, Trash2,
-    PartyPopper, CalendarRange, MapPin,
+    PartyPopper, CalendarRange, MapPin, CalendarClock,
 } from 'lucide-react';
 
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -40,6 +41,7 @@ function InfoRow({ label, value }) {
 
 export default function DashboardStudent() {
     const { user } = useAuth();
+    const { period } = useActivePeriod();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
     const [events, setEvents] = useState([]);
@@ -137,7 +139,13 @@ export default function DashboardStudent() {
     return (
         <div>
             {/* Violation Warnings */}
-            {totalViolations > 0 && (
+            {totalViolations > 0 && (() => {
+                const newViolations = profile.violations?.filter(v => {
+                    const created = new Date(v.created_at);
+                    const diffDays = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
+                    return diffDays <= 7;
+                }) ?? [];
+                return (
                 <div style={{
                     background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
                     border: '2px solid #fecaca',
@@ -151,13 +159,23 @@ export default function DashboardStudent() {
                             width: 40, height: 40, borderRadius: 10,
                             background: '#dc2626',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            flexShrink: 0,
+                            flexShrink: 0, position: 'relative',
                         }}>
                             <ShieldAlert size={20} color="#fff" strokeWidth={2.5} />
+                            {newViolations.length > 0 && (
+                                <span style={{ position: 'absolute', top: -6, right: -6, background: '#f97316', color: '#fff', borderRadius: 999, fontSize: '.65rem', fontWeight: 800, padding: '1px 6px', border: '2px solid #fff' }}>
+                                    NEW
+                                </span>
+                            )}
                         </div>
                         <div style={{ flex: 1 }}>
-                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#991b1b', marginBottom: 4 }}>
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#991b1b', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                                 Violation Warning
+                                {newViolations.length > 0 && (
+                                    <span style={{ fontSize: '.72rem', fontWeight: 700, background: '#f97316', color: '#fff', borderRadius: 999, padding: '2px 8px' }}>
+                                        {newViolations.length} new this week
+                                    </span>
+                                )}
                             </h3>
                             <p style={{ margin: 0, fontSize: '.875rem', color: '#7f1d1d', lineHeight: 1.6 }}>
                                 You have <strong>{totalViolations} violation{totalViolations !== 1 ? 's' : ''}</strong> on record.
@@ -173,36 +191,33 @@ export default function DashboardStudent() {
                                 )}
                             </p>
                             <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                {profile.violations?.slice(0, 3).map(v => (
-                                    <span key={v.id} style={{
-                                        fontSize: '.75rem',
-                                        fontWeight: 700,
-                                        padding: '3px 10px',
-                                        borderRadius: 999,
-                                        background: v.severity_level === 'grave' ? '#7f1d1d' : v.severity_level === 'major' ? '#dc2626' : '#f87171',
-                                        color: '#fff',
-                                    }}>
-                                        {v.violation_type}
-                                    </span>
-                                ))}
+                                {profile.violations?.slice(0, 3).map(v => {
+                                    const isNew = (Date.now() - new Date(v.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7;
+                                    return (
+                                        <span key={v.id} style={{
+                                            fontSize: '.75rem', fontWeight: 700, padding: '3px 10px', borderRadius: 999,
+                                            background: v.severity_level === 'grave' ? '#7f1d1d' : v.severity_level === 'major' ? '#dc2626' : '#f87171',
+                                            color: '#fff', display: 'flex', alignItems: 'center', gap: 4,
+                                        }}>
+                                            {isNew && <span style={{ width: 6, height: 6, borderRadius: '50%', background: '#fde68a', flexShrink: 0 }} />}
+                                            {v.violation_type}
+                                        </span>
+                                    );
+                                })}
                                 {totalViolations > 3 && (
-                                    <span style={{
-                                        fontSize: '.75rem',
-                                        fontWeight: 600,
-                                        padding: '3px 10px',
-                                        borderRadius: 999,
-                                        background: '#fff',
-                                        color: '#991b1b',
-                                        border: '1px solid #fecaca',
-                                    }}>
+                                    <span style={{ fontSize: '.75rem', fontWeight: 600, padding: '3px 10px', borderRadius: 999, background: '#fff', color: '#991b1b', border: '1px solid #fecaca' }}>
                                         +{totalViolations - 3} more
                                     </span>
                                 )}
                             </div>
+                            <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 6, background: '#fff', border: '1px solid #fecaca', borderRadius: 8, padding: '7px 12px', fontSize: '.8rem', color: '#991b1b', fontWeight: 600 }}>
+                                📋 Please come to the office to comply and settle your violation record.
+                            </div>
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
 
             {/* Header */}
             <div className="page-header">
@@ -236,6 +251,14 @@ export default function DashboardStudent() {
                 </div>
             </div>
 
+            {/* Active Period Banner */}
+            {period && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 10, padding: '10px 16px', marginBottom: 16, fontSize: '.85rem', color: '#92400e' }}>
+                    <CalendarClock size={15} color="#f97316" />
+                    <span>Current Academic Period: <strong>{period.school_year} — {period.semester === '1st' ? '1st Semester' : '2nd Semester'}</strong></span>
+                </div>
+            )}
+
             {/* Stats row */}
             <div className="stats-row">
                 {[
@@ -261,6 +284,36 @@ export default function DashboardStudent() {
                 ))}
             </div>
 
+            {/* Upcoming Events — below stats */}
+            <div className="card" style={{ marginTop: 16, marginBottom: 4 }}>
+                <div className="card-header">
+                    <h2 style={{ display: 'flex', alignItems: 'center', gap: 6 }}><PartyPopper size={15} color="#f97316" /> Upcoming Events</h2>
+                    <Link to="/events" style={{ fontSize: 12, fontWeight: 600, color: '#f97316', textDecoration: 'none' }}>View all →</Link>
+                </div>
+                <div className="card-body" style={{ padding: 0 }}>
+                    {events.length === 0 ? (
+                        <p style={{ color: '#a8a29e', fontSize: 13, padding: '16px 20px', margin: 0 }}>No upcoming events.</p>
+                    ) : events.map((ev, i) => {
+                        const sc = statusCfg[ev.status] ?? statusCfg.upcoming;
+                        return (
+                            <div key={ev.id} style={{ display: 'flex', alignItems: 'center', gap: 14, padding: '12px 18px', borderBottom: i < events.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
+                                <div style={{ width: 38, height: 38, borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                    <PartyPopper size={16} color="#f97316" strokeWidth={1.8} />
+                                </div>
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', marginBottom: 3 }}>{ev.title}</div>
+                                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#78716c', flexWrap: 'wrap', alignItems: 'center' }}>
+                                        <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><CalendarRange size={11} color="#f97316" />{fmtDate(ev.date_start)}</span>
+                                        {ev.venue && <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><MapPin size={11} color="#a8a29e" />{ev.venue}</span>}
+                                        <span style={{ background: sc.bg, color: sc.fg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{ev.status}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: 16, marginTop: 4 }}>
 
                 {/* Personal Info */}
@@ -273,14 +326,14 @@ export default function DashboardStudent() {
                 >
                     <InfoRow label="Student ID"    value={profile.student_id} />
                     <InfoRow label="Full Name"     value={`${profile.first_name} ${profile.middle_name ? profile.middle_name + ' ' : ''}${profile.last_name}`} />
-                    <InfoRow label="Date of Birth" value={profile.date_of_birth} />
+                    <InfoRow label="Date of Birth" value={profile.date_of_birth ? new Date(profile.date_of_birth).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'} />
                     <InfoRow label="Gender"        value={profile.gender} />
                     <InfoRow label="Address"       value={profile.address} />
                     <InfoRow label="Contact"       value={profile.contact_number} />
                     <InfoRow label="Email"         value={profile.email} />
                     <InfoRow label="Guardian"      value={profile.guardian_name} />
                     <InfoRow label="Status"        value={profile.status} />
-                    <InfoRow label="Enrolled"      value={profile.enrollment_date} />
+                    <InfoRow label="Enrolled"      value={profile.enrollment_date ? new Date(profile.enrollment_date).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'} />
                 </SectionCard>
 
                 {/* Academic Records */}
@@ -364,34 +417,6 @@ export default function DashboardStudent() {
                             {v.action_taken && <div style={{ fontSize: 12, color: '#a8a29e' }}>Action: {v.action_taken}</div>}
                         </div>
                     )) : <p style={{ color: '#a8a29e', fontSize: 13 }}>No violations on record.</p>}
-                </SectionCard>
-
-                {/* Upcoming Events */}
-                <SectionCard title="Upcoming Events" Icon={PartyPopper} color="#f97316"
-                    action={
-                        <Link to="/events" style={{ fontSize: 12, fontWeight: 600, color: '#f97316', textDecoration: 'none' }}>View all →</Link>
-                    }
-                >
-                    {events.length === 0 ? (
-                        <p style={{ color: '#a8a29e', fontSize: 13 }}>No upcoming events.</p>
-                    ) : events.map((ev, i) => {
-                        const sc = statusCfg[ev.status] ?? statusCfg.upcoming;
-                        return (
-                            <div key={ev.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: i < events.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
-                                <div style={{ width: 36, height: 36, borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
-                                    <PartyPopper size={16} color="#f97316" strokeWidth={1.8} />
-                                </div>
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', marginBottom: 3 }}>{ev.title}</div>
-                                    <div style={{ display: 'flex', gap: 8, fontSize: 11, color: '#78716c', flexWrap: 'wrap', alignItems: 'center' }}>
-                                        <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><CalendarRange size={11} color="#f97316" />{fmtDate(ev.date_start)}</span>
-                                        {ev.venue && <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><MapPin size={11} color="#a8a29e" />{ev.venue}</span>}
-                                        <span style={{ background: sc.bg, color: sc.fg, border: `1px solid ${sc.border}`, borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 700 }}>{ev.status}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        );
-                    })}
                 </SectionCard>
 
             </div>

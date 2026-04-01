@@ -190,6 +190,59 @@ function ReportModal({ faculty, onClose }) {
 
 const emptyFaculty = { faculty_id: '', first_name: '', middle_name: '', last_name: '', department: '', position: '', email: '', contact_number: '09' };
 
+function FacultyDetailModal({ faculty: f, onClose }) {
+    const deptLabel = { IT: 'Information Technology', CS: 'Computer Science' };
+    const Row = ({ label, value }) => (
+        <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: 12, padding: '8px 0', borderBottom: '1px solid #f5f5f4' }}>
+            <span style={{ color: '#a8a29e', fontWeight: 600, fontSize: '.78rem', paddingTop: 1 }}>{label}</span>
+            <span style={{ color: '#1c1917', fontWeight: 500, fontSize: '.875rem', wordBreak: 'break-word' }}>{value || '—'}</span>
+        </div>
+    );
+    return (
+        <div style={overlay}>
+            <div style={{ ...modalCard, maxWidth: 560, padding: 0, borderRadius: 20, maxHeight: '90vh', overflowY: 'auto' }}>
+                {/* Header */}
+                <div style={{ background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)', padding: '24px 28px', borderRadius: '20px 20px 0 0', position: 'relative' }}>
+                    <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: 'rgba(255,255,255,.2)', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#fff' }}>
+                        <X size={16} />
+                    </button>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+                        <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(255,255,255,.25)', border: '3px solid rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                            <span style={{ color: '#fff', fontWeight: 800, fontSize: '1.1rem' }}>{f.first_name?.[0]}{f.last_name?.[0]}</span>
+                        </div>
+                        <div>
+                            <div style={{ fontWeight: 800, fontSize: '1.2rem', color: '#fff' }}>
+                                {f.first_name} {f.middle_name ? f.middle_name + ' ' : ''}{f.last_name}
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, flexWrap: 'wrap' }}>
+                                <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)', fontFamily: 'monospace', fontWeight: 600 }}>{f.faculty_id}</span>
+                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)' }}>{deptLabel[f.department] || f.department}</span>
+                                <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)' }}>{f.position}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {/* Body */}
+                <div style={{ padding: '24px 28px' }}>
+                    <div style={{ fontSize: '.68rem', fontWeight: 800, color: '#8b5cf6', textTransform: 'uppercase', letterSpacing: '.1em', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <div style={{ height: 2, width: 18, background: '#8b5cf6', borderRadius: 2 }} />
+                        Faculty Information
+                        <div style={{ height: 2, flex: 1, background: '#ddd6fe', borderRadius: 2 }} />
+                    </div>
+                    <Row label="Faculty ID"   value={f.faculty_id} />
+                    <Row label="Full Name"    value={`${f.first_name || ''} ${f.middle_name || ''} ${f.last_name || ''}`.trim()} />
+                    <Row label="Department"   value={deptLabel[f.department] || f.department} />
+                    <Row label="Position"     value={f.position} />
+                    <Row label="Email"        value={f.email} />
+                    <Row label="Contact"      value={f.contact_number} />
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export default function FacultyDataMap() {
     const [faculties, setFaculties] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -199,6 +252,7 @@ export default function FacultyDataMap() {
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
     const [reportFaculty, setReportFaculty] = useState(null);
+    const [viewingFaculty, setViewingFaculty] = useState(null);
     const [deptPages, setDeptPages] = useState({});
     const PAGE_SIZE = 5;
 
@@ -369,7 +423,7 @@ export default function FacultyDataMap() {
                                             {paginated.map((fac, idx) => (
                                                 <tr key={fac.id}>
                                                     <td>{(page - 1) * PAGE_SIZE + idx + 1}</td>
-                                                    <td><strong>{fac.faculty_id || `FAC-${fac.id}`}</strong></td>
+                                                    <td><strong style={{ color: '#8b5cf6', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewingFaculty(fac)}>{fac.faculty_id || `FAC-${fac.id}`}</strong></td>
                                                     <td>{fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}</td>
                                                     <td>{fac.position}</td>
                                                     <td>{fac.email || '—'}</td>
@@ -467,6 +521,9 @@ export default function FacultyDataMap() {
             {/* Create Report Modal */}
             {reportFaculty && (
                 <ReportModal faculty={reportFaculty} onClose={() => setReportFaculty(null)} />
+            )}
+            {viewingFaculty && (
+                <FacultyDetailModal faculty={viewingFaculty} onClose={() => setViewingFaculty(null)} />
             )}
         </div>
     );
