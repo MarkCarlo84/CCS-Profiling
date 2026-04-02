@@ -334,14 +334,14 @@ export default function FacultyDataMap() {
     return (
         <div>
             <div className="page-header no-print">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="table-page-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                             <div style={iconWrap}><Users size={22} color="#f97316" /></div>
                             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Faculty Data Map</h1>
                         </div>
                         <p style={{ color: '#78716c', marginBottom: 10 }}>Complete faculty roster grouped by department — Manage and Print</p>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <div className="dept-filter-row">
                             {[['', 'All Faculty'], ['IT', 'Information Technology (IT)'], ['CS', 'Computer Science (CS)']].map(([val, label]) => (
                                 <button
                                     key={val}
@@ -410,8 +410,10 @@ export default function FacultyDataMap() {
                                 <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{members.length} faculty</span>
                             </div>
                             <div className="card-body" style={{ padding: 0 }}>
-                                <div className="table-wrap">
-                                    <table>
+
+                                {/* Tablet+: scrollable table */}
+                                <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                    <table style={{ minWidth: 560 }}>
                                         <thead>
                                             <tr>
                                                 <th>#</th><th>Faculty ID</th><th>Full Name</th><th>Position</th>
@@ -440,6 +442,41 @@ export default function FacultyDataMap() {
                                         </tbody>
                                     </table>
                                 </div>
+
+                                {/* Mobile: card list */}
+                                <div className="subjects-card-list">
+                                    {paginated.map((fac, idx) => (
+                                        <div key={fac.id} style={{
+                                            padding: '12px 14px',
+                                            borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+                                        }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                                                        <strong
+                                                            style={{ color: '#8b5cf6', fontSize: '.82rem', fontFamily: 'monospace', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                                                            onClick={() => setViewingFaculty(fac)}
+                                                        >
+                                                            {fac.faculty_id || `FAC-${fac.id}`}
+                                                        </strong>
+                                                    </div>
+                                                    <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
+                                                        {fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}
+                                                    </div>
+                                                    <div style={{ fontSize: '.78rem', color: '#78716c', marginBottom: 1 }}>{fac.position}</div>
+                                                    {fac.email && <div style={{ fontSize: '.75rem', color: '#a8a29e' }}>{fac.email}</div>}
+                                                    {fac.contact_number && <div style={{ fontSize: '.75rem', color: '#a8a29e' }}>{fac.contact_number}</div>}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                                    <button style={{ ...iconBtnStyle, color: '#2563eb' }} onClick={() => setReportFaculty(fac)} title="Create Report"><FileText size={13} /></button>
+                                                    <button style={iconBtnStyle} onClick={() => openEdit(fac)} title="Edit"><Pencil size={13} /></button>
+                                                    <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(fac.id)} title="Delete"><Trash2 size={13} /></button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+
                             </div>
                             {totalPages > 1 && (
                                 <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
@@ -465,7 +502,7 @@ export default function FacultyDataMap() {
             {modal && (
                 <Modal title={modal === 'add' ? 'Add New Faculty' : 'Edit Faculty'} onClose={() => setModal(null)}>
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div className="modal-grid-2col">
                             <div>
                                 <label style={lStyle}>Faculty ID</label>
                                 <input style={iStyle} value={form.faculty_id} onChange={e => setForm({ ...form, faculty_id: e.target.value })} placeholder="e.g. FAC-2024-001" />
@@ -479,7 +516,7 @@ export default function FacultyDataMap() {
                                 </select>
                             </div>
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                        <div className="modal-grid-3col">
                             <div>
                                 <label style={lStyle}>First Name</label>
                                 <input style={iStyle} value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} required />
@@ -497,7 +534,7 @@ export default function FacultyDataMap() {
                             <label style={lStyle}>Position</label>
                             <input style={iStyle} value={form.position} onChange={e => setForm({ ...form, position: e.target.value })} required placeholder="e.g. Associate Professor" />
                         </div>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                        <div className="modal-grid-2col">
                             <div>
                                 <label style={lStyle}>Email Address <span style={{ color: '#dc2626' }}>*</span></label>
                                 <input style={iStyle} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required />

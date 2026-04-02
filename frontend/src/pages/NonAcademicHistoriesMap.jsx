@@ -60,8 +60,9 @@ export default function NonAcademicHistoriesMap() {
                                     <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{items.length}</span>
                                 </div>
                                 <div className="card-body" style={{ padding: 0 }}>
-                                    <div className="table-wrap">
-                                        <table>
+                                    {/* Tablet+: scrollable table */}
+                                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                        <table style={{ minWidth: 580 }}>
                                             <thead><tr><th>#</th><th>Student ID</th><th>Activity Title</th><th>Role</th><th>Date</th><th>Organizer</th><th>Result</th><th>Actions</th></tr></thead>
                                             <tbody>
                                                 {items.map((h, i) => (
@@ -85,6 +86,26 @@ export default function NonAcademicHistoriesMap() {
                                                 ))}
                                             </tbody>
                                         </table>
+                                    </div>
+                                    {/* Mobile: card list */}
+                                    <div className="subjects-card-list">
+                                        {items.map((h, i) => (
+                                            <div key={h.id} style={{ padding: '12px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                                <div style={{ flex: 1, minWidth: 0 }}>
+                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+                                                        <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{h.student_id}</strong>
+                                                        {h.game_result && <span style={{ fontSize: '.72rem', fontWeight: 700, color: clr, background: `${clr}18`, border: `1px solid ${clr}30`, borderRadius: 5, padding: '1px 7px' }}>{h.game_result}</span>}
+                                                    </div>
+                                                    <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>{h.activity_title}</div>
+                                                    <div style={{ fontSize: '.75rem', color: '#78716c' }}>
+                                                        {h.role && <span>{h.role}</span>}
+                                                        {h.organizer && <span> · {h.organizer}</span>}
+                                                        {h.date_started && <span> · {new Date(h.date_started).toLocaleDateString('en-PH')}</span>}
+                                                    </div>
+                                                </div>
+                                                <button style={{ ...iconBtn, color: '#dc2626', flexShrink: 0 }} onClick={() => remove(h.id)}><Trash2 size={13} /></button>
+                                            </div>
+                                        ))}
                                     </div>
                                 </div>
                             </div>

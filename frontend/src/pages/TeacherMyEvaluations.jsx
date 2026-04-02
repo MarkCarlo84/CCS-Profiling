@@ -86,12 +86,12 @@ export default function TeacherMyEvaluations() {
                         </div>
                         <div className="card-body">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 24, flexWrap: 'wrap', marginBottom: 20 }}>
-                                <div style={{ textAlign: 'center' }}>
+                                <div style={{ textAlign: 'center', minWidth: 80 }}>
                                     <div style={{ fontSize: '3rem', fontWeight: 900, color: ratingColor(overallAvg), lineHeight: 1 }}>{overallAvg}</div>
                                     <div style={{ fontSize: '.78rem', color: '#78716c', marginTop: 4 }}>Overall Average</div>
                                     <div style={{ fontSize: '.85rem', fontWeight: 700, color: ratingColor(overallAvg) }}>{ratingLabel(parseFloat(overallAvg))}</div>
                                 </div>
-                                <div style={{ flex: 1, minWidth: 240, display: 'flex', flexDirection: 'column', gap: 10 }}>
+                                <div style={{ flex: 1, minWidth: 200, display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {CRITERIA.map(c => (
                                         <div key={c.key}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.78rem', marginBottom: 3 }}>
@@ -118,7 +118,7 @@ export default function TeacherMyEvaluations() {
 
                     {/* Individual evaluations */}
                     <div className="section-divider"><h2>Individual Responses</h2></div>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 14 }}>
+                    <div className="dashboard-cards-grid" style={{ gap: 14 }}>
                         {evals.map((ev, i) => (
                             <div key={ev.id} className="card">
                                 <div className="card-body">

@@ -123,7 +123,7 @@ export default function AcademicPeriodSettings() {
                         <div style={{ padding: '4px 16px', borderRadius: 999, background: '#fff7ed', border: '1px solid #fed7aa', color: '#f97316', fontWeight: 700, fontSize: '.9rem' }}>
                             {semLabel(active.semester)}
                         </div>
-                        <button onClick={handleAdvance} disabled={advancing} style={{ ...btn('#1c1917'), marginLeft: 'auto' }}>
+                        <button onClick={handleAdvance} disabled={advancing} style={{ ...btn('#1c1917'), marginLeft: 'auto', flexShrink: 0 }}>
                             <ArrowRight size={15} />
                             {advancing ? 'Advancing…' : `Advance to ${nextPreview()}`}
                         </button>
@@ -136,7 +136,7 @@ export default function AcademicPeriodSettings() {
             {/* Manual set form */}
             <div style={card}>
                 <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 16 }}>Set Active Period Manually</div>
-                <form onSubmit={handleSet} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 14, alignItems: 'flex-end' }}>
+                <form onSubmit={handleSet} className="period-form">
                     <div>
                         <label style={label}>School Year</label>
                         <input
@@ -164,28 +164,52 @@ export default function AcademicPeriodSettings() {
             {history.length > 0 && (
                 <div style={card}>
                     <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 14 }}>Period History</div>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.875rem' }}>
-                        <thead>
-                            <tr style={{ background: '#fff7ed' }}>
-                                {['School Year', 'Semester', 'Status'].map(h => (
-                                    <th key={h} style={{ padding: '8px 14px', textAlign: 'left', fontSize: '.75rem', fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
-                                ))}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {history.map(p => (
-                                <tr key={p.id} style={{ borderTop: '1px solid #fde8d0' }}>
-                                    <td style={{ padding: '9px 14px', fontWeight: 700, color: '#1c1917' }}>{p.school_year}</td>
-                                    <td style={{ padding: '9px 14px', color: '#44403c' }}>{semLabel(p.semester)}</td>
-                                    <td style={{ padding: '9px 14px' }}>
-                                        {p.is_active
-                                            ? <span style={{ padding: '2px 12px', borderRadius: 999, background: '#f0fdf4', color: '#16a34a', fontWeight: 700, fontSize: '.78rem', border: '1px solid #bbf7d0' }}>Active</span>
-                                            : <span style={{ color: '#a8a29e', fontSize: '.82rem' }}>Past</span>}
-                                    </td>
+
+                    {/* Tablet+: table */}
+                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.875rem', minWidth: 360 }}>
+                            <thead>
+                                <tr style={{ background: '#fff7ed' }}>
+                                    {['School Year', 'Semester', 'Status'].map(h => (
+                                        <th key={h} style={{ padding: '8px 14px', textAlign: 'left', fontSize: '.75rem', fontWeight: 700, color: '#f97316', textTransform: 'uppercase', letterSpacing: '.06em' }}>{h}</th>
+                                    ))}
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {history.map(p => (
+                                    <tr key={p.id} style={{ borderTop: '1px solid #fde8d0' }}>
+                                        <td style={{ padding: '9px 14px', fontWeight: 700, color: '#1c1917' }}>{p.school_year}</td>
+                                        <td style={{ padding: '9px 14px', color: '#44403c' }}>{semLabel(p.semester)}</td>
+                                        <td style={{ padding: '9px 14px' }}>
+                                            {p.is_active
+                                                ? <span style={{ padding: '2px 12px', borderRadius: 999, background: '#f0fdf4', color: '#16a34a', fontWeight: 700, fontSize: '.78rem', border: '1px solid #bbf7d0' }}>Active</span>
+                                                : <span style={{ padding: '2px 12px', borderRadius: 999, background: '#f8fafc', color: '#94a3b8', fontWeight: 600, fontSize: '.78rem', border: '1px solid #e2e8f0' }}>Past</span>}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile: card list */}
+                    <div className="subjects-card-list">
+                        {history.map((p, idx) => (
+                            <div key={p.id} style={{
+                                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                                padding: '11px 4px',
+                                borderTop: idx > 0 ? '1px solid #fde8d0' : 'none',
+                                gap: 12,
+                            }}>
+                                <div>
+                                    <div style={{ fontWeight: 700, fontSize: '.9rem', color: '#1c1917' }}>{p.school_year}</div>
+                                    <div style={{ fontSize: '.8rem', color: '#78716c', marginTop: 2 }}>{semLabel(p.semester)}</div>
+                                </div>
+                                {p.is_active
+                                    ? <span style={{ padding: '2px 12px', borderRadius: 999, background: '#f0fdf4', color: '#16a34a', fontWeight: 700, fontSize: '.78rem', border: '1px solid #bbf7d0', flexShrink: 0 }}>Active</span>
+                                    : <span style={{ padding: '2px 12px', borderRadius: 999, background: '#f8fafc', color: '#94a3b8', fontWeight: 600, fontSize: '.78rem', border: '1px solid #e2e8f0', flexShrink: 0 }}>Past</span>}
+                            </div>
+                        ))}
+                    </div>
                 </div>
             )}
         </div>

@@ -42,32 +42,26 @@ export default function Dashboard() {
         <div>
             {/* Header */}
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                    <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
-                            <div style={{
-                                width: 46, height: 46, borderRadius: 13,
-                                background: 'linear-gradient(135deg,#f97316,#c2410c)',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                boxShadow: '0 4px 14px rgba(249,115,22,.35)',
-                            }}>
-                                <BarChart3 size={22} color="#fff" strokeWidth={2} />
-                            </div>
-                            <div>
-                                <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#18120e', letterSpacing: '-.02em', margin: 0 }}>
-                                    Dashboard
-                                </h1>
-                                <p style={{ color: '#78716c', fontSize: '.88rem', marginTop: 2 }}>
-                                    CCS Comprehensive Profiling System — Overview
-                                </p>
-                            </div>
+                <div className="page-header-row">
+                    <div className="page-header-left">
+                        <div style={{
+                            width: 46, height: 46, borderRadius: 13,
+                            background: 'linear-gradient(135deg,#f97316,#c2410c)',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            boxShadow: '0 4px 14px rgba(249,115,22,.35)', flexShrink: 0,
+                        }}>
+                            <BarChart3 size={22} color="#fff" strokeWidth={2} />
+                        </div>
+                        <div>
+                            <h1 className="dashboard-title" style={{ fontSize: '1.7rem', fontWeight: 800, color: '#18120e', letterSpacing: '-.02em', margin: 0 }}>
+                                Dashboard
+                            </h1>
+                            <p style={{ color: '#78716c', fontSize: '.88rem', marginTop: 2 }}>
+                                CCS Comprehensive Profiling System — Overview
+                            </p>
                         </div>
                     </div>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
-                        color: '#78716c', background: '#fff7ed', padding: '6px 12px',
-                        borderRadius: 999, border: '1px solid #fed7aa', fontWeight: 500,
-                    }}>
+                    <div className="page-date-badge" style={{ color: '#78716c', background: '#fff7ed', border: '1px solid #fed7aa' }}>
                         <TrendingUp size={13} color="#f97316" />
                         {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
@@ -132,7 +126,7 @@ export default function Dashboard() {
                     {/* Quick Actions */}
                     <div style={{ marginBottom: 4 }}>
                         <div className="section-divider"><h2>Quick Access</h2></div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 12 }}>
+                        <div className="quick-actions-grid">
                             {QUICK_ACTIONS.map(({ to, label, Icon, desc, color }) => (
                                 <Link key={to} to={to} className="action-card">
                                     <div className="action-icon" style={{ background: `linear-gradient(135deg,${color},${color}cc)` }}>

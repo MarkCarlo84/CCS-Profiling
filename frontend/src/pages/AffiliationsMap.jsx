@@ -53,8 +53,9 @@ export default function AffiliationsMap() {
                                 <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{items.length}</span>
                             </div>
                             <div className="card-body" style={{ padding: 0 }}>
-                                <div className="table-wrap">
-                                    <table>
+                                {/* Tablet+: scrollable table */}
+                                <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                    <table style={{ minWidth: 480 }}>
                                         <thead><tr><th>#</th><th>Student ID</th><th>Organization Name</th><th>Role</th><th>Date Joined</th><th>Actions</th></tr></thead>
                                         <tbody>
                                             {items.map((a, i) => (
@@ -69,6 +70,22 @@ export default function AffiliationsMap() {
                                             ))}
                                         </tbody>
                                     </table>
+                                </div>
+                                {/* Mobile: card list */}
+                                <div className="subjects-card-list">
+                                    {items.map((a, i) => (
+                                        <div key={a.id} style={{ padding: '11px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>{a.name}</div>
+                                                <div style={{ fontSize: '.78rem', color: '#78716c' }}>
+                                                    <strong style={{ color: '#f97316' }}>{a.student_id}</strong>
+                                                    {a.role && <span> · {a.role}</span>}
+                                                    {a.date_joined && <span> · {new Date(a.date_joined).toLocaleDateString('en-PH')}</span>}
+                                                </div>
+                                            </div>
+                                            <button style={{ ...iconBtn, color: '#dc2626', flexShrink: 0 }} onClick={() => remove(a.id)}><Trash2 size={13} /></button>
+                                        </div>
+                                    ))}
                                 </div>
                             </div>
                         </div>

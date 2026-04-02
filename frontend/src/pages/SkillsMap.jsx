@@ -97,28 +97,52 @@ export default function SkillsMap() {
 
 function SimpleTable({ skills, onEdit, onDelete, levelColors }) {
     return (
-        <div className="table-wrap">
-            <table>
-                <thead><tr><th>#</th><th>Student ID</th><th>Skill Name</th><th>Level</th><th>Certified</th><th>Actions</th></tr></thead>
-                <tbody>
-                    {skills.map((s, i) => (
-                        <tr key={s.id}>
-                            <td>{i + 1}</td>
-                            <td><strong>{s.student_id}</strong></td>
-                            <td>{s.skill_name}</td>
-                            <td><span className={`badge badge-${s.skill_level}`} style={{ textTransform: 'capitalize' }}>{s.skill_level}</span></td>
-                            <td>{s.certification ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.8rem' }}>✓ Yes</span> : <span style={{ color: '#a8a29e', fontSize: '.8rem' }}>No</span>}</td>
-                            <td>
-                                <div style={{ display: 'flex', gap: 6 }}>
-                                    <button style={iconBtn} onClick={() => onEdit(s)}><Pencil size={13} /></button>
-                                    <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => onDelete(s.id)}><Trash2 size={13} /></button>
-                                </div>
-                            </td>
-                        </tr>
-                    ))}
-                    {skills.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>No skills found.</td></tr>}
-                </tbody>
-            </table>
+        <div>
+            {/* Tablet+: scrollable table */}
+            <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                <table style={{ minWidth: 460 }}>
+                    <thead><tr><th>#</th><th>Student ID</th><th>Skill Name</th><th>Level</th><th>Certified</th><th>Actions</th></tr></thead>
+                    <tbody>
+                        {skills.map((s, i) => (
+                            <tr key={s.id}>
+                                <td>{i + 1}</td>
+                                <td><strong>{s.student_id}</strong></td>
+                                <td>{s.skill_name}</td>
+                                <td><span className={`badge badge-${s.skill_level}`} style={{ textTransform: 'capitalize' }}>{s.skill_level}</span></td>
+                                <td>{s.certification ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.8rem' }}>✓ Yes</span> : <span style={{ color: '#a8a29e', fontSize: '.8rem' }}>No</span>}</td>
+                                <td>
+                                    <div style={{ display: 'flex', gap: 6 }}>
+                                        <button style={iconBtn} onClick={() => onEdit(s)}><Pencil size={13} /></button>
+                                        <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => onDelete(s.id)}><Trash2 size={13} /></button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
+                        {skills.length === 0 && <tr><td colSpan={6} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>No skills found.</td></tr>}
+                    </tbody>
+                </table>
+            </div>
+            {/* Mobile: card list */}
+            <div className="subjects-card-list">
+                {skills.length === 0 ? (
+                    <p style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: '.875rem' }}>No skills found.</p>
+                ) : skills.map((s, i) => (
+                    <div key={s.id} style={{ padding: '11px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+                                <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{s.student_id}</strong>
+                                <span className={`badge badge-${s.skill_level}`} style={{ textTransform: 'capitalize' }}>{s.skill_level}</span>
+                                {s.certification && <span style={{ fontSize: '.7rem', color: '#16a34a', fontWeight: 700 }}>✓ Certified</span>}
+                            </div>
+                            <div style={{ fontWeight: 600, fontSize: '.875rem', color: '#1c1917' }}>{s.skill_name}</div>
+                        </div>
+                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                            <button style={iconBtn} onClick={() => onEdit(s)}><Pencil size={13} /></button>
+                            <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => onDelete(s.id)}><Trash2 size={13} /></button>
+                        </div>
+                    </div>
+                ))}
+            </div>
         </div>
     );
 }

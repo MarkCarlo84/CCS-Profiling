@@ -79,7 +79,7 @@ function StudentDetailModal({ student: s, onClose }) {
                     </div>
 
                     {/* Quick stats */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 10, marginTop: 20 }}>
+                    <div className="student-quick-stats">
                         {[
                             { label: 'Violations', value: s.violations?.filter(v => !v.is_resolved).length ?? 0, warn: true },
                             { label: 'Skills', value: s.skills?.length ?? 0 },
@@ -98,7 +98,7 @@ function StudentDetailModal({ student: s, onClose }) {
                 <div style={{ padding: '24px 28px' }}>
 
                     <Section label="Personal Information">
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 24px' }}>
+                        <div className="modal-grid-2col">
                             <Row label="Student ID"    value={s.student_id} />
                             <Row label="Date of Birth" value={fmt(s.date_of_birth)} />
                             <Row label="Full Name"     value={`${s.first_name || ''} ${s.middle_name || ''} ${s.last_name || ''}`.trim()} />
@@ -321,8 +321,10 @@ export default function StudentDataMap() {
                     <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{deptStudents.length} students</span>
                 </div>
                 <div className="card-body" style={{ padding: 0 }}>
-                    <div className="table-wrap">
-                        <table>
+
+                    {/* Tablet+: scrollable table */}
+                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ minWidth: 700 }}>
                             <thead>
                                 <tr>
                                     <th>#</th><th>Student ID</th><th>Full Name</th>
@@ -374,6 +376,67 @@ export default function StudentDataMap() {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* Mobile: card list */}
+                    <div className="subjects-card-list">
+                        {paginated.map((stu, idx) => (
+                            <div key={stu.id} style={{
+                                padding: '12px 14px',
+                                borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        {/* ID + name row */}
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                                            <strong
+                                                style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                                                onClick={() => setViewing(stu)}
+                                            >
+                                                {stu.student_id || `STU-${stu.id}`}
+                                            </strong>
+                                            {stu.gender && <span style={{ fontSize: '.72rem', color: '#78716c' }}>{stu.gender}</span>}
+                                            {stu.age && <span style={{ fontSize: '.72rem', color: '#78716c' }}>· {stu.age} yrs</span>}
+                                        </div>
+                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
+                                            {stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}
+                                        </div>
+                                        {stu.guardian_name && (
+                                            <div style={{ fontSize: '.75rem', color: '#78716c', marginBottom: 4 }}>
+                                                Guardian: {stu.guardian_name}
+                                            </div>
+                                        )}
+                                        {/* Tags row */}
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
+                                            {stu.affiliations?.length > 0 && (
+                                                <span style={{ fontSize: '.7rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
+                                                    {stu.affiliations.length} affiliation{stu.affiliations.length > 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                            {stu.skills?.length > 0 && (
+                                                <span style={{ fontSize: '.7rem', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
+                                                    {stu.skills.length} skill{stu.skills.length > 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                            {stu.violations?.length > 0 ? (
+                                                <span style={{ fontSize: '.7rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
+                                                    {stu.violations.length} violation{stu.violations.length > 1 ? 's' : ''}
+                                                </span>
+                                            ) : (
+                                                <span style={{ fontSize: '.7rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
+                                                    No violations
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                        <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit"><Pencil size={13} /></button>
+                                        <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(stu.id)} title="Delete"><Trash2 size={13} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
                 </div>
                 {totalPages > 1 && (
                     <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
@@ -396,14 +459,14 @@ export default function StudentDataMap() {
     return (
         <div>
             <div className="page-header no-print">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="table-page-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                             <div style={iconWrap}><GraduationCap size={22} color="#f97316" /></div>
                             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Student Data Map</h1>
                         </div>
                         <p style={{ color: '#78716c', marginBottom: 10 }}>Manage and Print comprehensive student profiles including academic records and history</p>
-                        <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
+                        <div className="dept-filter-row">
                             {[['', 'All Students'], ['IT', 'Information Technology (IT)'], ['CS', 'Computer Science (CS)']].map(([val, label]) => (
                                 <button
                                     key={val}
@@ -477,7 +540,7 @@ export default function StudentDataMap() {
             {viewing && <StudentDetailModal student={viewing} onClose={() => setViewing(null)} />}
             {modal && (                <Modal title={modal === 'add' ? 'Add New Student' : 'Edit Student'} onClose={() => setModal(null)} width={640}>
                     <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 12 }}>
+                        <div className="modal-grid-2col">
                             <div>
                                 <label style={lStyle}>Student ID</label>
                                 <input style={iStyle} value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })} placeholder="e.g. 2202184" />
@@ -505,7 +568,7 @@ export default function StudentDataMap() {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 12 }}>
+                        <div className="modal-grid-3col">
                             <div>
                                 <label style={lStyle}>First Name</label>
                                 <input style={iStyle} value={form.first_name} onChange={e => setForm({ ...form, first_name: e.target.value })} required />
@@ -520,7 +583,7 @@ export default function StudentDataMap() {
                             </div>
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1.5fr', gap: 12 }}>
+                        <div className="modal-grid-3col">
                             <div>
                                 <label style={lStyle}>Age</label>
                                 <input style={iStyle} type="number" value={form.age} onChange={e => setForm({ ...form, age: e.target.value })} />
@@ -544,7 +607,7 @@ export default function StudentDataMap() {
                             <input style={iStyle} value={form.guardian_name} onChange={e => setForm({ ...form, guardian_name: e.target.value })} />
                         </div>
 
-                        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: 12 }}>
+                        <div className="modal-grid-2col">
                             <div>
                                 <label style={lStyle}>Email {modal === 'add' && <span style={{ color: '#dc2626' }}>*</span>}</label>
                                 <input style={iStyle} type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} required={modal === 'add'} />

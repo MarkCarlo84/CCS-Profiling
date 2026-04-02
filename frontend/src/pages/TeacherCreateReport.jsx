@@ -13,7 +13,7 @@ function ReportForm({ initial, onSave, onCancel, saving, error }) {
 
     return (
         <form onSubmit={(e) => { e.preventDefault(); onSave(form); }} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div className="modal-grid-2col">
                 <div style={{ gridColumn: '1 / -1' }}>
                     <label style={s.label}>Report Title <span style={{ color: '#dc2626' }}>*</span></label>
                     <input required value={form.title} onChange={set('title')} placeholder="e.g. Mid-term Academic Progress Report" style={s.input} />
@@ -210,7 +210,7 @@ export default function TeacherCreateReport() {
     return (
         <div>
             <div className="page-header">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                <div className="table-page-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={s.iconWrap}><FileText size={22} color="#f97316" /></div>
                         <div>

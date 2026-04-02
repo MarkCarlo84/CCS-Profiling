@@ -221,18 +221,18 @@ export default function DashboardStudent() {
 
             {/* Header */}
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="page-header-row">
+                    <div className="page-header-left">
                         <div style={{
                             width: 46, height: 46, borderRadius: 13,
                             background: 'linear-gradient(135deg,#3b82f6,#1d4ed8)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 4px 14px rgba(59,130,246,.35)',
+                            boxShadow: '0 4px 14px rgba(59,130,246,.35)', flexShrink: 0,
                         }}>
                             <GraduationCap size={22} color="#fff" strokeWidth={2} />
                         </div>
                         <div>
-                            <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#18120e', letterSpacing: '-.02em', margin: 0 }}>
+                            <h1 className="dashboard-title" style={{ fontSize: '1.7rem', fontWeight: 800, color: '#18120e', letterSpacing: '-.02em', margin: 0 }}>
                                 My Dashboard
                             </h1>
                             <p style={{ color: '#78716c', fontSize: '.88rem', marginTop: 2 }}>
@@ -240,11 +240,7 @@ export default function DashboardStudent() {
                             </p>
                         </div>
                     </div>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
-                        color: '#78716c', background: '#eff6ff', padding: '6px 12px',
-                        borderRadius: 999, border: '1px solid #bfdbfe', fontWeight: 500,
-                    }}>
+                    <div className="page-date-badge" style={{ color: '#78716c', background: '#eff6ff', border: '1px solid #bfdbfe' }}>
                         <TrendingUp size={13} color="#3b82f6" />
                         {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
@@ -314,7 +310,7 @@ export default function DashboardStudent() {
                 </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(320px,1fr))', gap: 16, marginTop: 4 }}>
+            <div className="dashboard-cards-grid">
 
                 {/* Personal Info */}
                 <SectionCard title="Personal Information" Icon={UserCircle} color="#3b82f6"

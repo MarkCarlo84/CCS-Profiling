@@ -280,6 +280,20 @@ export default function Login() {
                 }
                 #login-email::placeholder, #login-password::placeholder { color: rgba(255,255,255,0.4); }
 
+                /* Mobile responsive login card */
+                @media (max-width: 480px) {
+                    .fade-in-up {
+                        padding: 1.75rem 1.25rem 1.5rem !important;
+                        border-radius: 20px !important;
+                    }
+                }
+                @media (max-width: 360px) {
+                    .fade-in-up {
+                        padding: 1.25rem 1rem 1.25rem !important;
+                        border-radius: 16px !important;
+                    }
+                }
+
                 /* submit hover */
                 .submit-btn { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; }
                 .submit-btn::after {

@@ -73,36 +73,72 @@ export default function TeacherMySubjects() {
                             {program}
                         </div>
                         <div style={card}>
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                                <thead>
-                                    <tr>
-                                        <th style={{ ...th, width: 36 }}>#</th>
-                                        <th style={{ ...th, width: '14%' }}>Code</th>
-                                        <th style={th}>Subject Name</th>
-                                        <th style={{ ...th, width: '8%', textAlign: 'center' }}>Units</th>
-                                        <th style={{ ...th, width: '14%' }}>Year Level</th>
-                                        <th style={{ ...th, width: '18%' }}>Pre-Requisite</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {items.map((s, idx) => (
-                                        <tr key={s.id} style={{ background: idx % 2 === 0 ? '#fff' : '#faf5ff' }}>
-                                            <td style={{ ...td, color: '#a8a29e', fontSize: '.78rem', textAlign: 'center' }}>{idx + 1}</td>
-                                            <td style={td}><strong style={{ color: '#1c1917' }}>{s.subject_code}</strong></td>
-                                            <td style={{ ...td, fontWeight: 500, color: '#1c1917' }}>{s.subject_name}</td>
-                                            <td style={{ ...td, textAlign: 'center' }}>
-                                                <span style={{ display: 'inline-block', fontWeight: 700, fontSize: '.8rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, padding: '2px 10px' }}>
-                                                    {s.units}
-                                                </span>
-                                            </td>
-                                            <td style={td}>{s.year_level ?? '—'}</td>
-                                            <td style={{ ...td, color: s.pre_requisite ? '#44403c' : '#a8a29e', fontStyle: s.pre_requisite ? 'normal' : 'italic', fontSize: '.82rem' }}>
-                                                {s.pre_requisite || 'none'}
-                                            </td>
+                            {/* Tablet: scrollable table */}
+                            <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
+                                    <thead>
+                                        <tr>
+                                            <th style={{ ...th, width: 36 }}>#</th>
+                                            <th style={{ ...th, width: '14%' }}>Code</th>
+                                            <th style={th}>Subject Name</th>
+                                            <th style={{ ...th, width: 70, textAlign: 'center' }}>Units</th>
+                                            <th style={{ ...th, width: '14%' }}>Year Level</th>
+                                            <th style={{ ...th, width: '18%' }}>Pre-Requisite</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
+                                    </thead>
+                                    <tbody>
+                                        {items.map((s, idx) => (
+                                            <tr key={s.id} style={{ background: idx % 2 === 0 ? '#fff' : '#faf5ff' }}>
+                                                <td style={{ ...td, color: '#a8a29e', fontSize: '.78rem', textAlign: 'center' }}>{idx + 1}</td>
+                                                <td style={td}><strong style={{ color: '#1c1917' }}>{s.subject_code}</strong></td>
+                                                <td style={{ ...td, fontWeight: 500, color: '#1c1917' }}>{s.subject_name}</td>
+                                                <td style={{ ...td, textAlign: 'center' }}>
+                                                    <span style={{ display: 'inline-block', fontWeight: 700, fontSize: '.8rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, padding: '2px 10px' }}>
+                                                        {s.units}
+                                                    </span>
+                                                </td>
+                                                <td style={td}>{s.year_level ?? '—'}</td>
+                                                <td style={{ ...td, color: s.pre_requisite ? '#44403c' : '#a8a29e', fontStyle: s.pre_requisite ? 'normal' : 'italic', fontSize: '.82rem' }}>
+                                                    {s.pre_requisite || 'none'}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Mobile: card list */}
+                            <div className="subjects-card-list">
+                                {items.map((s, idx) => (
+                                    <div key={s.id} style={{
+                                        padding: '12px 14px',
+                                        borderTop: idx > 0 ? '1px solid #ede9fe' : 'none',
+                                        background: idx % 2 === 0 ? '#fff' : '#faf5ff',
+                                    }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, flexWrap: 'wrap' }}>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                                                    <strong style={{ color: '#8b5cf6', fontSize: '.82rem', fontFamily: 'monospace' }}>{s.subject_code}</strong>
+                                                    <span style={{ fontWeight: 700, fontSize: '.75rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 6, padding: '1px 8px' }}>
+                                                        {s.units} units
+                                                    </span>
+                                                    {s.year_level && (
+                                                        <span style={{ fontSize: '.72rem', color: '#8b5cf6', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 6, padding: '1px 7px', fontWeight: 600 }}>
+                                                            {s.year_level}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div style={{ fontWeight: 600, fontSize: '.875rem', color: '#1c1917', marginBottom: 3 }}>{s.subject_name}</div>
+                                                {s.pre_requisite && (
+                                                    <div style={{ fontSize: '.75rem', color: '#78716c' }}>
+                                                        Pre-req: <span style={{ color: '#44403c', fontWeight: 500 }}>{s.pre_requisite}</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
                         </div>
                     </div>
                 ))

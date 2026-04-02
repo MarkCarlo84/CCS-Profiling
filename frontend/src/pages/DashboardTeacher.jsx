@@ -56,18 +56,18 @@ export default function DashboardTeacher() {
         <div>
             {/* Header */}
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                <div className="page-header-row">
+                    <div className="page-header-left">
                         <div style={{
                             width: 46, height: 46, borderRadius: 13,
                             background: 'linear-gradient(135deg,#8b5cf6,#6d28d9)',
                             display: 'flex', alignItems: 'center', justifyContent: 'center',
-                            boxShadow: '0 4px 14px rgba(139,92,246,.35)',
+                            boxShadow: '0 4px 14px rgba(139,92,246,.35)', flexShrink: 0,
                         }}>
                             <Users size={22} color="#fff" strokeWidth={2} />
                         </div>
                         <div>
-                            <h1 style={{ fontSize: '1.7rem', fontWeight: 800, color: '#18120e', letterSpacing: '-.02em', margin: 0 }}>
+                            <h1 className="dashboard-title" style={{ fontSize: '1.7rem', fontWeight: 800, color: '#18120e', letterSpacing: '-.02em', margin: 0 }}>
                                 Teacher Dashboard
                             </h1>
                             <p style={{ color: '#78716c', fontSize: '.88rem', marginTop: 2 }}>
@@ -75,11 +75,7 @@ export default function DashboardTeacher() {
                             </p>
                         </div>
                     </div>
-                    <div style={{
-                        display: 'flex', alignItems: 'center', gap: 6, fontSize: 12,
-                        color: '#78716c', background: '#f5f3ff', padding: '6px 12px',
-                        borderRadius: 999, border: '1px solid #ddd6fe', fontWeight: 500,
-                    }}>
+                    <div className="page-date-badge" style={{ color: '#78716c', background: '#f5f3ff', border: '1px solid #ddd6fe' }}>
                         <TrendingUp size={13} color="#8b5cf6" />
                         {new Date().toLocaleDateString('en-PH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                     </div>
@@ -192,7 +188,7 @@ export default function DashboardTeacher() {
                     {/* Quick Actions */}
                     <div style={{ marginBottom: 4 }}>
                         <div className="section-divider"><h2>Quick Access</h2></div>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill,minmax(190px,1fr))', gap: 12 }}>
+                        <div className="quick-actions-grid">
                             {QUICK_ACTIONS.map(({ to, label, Icon, desc, color }) => (
                                 <Link key={to} to={to} className="action-card">
                                     <div className="action-icon" style={{ background: `linear-gradient(135deg,${color},${color}cc)` }}>

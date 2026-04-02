@@ -81,6 +81,7 @@ export default function SubjectsMap() {
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     background: 'linear-gradient(135deg, #f97316, #fb923c)',
                     borderRadius: '10px 10px 0 0', padding: '10px 16px',
+                    flexWrap: 'wrap', gap: 8,
                 }}>
                     <span style={{ fontWeight: 700, fontSize: '.9rem', color: '#fff', letterSpacing: .3 }}>{label}</span>
                     <span style={{ fontSize: '.78rem', fontWeight: 600, color: 'rgba(255,255,255,.85)', background: 'rgba(255,255,255,.2)', padding: '2px 10px', borderRadius: 20 }}>
@@ -88,46 +89,84 @@ export default function SubjectsMap() {
                     </span>
                 </div>
                 <div style={{ border: '1px solid #fed7aa', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.875rem' }}>
-                        <thead>
-                            <tr style={{ background: '#fff7ed' }}>
-                                <th style={{ ...th, width: 36 }}>#</th>
-                                <th style={{ ...th, width: '15%' }}>Course Code</th>
-                                <th style={{ ...th, width: 'auto' }}>Course Description</th>
-                                <th style={{ ...th, width: '8%', textAlign: 'center' }}>Units</th>
-                                <th style={{ ...th, width: '20%' }}>Pre-Requisite</th>
-                                <th style={{ ...th, width: '10%', textAlign: 'center' }}>Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {items.map((s, idx) => (
-                                <tr key={s.id} style={{ background: idx % 2 === 0 ? '#fff' : '#fffbf7', borderTop: '1px solid #fde8d0' }}>
-                                    <td style={{ ...td, color: '#a8a29e', fontSize: '.78rem', width: 36, textAlign: 'center' }}>{idx + 1}</td>
-                                    <td style={{ ...td, width: '15%' }}>
-                                        <strong style={{ color: '#1c1917', fontSize: '.875rem' }}>{s.subject_code}</strong>
-                                    </td>
-                                    <td style={{ ...td, fontWeight: 500, color: '#1c1917' }}>{s.subject_name}</td>
-                                    <td style={{ ...td, textAlign: 'center', width: '8%' }}>
-                                        <span style={{
-                                            display: 'inline-block', fontWeight: 700, fontSize: '.8rem',
-                                            background: '#f0fdf4', color: '#16a34a',
-                                            border: '1px solid #bbf7d0', borderRadius: 6,
-                                            padding: '2px 10px',
-                                        }}>{s.units}</span>
-                                    </td>
-                                    <td style={{ ...td, width: '20%', color: s.pre_requisite ? '#44403c' : '#a8a29e', fontSize: '.82rem', fontStyle: s.pre_requisite ? 'normal' : 'italic' }}>
-                                        {s.pre_requisite || 'none'}
-                                    </td>
-                                    <td style={{ ...td, textAlign: 'center', width: '10%' }}>
-                                        <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
-                                            <button style={iconBtn} onClick={() => openEdit(s)} title="Edit"><Pencil size={13} /></button>
-                                            <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)} title="Delete"><Trash2 size={13} /></button>
-                                        </div>
-                                    </td>
+                    {/* Desktop/Tablet table */}
+                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.875rem', minWidth: 520 }}>
+                            <thead>
+                                <tr style={{ background: '#fff7ed' }}>
+                                    <th style={{ ...th, width: 36 }}>#</th>
+                                    <th style={{ ...th, width: '15%' }}>Course Code</th>
+                                    <th style={{ ...th }}>Course Description</th>
+                                    <th style={{ ...th, width: 70, textAlign: 'center' }}>Units</th>
+                                    <th style={{ ...th, width: '20%' }}>Pre-Requisite</th>
+                                    <th style={{ ...th, width: 80, textAlign: 'center' }}>Actions</th>
                                 </tr>
-                            ))}
-                        </tbody>
-                    </table>
+                            </thead>
+                            <tbody>
+                                {items.map((s, idx) => (
+                                    <tr key={s.id} style={{ background: idx % 2 === 0 ? '#fff' : '#fffbf7', borderTop: '1px solid #fde8d0' }}>
+                                        <td style={{ ...td, color: '#a8a29e', fontSize: '.78rem', width: 36, textAlign: 'center' }}>{idx + 1}</td>
+                                        <td style={{ ...td, width: '15%' }}>
+                                            <strong style={{ color: '#1c1917', fontSize: '.875rem' }}>{s.subject_code}</strong>
+                                        </td>
+                                        <td style={{ ...td, fontWeight: 500, color: '#1c1917' }}>{s.subject_name}</td>
+                                        <td style={{ ...td, textAlign: 'center', width: 70 }}>
+                                            <span style={{
+                                                display: 'inline-block', fontWeight: 700, fontSize: '.8rem',
+                                                background: '#f0fdf4', color: '#16a34a',
+                                                border: '1px solid #bbf7d0', borderRadius: 6,
+                                                padding: '2px 10px',
+                                            }}>{s.units}</span>
+                                        </td>
+                                        <td style={{ ...td, width: '20%', color: s.pre_requisite ? '#44403c' : '#a8a29e', fontSize: '.82rem', fontStyle: s.pre_requisite ? 'normal' : 'italic' }}>
+                                            {s.pre_requisite || 'none'}
+                                        </td>
+                                        <td style={{ ...td, textAlign: 'center', width: 80 }}>
+                                            <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
+                                                <button style={iconBtn} onClick={() => openEdit(s)} title="Edit"><Pencil size={13} /></button>
+                                                <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)} title="Delete"><Trash2 size={13} /></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile card list — shown only on small screens */}
+                    <div className="subjects-card-list">
+                        {items.map((s, idx) => (
+                            <div key={s.id} style={{
+                                padding: '12px 14px',
+                                borderTop: idx > 0 ? '1px solid #fde8d0' : 'none',
+                                background: idx % 2 === 0 ? '#fff' : '#fffbf7',
+                            }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                                            <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{s.subject_code}</strong>
+                                            <span style={{
+                                                fontWeight: 700, fontSize: '.75rem',
+                                                background: '#f0fdf4', color: '#16a34a',
+                                                border: '1px solid #bbf7d0', borderRadius: 6,
+                                                padding: '1px 8px',
+                                            }}>{s.units} units</span>
+                                        </div>
+                                        <div style={{ fontWeight: 600, fontSize: '.875rem', color: '#1c1917', marginBottom: 4 }}>{s.subject_name}</div>
+                                        {s.pre_requisite && (
+                                            <div style={{ fontSize: '.75rem', color: '#78716c' }}>
+                                                Pre-req: <span style={{ color: '#44403c', fontWeight: 500 }}>{s.pre_requisite}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                        <button style={iconBtn} onClick={() => openEdit(s)} title="Edit"><Pencil size={13} /></button>
+                                        <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)} title="Delete"><Trash2 size={13} /></button>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
@@ -135,7 +174,7 @@ export default function SubjectsMap() {
 
     return (
         <div>
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className="page-header" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                         <div style={iconWrap}><BookOpen size={22} color="#f97316" /></div>
@@ -147,7 +186,7 @@ export default function SubjectsMap() {
             </div>
 
             {/* Program Filter Tabs */}
-            <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+            <div className="dept-filter-row" style={{ marginBottom: 20 }}>
                 {PROGRAMS.map(p => (
                     <button
                         key={p.value}
@@ -178,7 +217,7 @@ export default function SubjectsMap() {
                         const yearUnits = Object.values(grouped[y]).flat().reduce((sum, s) => sum + (parseInt(s.units) || 0), 0);
                         return (
                             <div key={y} style={{ marginBottom: 48 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20, flexWrap: 'wrap' }}>
                                     <div style={{ flex: 1, height: 2, background: 'linear-gradient(90deg, #f97316, #fed7aa)' }} />
                                     <span style={{ fontWeight: 800, fontSize: '1.1rem', color: '#1c1917', whiteSpace: 'nowrap' }}>{y}</span>
                                     <span style={{ fontSize: '.78rem', fontWeight: 600, color: '#ea580c', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 20, padding: '2px 10px' }}>

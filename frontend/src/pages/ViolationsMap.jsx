@@ -217,7 +217,7 @@ export default function ViolationsMap() {
     return (
         <div>
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                         <div style={iconWrap}><ShieldAlert size={22} color="#f97316" /></div>
                         <h1 style={h1}>Violations</h1>
@@ -259,8 +259,9 @@ export default function ViolationsMap() {
             {loading ? <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div> : (
                 <div className="card">
                     <div className="card-body" style={{ padding: 0 }}>
-                        <div className="table-wrap">
-                            <table>
+                        {/* Tablet+: scrollable table */}
+                        <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table style={{ minWidth: 700 }}>
                                 <thead>
                                     <tr>
                                         <th>#</th>
@@ -297,22 +298,14 @@ export default function ViolationsMap() {
                                                         <>
                                                             <button style={iconBtn} title="Update action" onClick={() => setEditing(v)}><Pencil size={13} /></button>
                                                             {isAdmin && (
-                                                                <button
-                                                                    style={{ ...iconBtn, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }}
-                                                                    title="Mark as resolved — moves to history"
-                                                                    onClick={() => handleResolve(v)}
-                                                                >
+                                                                <button style={{ ...iconBtn, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }} title="Mark as resolved" onClick={() => handleResolve(v)}>
                                                                     <CheckCircle size={13} />
                                                                 </button>
                                                             )}
                                                         </>
                                                     )}
                                                     {isAdmin && (
-                                                        <button
-                                                            style={{ ...iconBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }}
-                                                            title="Delete permanently"
-                                                            onClick={() => remove(v.id, v.violation_type)}
-                                                        >
+                                                        <button style={{ ...iconBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }} title="Delete permanently" onClick={() => remove(v.id, v.violation_type)}>
                                                             <Trash2 size={13} />
                                                         </button>
                                                     )}
@@ -321,14 +314,59 @@ export default function ViolationsMap() {
                                         </tr>
                                     ))}
                                     {violations.length === 0 && (
-                                        <tr>
-                                            <td colSpan={tab === 'history' ? 10 : 9} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>
-                                                {tab === 'active' ? 'No active violations.' : 'No violation history yet.'}
-                                            </td>
-                                        </tr>
+                                        <tr><td colSpan={tab === 'history' ? 10 : 9} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>
+                                            {tab === 'active' ? 'No active violations.' : 'No violation history yet.'}
+                                        </td></tr>
                                     )}
                                 </tbody>
                             </table>
+                        </div>
+
+                        {/* Mobile: card list */}
+                        <div className="subjects-card-list">
+                            {violations.length === 0 ? (
+                                <p style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: '.875rem' }}>
+                                    {tab === 'active' ? 'No active violations.' : 'No violation history yet.'}
+                                </p>
+                            ) : violations.map((v, i) => (
+                                <div key={v.id} style={{ padding: '12px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', opacity: tab === 'history' ? 0.85 : 1 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                                                <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{v.student?.student_id || '—'}</strong>
+                                                <Badge value={v.severity_level} />
+                                                {tab === 'history' && v.resolved_at && (
+                                                    <span style={{ fontSize: '.7rem', color: '#16a34a', fontWeight: 700 }}>✓ Resolved</span>
+                                                )}
+                                            </div>
+                                            <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
+                                                {v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}
+                                            </div>
+                                            <div style={{ fontSize: '.82rem', color: '#44403c', marginBottom: 2 }}>{v.violation_type}</div>
+                                            {v.date_committed && <div style={{ fontSize: '.75rem', color: '#78716c' }}>{new Date(v.date_committed).toLocaleDateString('en-PH')}</div>}
+                                            {v.action_taken && <div style={{ fontSize: '.75rem', color: '#78716c', marginTop: 2 }}>Action: {v.action_taken}</div>}
+                                            {v.description && <div style={{ fontSize: '.75rem', color: '#a8a29e', marginTop: 1 }}>{v.description}</div>}
+                                        </div>
+                                        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                                            {tab === 'active' && (
+                                                <>
+                                                    <button style={iconBtn} title="Update action" onClick={() => setEditing(v)}><Pencil size={13} /></button>
+                                                    {isAdmin && (
+                                                        <button style={{ ...iconBtn, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }} title="Resolve" onClick={() => handleResolve(v)}>
+                                                            <CheckCircle size={13} />
+                                                        </button>
+                                                    )}
+                                                </>
+                                            )}
+                                            {isAdmin && (
+                                                <button style={{ ...iconBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }} title="Delete" onClick={() => remove(v.id, v.violation_type)}>
+                                                    <Trash2 size={13} />
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </div>
                 </div>

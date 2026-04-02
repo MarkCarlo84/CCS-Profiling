@@ -88,7 +88,7 @@ export default function Events() {
             </div>
 
             {/* Stat strip */}
-            <div className="stats-row" style={{ gridTemplateColumns: 'repeat(4,1fr)' }}>
+            <div className="stats-row events-stats-row">
                 {[
                     { label: 'Total Events', value: statCounts.total, color: '#f97316', Icon: PartyPopper },
                     { label: 'Upcoming', value: statCounts.upcoming, color: '#f97316', Icon: CalendarRange },
@@ -140,7 +140,7 @@ export default function Events() {
                         const tc = typeCfg[event.type] ?? typeCfg.curricular;
                         return (
                             <div key={event.id} className="card" style={{ border: isOpen ? `1.5px solid #f97316` : undefined }}>
-                                <div onClick={() => openDetail(event)} style={{ padding: '15px 18px', cursor: 'pointer', display: 'flex', gap: 14, alignItems: 'center' }}>
+                                <div onClick={() => openDetail(event)} style={{ padding: '15px 18px', cursor: 'pointer', display: 'flex', gap: 14, alignItems: 'center', flexWrap: 'wrap' }}>
                                     <div style={{ width: 44, height: 44, borderRadius: 12, background: tc.bg, border: `1px solid ${tc.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                                         <CatIcon size={21} color={tc.fg} strokeWidth={1.7} />
                                     </div>
@@ -159,7 +159,7 @@ export default function Events() {
                                             {event.organizer && <span style={{ display: 'flex', gap: 3, alignItems: 'center' }}><User size={12} color="#a8a29e" />{event.organizer}</span>}
                                         </div>
                                     </div>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, marginLeft: 'auto' }}>
                                         <span style={{ fontSize: 12, color: '#a8a29e', display: 'flex', gap: 3, alignItems: 'center' }}>
                                             <Users size={13} />{event.participants_count ?? 0}
                                         </span>
@@ -168,7 +168,7 @@ export default function Events() {
                                 </div>
 
                                 {isOpen && (
-                                    <div style={{ borderTop: '1px solid #f5f5f4', background: '#fafaf9', padding: '14px 18px' }}>
+            <div style={{ borderTop: '1px solid #f5f5f4', background: '#fafaf9', padding: '14px 18px' }}>
                                         {loadingDetail ? <span style={{ color: '#a8a29e', fontSize: 13 }}>Loading…</span> : detail && (
                                             <>
                                                 {detail.description && <p style={{ fontSize: 13, color: '#44403c', lineHeight: 1.7, marginBottom: 14 }}>{detail.description}</p>}
@@ -179,7 +179,7 @@ export default function Events() {
                                                     {(detail.participants ?? []).length === 0
                                                         ? <p style={{ color: '#a8a29e', fontSize: 13 }}>No participants recorded.</p>
                                                         : detail.participants.map(p => (
-                                                            <div key={p.id} style={{ background: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 13, color: '#44403c', border: '1px solid #f5f5f4', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,.05)' }}>
+                                                            <div key={p.id} style={{ background: '#fff', borderRadius: 8, padding: '6px 12px', fontSize: 13, color: '#44403c', border: '1px solid #f5f5f4', display: 'flex', gap: 6, alignItems: 'center', boxShadow: '0 1px 3px rgba(0,0,0,.05)', flexWrap: 'wrap' }}>
                                                                 <Users size={12} color="#f97316" />
                                                                 {p.participant_info ? `${p.participant_info.first_name} ${p.participant_info.last_name}` : `ID #${p.participable_id}`}
                                                                 <span style={{ color: '#a8a29e', fontSize: 11 }}>({p.role})</span>

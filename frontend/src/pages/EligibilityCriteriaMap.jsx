@@ -56,7 +56,7 @@ export default function EligibilityCriteriaMap() {
 
     return (
         <div>
-            <div className="page-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div className="page-header" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
                 <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                         <div style={iconWrap}><ClipboardCheck size={22} color="#f97316" /></div>
@@ -70,8 +70,10 @@ export default function EligibilityCriteriaMap() {
             {loading ? <div className="loading"><div className="loading-spinner" /></div> : (
                 <div className="card">
                     <div className="card-body" style={{ padding: 0 }}>
-                        <div className="table-wrap">
-                            <table>
+
+                        {/* Tablet+: scrollable table */}
+                        <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                            <table style={{ minWidth: 520 }}>
                                 <thead>
                                     <tr><th>#</th><th>Criteria ID</th><th>Min GPA</th><th>Required Skill</th><th>Affiliation Type</th><th>Max Violations</th><th>Actions</th></tr>
                                 </thead>
@@ -100,6 +102,48 @@ export default function EligibilityCriteriaMap() {
                                 </tbody>
                             </table>
                         </div>
+
+                        {/* Mobile: card list */}
+                        <div className="subjects-card-list">
+                            {criteria.length === 0 ? (
+                                <p style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: '.875rem' }}>No eligibility criteria defined yet.</p>
+                            ) : criteria.map((c, i) => (
+                                <div key={c.id} style={{ padding: '12px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 4 }}>
+                                            {c.criteria_id || `EC-${c.id}`}
+                                        </div>
+                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                            {c.minimum_gpa != null && (
+                                                <span style={{ fontSize: '.72rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 5, padding: '1px 7px', fontWeight: 700 }}>
+                                                    GPA ≤ {parseFloat(c.minimum_gpa).toFixed(2)}
+                                                </span>
+                                            )}
+                                            {c.required_skill && (
+                                                <span style={{ fontSize: '.72rem', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
+                                                    Skill: {c.required_skill}
+                                                </span>
+                                            )}
+                                            {c.required_affiliation_type && (
+                                                <span style={{ fontSize: '.72rem', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
+                                                    {c.required_affiliation_type}
+                                                </span>
+                                            )}
+                                            {c.max_allowed_violations != null && (
+                                                <span style={{ fontSize: '.72rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
+                                                    Max {c.max_allowed_violations} violation{c.max_allowed_violations !== 1 ? 's' : ''}
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                        <button style={iconBtn} onClick={() => openEdit(c)}><Pencil size={13} /></button>
+                                        <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(c.id)}><Trash2 size={13} /></button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                     </div>
                 </div>
             )}

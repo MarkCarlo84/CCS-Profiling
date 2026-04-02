@@ -1148,3 +1148,355 @@ tbody td {
     height: calc(100% - 56px);
   }
 }
+
+/* Cards grid for student/faculty content pages */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+}
+
+@media (max-width: 480px) {
+    .cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+}
+
+/* Page header flex row — wraps on mobile */
+.page-header-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.page-header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    min-width: 0;
+}
+
+/* Date badge in page headers */
+.page-date-badge {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 6px 12px;
+    border-radius: 999px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+/* Quick actions grid */
+.quick-actions-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    gap: 12px;
+}
+
+/* Dashboard cards grid */
+.dashboard-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+    margin-top: 4px;
+}
+
+/* Department filter buttons */
+.dept-filter-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+/* Modal responsive */
+.modal-grid-2col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+/* Student detail quick stats */
+.student-quick-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-top: 20px;
+}
+
+/* ===================== TABLET RESPONSIVE ADDITIONS ===================== */
+@media (max-width: 1024px) {
+    .quick-actions-grid {
+        grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+
+    .dashboard-cards-grid {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    }
+}
+
+/* ===================== MOBILE RESPONSIVE ADDITIONS ===================== */
+@media (max-width: 768px) {
+    /* Page header row wraps on mobile */
+    .page-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .page-date-badge {
+        font-size: 11px;
+        padding: 5px 10px;
+    }
+
+    /* Quick actions: 2 columns on mobile */
+    .quick-actions-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    /* Dashboard cards: single column on mobile */
+    .dashboard-cards-grid {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    /* Department filter buttons wrap */
+    .dept-filter-row {
+        gap: 6px;
+    }
+
+    .dept-filter-row button {
+        font-size: .8rem !important;
+        padding: 6px 12px !important;
+    }
+
+    /* Modal 2-col grid collapses to 1 col */
+    .modal-grid-2col {
+        grid-template-columns: 1fr;
+    }
+
+    /* Student quick stats: 2x2 on mobile */
+    .student-quick-stats {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    /* Page header action buttons */
+    .page-header-actions {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+    }
+
+    /* Filter bar search + button row */
+    .filter-bar-actions {
+        width: 100%;
+        display: flex;
+        gap: 8px;
+    }
+
+    /* Inline page header flex rows */
+    .page-header .flex-between {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+
+    /* Violation warning flex */
+    .violation-warning-inner {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    /* Faculty profile card flex */
+    .faculty-profile-inner {
+        flex-direction: column;
+        align-items: flex-start !important;
+    }
+
+    /* Events list item */
+    .event-list-item {
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+
+    /* Action card text truncation */
+    .action-card {
+        min-width: 0;
+    }
+
+    .action-card > div {
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    /* Stat card icon size on mobile */
+    .stat-card .stat-icon {
+        width: 40px !important;
+        height: 40px !important;
+    }
+
+    /* Table page header flex */
+    .table-page-header-row {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: 12px;
+    }
+
+    .table-page-header-row .btn {
+        align-self: flex-start;
+    }
+}
+
+/* ===================== SMALL MOBILE ADDITIONS ===================== */
+@media (max-width: 480px) {
+    /* Quick actions: 1 column on very small screens */
+    .quick-actions-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    /* Action card compact on small screens */
+    .action-card {
+        padding: 10px 12px;
+        gap: 8px;
+    }
+
+    .action-card .action-icon {
+        width: 30px;
+        height: 30px;
+        border-radius: 8px;
+    }
+
+    /* Student quick stats: 2 cols */
+    .student-quick-stats {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Modal padding */
+    .modal-body-pad {
+        padding: 16px !important;
+    }
+
+    /* Page header icon */
+    .page-icon-lg {
+        width: 38px !important;
+        height: 38px !important;
+        border-radius: 10px !important;
+    }
+
+    /* Dashboard h1 */
+    .dashboard-title {
+        font-size: 1.4rem !important;
+    }
+
+    /* Period banner */
+    .period-banner {
+        font-size: .78rem !important;
+        padding: 8px 12px !important;
+    }
+
+    /* Dept filter buttons */
+    .dept-filter-row button {
+        font-size: .75rem !important;
+        padding: 5px 10px !important;
+    }
+}
+
+/* ===================== SUBJECTS TABLE RESPONSIVE ===================== */
+
+/* Desktop/tablet: show table, hide card list */
+.subjects-table-wrap {
+    display: block;
+}
+.subjects-card-list {
+    display: none;
+}
+
+/* Mobile: hide table, show card list */
+@media (max-width: 640px) {
+    .subjects-table-wrap {
+        display: none;
+    }
+    .subjects-card-list {
+        display: block;
+    }
+}
+
+/* Tablet: keep table but make it scrollable (already handled by overflow-x on wrapper) */
+@media (max-width: 1024px) and (min-width: 641px) {
+    .subjects-table-wrap table {
+        font-size: .82rem;
+    }
+    .subjects-table-wrap table th,
+    .subjects-table-wrap table td {
+        padding: 8px 10px;
+    }
+}
+
+/* ===================== EVENTS STATS ROW ===================== */
+.events-stats-row {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+@media (max-width: 768px) {
+    .events-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .events-stats-row {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .events-stats-row .stat-value {
+        font-size: 1.35rem !important;
+    }
+
+    .events-stats-row .stat-card {
+        padding: 12px 10px;
+        gap: 8px;
+    }
+}
+
+/* ===================== ACADEMIC PERIOD PAGE ===================== */
+
+/* Set period form: 3-col on desktop, stacked on mobile */
+.period-form {
+    display: grid;
+    grid-template-columns: 1fr 1fr auto;
+    gap: 14px;
+    align-items: flex-end;
+}
+
+@media (max-width: 640px) {
+    .period-form {
+        grid-template-columns: 1fr;
+    }
+
+    .period-form button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* ===================== MODAL 3-COL GRID ===================== */
+.modal-grid-3col {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+}
+
+@media (max-width: 640px) {
+    .modal-grid-3col {
+        grid-template-columns: 1fr;
+    }
+}

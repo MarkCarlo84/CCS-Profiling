@@ -155,7 +155,7 @@ export default function AdminEvents() {
 
     return (
         <div>
-            <div className="page-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div className="page-header" style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                     <div className="page-icon"><PartyPopper size={22} color="#f97316" strokeWidth={1.8} /></div>
                     <div>
