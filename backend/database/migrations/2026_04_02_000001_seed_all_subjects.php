@@ -10,6 +10,9 @@ return new class extends Migration
         $IT = 'Information Technology';
         $CS = 'Computer Science';
 
+        // Remove old records seeded with legacy program names (BSIT / BSCS)
+        DB::table('subjects')->whereIn('program', ['BSIT', 'BSCS'])->delete();
+
         $subjects = [
             // ── Information Technology ────────────────────────────────────────
             // 1st Year – 1st Sem
