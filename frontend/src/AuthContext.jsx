@@ -1,11 +1,13 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api, { verifyLoginOtp as apiVerifyLoginOtp } from './api';
+import { useLoading } from './LoadingContext';
 
 const AuthContext = createContext(null);
 
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
+    const { showLoader } = useLoading();
 
     useEffect(() => {
         const token = localStorage.getItem('ccs_token');
@@ -25,21 +27,23 @@ export function AuthProvider({ children }) {
 
         const { token, user: u } = res.data;
         localStorage.setItem('ccs_token', token);
-        // Delay redirect so the login success animation can play
-        await new Promise(r => setTimeout(r, 1200));
+        
+        showLoader();
         setUser(u);
+        
         return u;
-    }, []);
+    }, [showLoader]);
 
     const confirmLoginOtp = useCallback(async (email, otp) => {
         const res = await apiVerifyLoginOtp(email, otp);
         const { token, user: u } = res.data;
         localStorage.setItem('ccs_token', token);
-        // Delay redirect so the login success animation can play
-        await new Promise(r => setTimeout(r, 1200));
+        
+        showLoader();
         setUser(u);
+        
         return u;
-    }, []);
+    }, [showLoader]);
 
     const logout = useCallback(async () => {
         await api.post('/auth/logout').catch(() => { });
