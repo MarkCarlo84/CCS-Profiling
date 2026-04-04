@@ -1,7 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { getFaculties, createFaculty, updateFaculty, deleteFaculty, getEligibilityCriteria, facultyCreateReport } from '../api';
-import { Users, Search, Printer, Building, Plus, Pencil, Trash2, X, Check, FileText, GraduationCap, AlertCircle } from 'lucide-react';
+import { Users, Search, Printer, Building, Plus, Pencil, Trash2, X, Check, FileText, GraduationCap, AlertCircle, BookOpen } from 'lucide-react';
 
 function Modal({ title, onClose, children }) {
     return (
@@ -341,25 +341,30 @@ export default function FacultyDataMap() {
                             <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Faculty Data Map</h1>
                         </div>
                         <p style={{ color: '#78716c', marginBottom: 10 }}>Complete faculty roster grouped by department — Manage and Print</p>
-                        <div className="dept-filter-row">
-                            {[['', 'All Faculty'], ['IT', 'Information Technology (IT)'], ['CS', 'Computer Science (CS)']].map(([val, label]) => (
-                                <button
-                                    key={val}
-                                    onClick={() => setFilters(f => ({ ...f, department: val }))}
-                                    style={{
-                                        padding: '8px 20px',
-                                        borderRadius: 10,
-                                        border: '1.5px solid',
-                                        borderColor: filters.department === val ? '#f97316' : '#e7e5e4',
-                                        background: filters.department === val ? '#f97316' : '#fff',
-                                        color: filters.department === val ? '#fff' : '#78716c',
-                                        fontWeight: filters.department === val ? 700 : 500,
-                                        fontSize: '.875rem',
-                                        cursor: 'pointer',
-                                        transition: 'all .15s',
-                                    }}
-                                >{label}</button>
-                            ))}
+                        <div className="dept-filter-row" style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16 }}>
+                            {[['', 'All Faculty', Users, 'All Faculty'], ['IT', 'Information Technology', BookOpen, 'BSIT'], ['CS', 'Computer Science', BookOpen, 'BSCS']].map(([val, label, Icon, short]) => {
+                                const isActive = filters.department === val;
+                                return (
+                                    <button
+                                        key={val}
+                                        onClick={() => setFilters(f => ({ ...f, department: val }))}
+                                        style={{
+                                            display: 'flex', alignItems: 'center', gap: 8,
+                                            padding: '10px 20px', borderRadius: 8, border: '1px solid',
+                                            borderColor: isActive ? '#3b82f6' : '#cbd5e1',
+                                            background: isActive ? '#eff6ff' : '#fff',
+                                            color: isActive ? '#2563eb' : '#64748b',
+                                            fontWeight: 600, fontSize: '.9rem', cursor: 'pointer', transition: 'all .15s',
+                                        }}
+                                    >
+                                        <Icon size={16} color={isActive ? '#3b82f6' : '#64748b'} />
+                                        <span>
+                                            <strong style={{ color: isActive ? '#1d4ed8' : '#334155' }}>{short}</strong>
+                                            {val ? ` ${label}` : ''}
+                                        </span>
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
                     <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Faculty</button>

@@ -89,7 +89,7 @@ class ReportController extends Controller
             'total_faculty'   => Faculty::count(),
             'total_students'  => Student::count(),
             'active_students' => Student::where('status', 'active')->count(),
-            'total_subjects'  => \App\Models\Subject::count(),
+            'total_subjects'  => \App\Models\Subject::distinct('subject_code')->count('subject_code'),
             'total_violations'=> \App\Models\Violation::count(),
             'by_gender'       => Student::selectRaw('gender, count(*) as count')
                                     ->groupBy('gender')->pluck('count', 'gender'),

@@ -5,9 +5,9 @@ const api = axios.create({
     headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
 });
 
-// Always attach token from localStorage on every request
+// Always attach token from sessionStorage on every request
 api.interceptors.request.use((config) => {
-    const token = localStorage.getItem('ccs_token');
+    const token = sessionStorage.getItem('ccs_token');
     if (token) config.headers['Authorization'] = `Bearer ${token}`;
     return config;
 });

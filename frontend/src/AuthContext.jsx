@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api, { verifyLoginOtp as apiVerifyLoginOtp } from './api';
 import { useLoading } from './LoadingContext';
 
@@ -10,11 +10,11 @@ export function AuthProvider({ children }) {
     const { showLoader } = useLoading();
 
     useEffect(() => {
-        const token = localStorage.getItem('ccs_token');
+        const token = sessionStorage.getItem('ccs_token');
         if (token) {
             api.get('/auth/me')
                 .then(r => setUser(r.data))
-                .catch(() => { localStorage.removeItem('ccs_token'); })
+                .catch(() => { sessionStorage.removeItem('ccs_token'); })
                 .finally(() => setLoading(false));
         } else {
             setLoading(false);
@@ -26,7 +26,7 @@ export function AuthProvider({ children }) {
         if (res.data.must_verify) return res.data;
 
         const { token, user: u } = res.data;
-        localStorage.setItem('ccs_token', token);
+        sessionStorage.setItem('ccs_token', token);
         
         showLoader();
         setUser(u);
@@ -37,7 +37,7 @@ export function AuthProvider({ children }) {
     const confirmLoginOtp = useCallback(async (email, otp) => {
         const res = await apiVerifyLoginOtp(email, otp);
         const { token, user: u } = res.data;
-        localStorage.setItem('ccs_token', token);
+        sessionStorage.setItem('ccs_token', token);
         
         showLoader();
         setUser(u);
@@ -47,14 +47,19 @@ export function AuthProvider({ children }) {
 
     const logout = useCallback(async () => {
         await api.post('/auth/logout').catch(() => { });
-        localStorage.removeItem('ccs_token');
+        sessionStorage.removeItem('ccs_token');
         setUser(null);
     }, []);
 
     const role = user?.role ?? null;
 
+    const value = useMemo(
+        () => ({ user, role, loading, login, confirmLoginOtp, logout }),
+        [user, role, loading, login, confirmLoginOtp, logout]
+    );
+
     return (
-        <AuthContext.Provider value={{ user, role, loading, login, confirmLoginOtp, logout }}>
+        <AuthContext.Provider value={value}>
             {children}
         </AuthContext.Provider>
     );

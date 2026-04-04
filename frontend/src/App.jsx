@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, memo } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './AuthContext';
 import { LoadingProvider, useLoading } from './LoadingContext';
@@ -40,11 +40,11 @@ import TeacherMySubjects from './pages/TeacherMySubjects';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
-  if (loading) return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: "'Inter',sans-serif", color: '#78716c' }}>Loading…</div>;
+  if (loading) return <LoadingScreen />;
   return user ? children : <Navigate to="/login" replace />;
 }
 
-function AppRoutes() {
+const AppRoutes = memo(function AppRoutes() {
   const { user, role } = useAuth();
 
   return (
@@ -104,7 +104,7 @@ function AppRoutes() {
       } />
     </Routes>
   );
-}
+});
 
 export default function App() {
   const [introDone, setIntroDone] = useState(false);
