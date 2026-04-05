@@ -75,10 +75,11 @@ class StudentController extends Controller
 
         try {
             $html = view('emails.welcome', [
-                'name'     => $user->name,
-                'email'    => $student->email,
-                'password' => $defaultPassword,
-                'role'     => 'student',
+                'name'      => $user->name,
+                'email'     => $student->email,
+                'password'  => $defaultPassword,
+                'role'      => 'student',
+                'id_number' => $student->student_id,
             ])->render();
             app(BrevoMailService::class)->send($student->email, $user->name, 'Welcome! Your Account Has Been Created', $html);
         } catch (\Exception $e) {

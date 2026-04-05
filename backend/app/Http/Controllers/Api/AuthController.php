@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Faculty;
 use App\Models\OtpVerification;
+use App\Models\Student;
 use App\Models\User;
 use App\Services\BrevoMailService;
 use Illuminate\Http\Request;
@@ -61,6 +63,127 @@ class AuthController extends Controller
         }
 
         // Normal login
+        $user->tokens()->delete();
+        $token = $user->createToken('ccs-profiling-token')->plainTextToken;
+
+        $profile = null;
+        if ($user->isTeacher() && $user->faculty_id) {
+            $profile = $user->faculty;
+        } elseif ($user->isStudent() && $user->student_id) {
+            $profile = $user->student;
+        }
+
+        return response()->json([
+            'token' => $token,
+            'user'  => [
+                'id'      => $user->id,
+                'name'    => $user->name,
+                'email'   => $user->email,
+                'role'    => $user->role,
+                'profile' => $profile,
+            ],
+        ]);
+    }
+
+    /**
+     * POST /api/auth/student-login
+     * Students log in using their student_id number + password.
+     */
+    public function studentLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'student_id' => 'required|string',
+            'password'   => 'required|string',
+        ]);
+
+        // Find the student record by student_id field
+        $student = Student::where('student_id', $request->student_id)->first();
+        if (!$student) {
+            throw ValidationException::withMessages([
+                'student_id' => ['Invalid Student ID or password.'],
+            ]);
+        }
+
+        // Find the linked user account
+        $user = User::where('student_id', $student->id)->where('role', 'student')->first();
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'student_id' => ['Invalid Student ID or password.'],
+            ]);
+        }
+        return $this->issueTokenOrOtp($user);
+    }
+
+    /**
+     * POST /api/auth/staff-login
+     * Faculty can log in with email OR faculty_id + password.
+     * Admin can log in with email only + password.
+     */
+    public function staffLogin(Request $request): JsonResponse
+    {
+        $request->validate([
+            'identifier' => 'required|string',
+            'password'   => 'required|string',
+        ]);
+
+        $identifier = $request->identifier;
+
+        // Try email first
+        $user = User::where('email', $identifier)->whereIn('role', ['admin', 'teacher'])->first();
+
+        // If not found by email, try faculty_id (teachers only)
+        if (!$user) {
+            $faculty = Faculty::where('faculty_id', $identifier)->first();
+            if ($faculty) {
+                $user = User::where('faculty_id', $faculty->id)->where('role', 'teacher')->first();
+            }
+        }
+
+        if (!$user || !Hash::check($request->password, $user->password)) {
+            throw ValidationException::withMessages([
+                'identifier' => ['Invalid credentials. Please try again.'],
+            ]);
+        }
+
+        return $this->issueTokenOrOtp($user);
+    }
+
+    /**
+     * Shared helper: send OTP on first login or issue token directly.
+     */
+    private function issueTokenOrOtp(User $user): JsonResponse
+    {
+        if ($user->must_verify_email) {
+            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+
+            OtpVerification::where('email', $user->email)
+                ->where('action', 'first_login')
+                ->where('used', false)
+                ->delete();
+
+            OtpVerification::create([
+                'email'      => $user->email,
+                'otp'        => $otp,
+                'action'     => 'first_login',
+                'used'       => false,
+                'expires_at' => now()->addMinutes(10),
+            ]);
+
+            try {
+                $html = view('emails.otp', ['otp' => $otp, 'action' => 'first_login'])->render();
+                app(BrevoMailService::class)->send($user->email, $user->name, 'OTP: Verify Your New Account', $html);
+            } catch (\Exception $e) {
+                \Log::error('Login OTP email failed: ' . $e->getMessage());
+                return response()->json(['message' => 'Failed to send OTP email. Please try again later.'], 500);
+            }
+
+            return response()->json([
+                'must_verify' => true,
+                'email'       => $user->email,
+                'message'     => 'OTP sent to your email. Please verify to continue.',
+            ]);
+        }
+
         $user->tokens()->delete();
         $token = $user->createToken('ccs-profiling-token')->plainTextToken;
 

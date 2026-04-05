@@ -15,14 +15,14 @@ class DatabaseSeeder extends Seeder
             ['email' => env('ADMIN_EMAIL', 'admin@ccs.edu.ph')],
             [
                 'name'     => 'CCS Admin',
-                'password' => Hash::make('admin1234'),
+                'password' => Hash::make('Admin1234'),
                 'role'     => 'admin',
             ]
         );
 
         $this->command->info('✓ Admin user ready');
         $this->command->info('  Email: admin@ccs.edu.ph');
-        $this->command->info('  Password: admin1234');
+        $this->command->info('  Password: Admin1234');
 
         $this->call(SubjectSeeder::class);
     }

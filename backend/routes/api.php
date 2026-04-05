@@ -41,8 +41,12 @@ Route::options('{any}', function () {
 Route::get('academic-period/active', [AcademicPeriodController::class, 'active']);
 
 // ── Auth (public) ─────────────────────────────────────────────────────────────
-Route::post('/auth/login',  [AuthController::class, 'login']);
-Route::post('/auth/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
+Route::middleware('throttle:10,1')->group(function () {
+    Route::post('/auth/login',            [AuthController::class, 'login']);
+    Route::post('/auth/student-login',    [AuthController::class, 'studentLogin']);
+    Route::post('/auth/staff-login',      [AuthController::class, 'staffLogin']);
+    Route::post('/auth/verify-login-otp', [AuthController::class, 'verifyLoginOtp']);
+});
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me',      [AuthController::class, 'me']);

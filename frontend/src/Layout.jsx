@@ -112,7 +112,8 @@ export default function Layout({ children }) {
 
     const handleLogout = async () => {
         setMobileOpen(false);
-        showLoader(() => navigate('/login'));
+        const portal = localStorage.getItem('ccs_portal') || '/student';
+        showLoader(() => navigate(portal));
         await logout();
     };
 

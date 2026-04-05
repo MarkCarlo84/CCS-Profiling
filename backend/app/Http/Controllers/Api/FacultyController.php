@@ -60,10 +60,11 @@ class FacultyController extends Controller
 
         try {
             $html = view('emails.welcome', [
-                'name'     => $user->name,
-                'email'    => $faculty->email,
-                'password' => $defaultPassword,
-                'role'     => 'faculty',
+                'name'      => $user->name,
+                'email'     => $faculty->email,
+                'password'  => $defaultPassword,
+                'role'      => 'faculty',
+                'id_number' => $faculty->faculty_id,
             ])->render();
             app(BrevoMailService::class)->send($faculty->email, $user->name, 'Welcome! Your Account Has Been Created', $html);
         } catch (\Exception $e) {

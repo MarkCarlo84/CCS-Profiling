@@ -4,7 +4,8 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { LoadingProvider, useLoading } from './LoadingContext';
 import LoadingScreen from './LoadingScreen';
 import Layout from './Layout';
-import Login from './pages/Login';
+import LoginStudent from './pages/LoginStudent';
+import LoginStaff from './pages/LoginStaff';
 
 // Admin pages
 import DashboardAdmin from './pages/DashboardAdmin';
@@ -41,7 +42,8 @@ import TeacherMySubjects from './pages/TeacherMySubjects';
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingScreen />;
-  return user ? children : <Navigate to="/login" replace />;
+  const portal = localStorage.getItem('ccs_portal') || '/student';
+  return user ? children : <Navigate to={portal} replace />;
 }
 
 const AppRoutes = memo(function AppRoutes() {
@@ -49,7 +51,11 @@ const AppRoutes = memo(function AppRoutes() {
 
   return (
     <Routes>
-      <Route path="/login" element={user ? <Navigate to="/" replace /> : <Login />} />
+      {/* Separate login portals */}
+      <Route path="/student"     element={user ? <Navigate to="/" replace /> : <LoginStudent />} />
+      <Route path="/facultyadmin" element={user ? <Navigate to="/" replace /> : <LoginStaff />} />
+      {/* Legacy /login → redirect to /student */}
+      <Route path="/login" element={<Navigate to="/student" replace />} />
       <Route path="/*" element={
         <PrivateRoute>
           <Layout>

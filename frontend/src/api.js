@@ -16,6 +16,8 @@ api.interceptors.request.use((config) => {
 export const sendOtp         = (action, email) => api.post('/otp/send', { action, email });
 export const verifyOtp       = (otp, action, email) => api.post('/otp/verify', { otp, action, email });
 export const verifyLoginOtp  = (email, otp) => api.post('/auth/verify-login-otp', { email, otp });
+export const studentLogin    = (student_id, password) => api.post('/auth/student-login', { student_id, password });
+export const staffLogin      = (identifier, password) => api.post('/auth/staff-login', { identifier, password });
 export const changePassword  = (current_password, new_password, new_password_confirmation) =>
     api.post('/auth/change-password', { current_password, new_password, new_password_confirmation });
 

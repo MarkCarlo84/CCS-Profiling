@@ -19,6 +19,11 @@
         <div class="label">Role</div>
         <div class="value"><span class="badge">{{ $role }}</span></div>
 
+        @if(!empty($id_number))
+        <div class="label">{{ $role === 'student' ? 'Student ID' : 'Faculty ID' }}</div>
+        <div class="value">{{ $id_number }}</div>
+        @endif
+
         <div class="label">Email</div>
         <div class="value">{{ $email }}</div>
 
