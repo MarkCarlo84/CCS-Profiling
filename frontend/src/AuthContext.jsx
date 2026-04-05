@@ -72,7 +72,7 @@ export function AuthProvider({ children }) {
     const logout = useCallback(async () => {
         await api.post('/auth/logout').catch(() => { });
         sessionStorage.removeItem('ccs_token');
-        localStorage.removeItem('ccs_portal');
+        // Do not clear ccs_portal so the user returns to their last active login portal
         setUser(null);
     }, []);
 

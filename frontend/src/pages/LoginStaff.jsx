@@ -63,8 +63,19 @@ export default function LoginStaff() {
                 <div style={s.bgNoise} />
             </div>
 
-            <div style={s.contentWrapper}>
-                <div style={s.glassCard} className="fade-in-up">
+            <div style={s.contentWrapper} className="login-wrapper">
+                <div style={s.heroText} className="hero-text fade-in-up">
+                    <h2 style={s.heroTitle}>
+                        College of <br />
+                        <span style={{ background: 'linear-gradient(135deg, #fed7aa, #f97316)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            Computing Studies
+                        </span><br />
+                        Department
+                    </h2>
+                    <p style={s.heroDesc}>Welcome! We're glad you're here. Sign in to easily access your records, track your evaluations, and stay seamlessly connected.</p>
+                </div>
+
+                <div style={s.glassCard} className="fade-in-up login-card">
 
                     {/* Header */}
                     <div style={s.header}>
@@ -75,7 +86,7 @@ export default function LoginStaff() {
                             </div>
                             <img src={sitesLogo} alt="SITES" style={s.miniLogo} />
                         </div>
-                        <h1 style={s.title}>Faculty / Admin Portal</h1>
+                        <h1 style={s.title}>Faculty Portal</h1>
                         <p style={s.subtitle}>CCS Profiling System · University of Cabuyao</p>
                         <div style={s.divider} />
                     </div>
@@ -96,7 +107,6 @@ export default function LoginStaff() {
                                 <input
                                     id="staff-id"
                                     type="text"
-                                    placeholder="email@example.com or Faculty ID"
                                     value={form.identifier}
                                     onChange={e => setForm(f => ({ ...f, identifier: e.target.value }))}
                                     onFocus={() => setFocused(f => ({ ...f, id: true }))}
@@ -107,7 +117,6 @@ export default function LoginStaff() {
                                     autoComplete="username"
                                 />
                             </div>
-                            <p style={s.hint}>Admin: use email only. Faculty: use email or Faculty ID.</p>
                         </div>
 
                         <div style={s.fieldWrap}>
@@ -200,6 +209,13 @@ const globalCss = `
     .spin-icon      { animation: spin 1s linear infinite; }
     .otp-overlay-in { animation: overlayIn 0.25s ease forwards; }
     .otp-modal-in   { animation: modalIn 0.35s cubic-bezier(0.16,1,0.3,1) forwards; }
+    .login-wrapper { justify-content: space-between !important; padding: 2rem 12vw !important; }
+    .hero-text { display: flex; flex-direction: column; gap: 1.25rem; max-width: 540px; }
+    .login-card { animation-delay: 0.15s; }
+    @media (max-width: 992px) {
+        .login-wrapper { justify-content: center !important; padding: 1.25rem !important; }
+        .hero-text { display: none !important; }
+    }
     #staff-id, #staff-pw { background:transparent; border:none; outline:none; flex:1; color:#fff; font-family:'Outfit',sans-serif; font-size:1rem; min-width:0; }
     #staff-id::placeholder, #staff-pw::placeholder { color: rgba(255,255,255,0.4); }
     .submit-btn { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); position: relative; overflow: hidden; }
@@ -214,34 +230,37 @@ const s = {
     container: { position:'relative', width:'100vw', height:'100vh', fontFamily:"'Outfit',sans-serif", display:'flex', alignItems:'center', justifyContent:'center', backgroundColor:'#0a0f28' },
     bgWrapper: { position:'absolute', inset:0, zIndex:0, overflow:'hidden' },
     bgImage: { width:'100%', height:'100%', objectFit:'cover', transform:'scale(1.06)', filter:'brightness(0.55) saturate(1.2)' },
-    bgOverlay: { position:'absolute', inset:0, background:'linear-gradient(160deg,rgba(10,15,40,0.82) 0%,rgba(24,30,60,0.75) 45%,rgba(154,52,18,0.70) 100%)' },
+    bgOverlay: { position:'absolute', inset:0, background:'linear-gradient(160deg, rgba(8,12,28,0.85) 0%, rgba(15,22,45,0.65) 50%, rgba(249,115,22,0.2) 100%)' },
     bgNoise: { position:'absolute', inset:0, background:'radial-gradient(ellipse 80% 80% at 50% 50%,transparent 40%,rgba(5,8,25,0.65) 100%)' },
-    contentWrapper: { position:'relative', zIndex:10, width:'100%', display:'flex', justifyContent:'center', alignItems:'center', padding:'1.25rem', minHeight:'100vh' },
-    glassCard: { width:'100%', maxWidth:'420px', background:'rgba(12,18,50,0.65)', backdropFilter:'blur(32px) saturate(1.6)', WebkitBackdropFilter:'blur(32px) saturate(1.6)', borderRadius:'28px', border:'1px solid rgba(255,255,255,0.12)', padding:'2.25rem 2.5rem 2rem', boxShadow:'0 40px 80px -20px rgba(0,0,0,0.6),inset 0 1px 0 rgba(255,255,255,0.1),0 0 0 1px rgba(249,115,22,0.15)', display:'flex', flexDirection:'column', gap:'1.4rem', opacity:0 },
+    contentWrapper: { position:'relative', zIndex:10, width:'100%', display:'flex', alignItems:'center', minHeight:'100vh' },
+    heroText: { color: '#fff', textShadow: '0 4px 24px rgba(0,0,0,0.5)' },
+    heroTitle: { fontSize: '3.6rem', fontWeight: 800, lineHeight: 1.1, margin: 0, letterSpacing: '-0.02em', color: '#fff' },
+    heroDesc: { fontSize: '1.25rem', color: 'rgba(255,255,255,0.85)', margin: '0.5rem 0 0', lineHeight: 1.6, fontWeight: 300, maxWidth: '90%' },
+    glassCard: { width:'100%', maxWidth:'460px', background:'linear-gradient(145deg, rgba(255,255,255,0.06) 0%, rgba(255,255,255,0.01) 100%)', backdropFilter:'blur(40px)', WebkitBackdropFilter:'blur(40px)', borderRadius:'32px', border:'1px solid rgba(255,255,255,0.12)', padding:'3rem 2.5rem', boxShadow:'0 24px 80px rgba(0,0,0,0.4)', display:'flex', flexDirection:'column', gap:'1.75rem', opacity:0 },
     header: { display:'flex', flexDirection:'column', alignItems:'center', gap:'0.5rem' },
-    logoRow: { display:'flex', alignItems:'center', justifyContent:'center', gap:'1.25rem', marginBottom:'0.2rem' },
-    miniLogo: { width:'48px', height:'48px', objectFit:'contain', borderRadius:'50%', background:'rgba(255,255,255,0.95)', boxShadow:'0 4px 18px rgba(249,115,22,0.35)', padding:'5px' },
-    mainLogoWrap: { background:'#fff', borderRadius:'50%', boxShadow:'0 0 0 4px rgba(249,115,22,0.4),0 10px 28px rgba(249,115,22,0.3)', padding:'6px' },
-    mainLogo: { width:'68px', height:'68px', objectFit:'contain', display:'block' },
-    title: { margin:0, fontSize:'1.45rem', fontWeight:800, color:'#fff', letterSpacing:'-0.01em', textAlign:'center', textShadow:'0 2px 12px rgba(249,115,22,0.4)' },
-    subtitle: { margin:0, fontSize:'0.78rem', color:'rgba(255,255,255,0.5)', letterSpacing:'0.05em', textAlign:'center', textTransform:'uppercase' },
-    divider: { width:'48px', height:'3px', background:'linear-gradient(90deg,transparent,#f97316,transparent)', borderRadius:'99px', marginTop:'0.3rem' },
+    logoRow: { display:'flex', alignItems:'center', justifyContent:'center', gap:'1.5rem', marginBottom:'0.5rem' },
+    miniLogo: { width:'72px', height:'72px', objectFit:'contain', borderRadius:'50%', filter:'drop-shadow(0 4px 12px rgba(0,0,0,0.2))' },
+    mainLogoWrap: { display:'flex', alignItems:'center', justifyContent:'center' },
+    mainLogo: { width:'100px', height:'100px', objectFit:'contain', display:'block', background:'#fff', borderRadius:'50%', filter:'drop-shadow(0 8px 24px rgba(0,0,0,0.3))' },
+    title: { margin:0, fontSize:'1.6rem', fontWeight:700, color:'#fff', letterSpacing:'-0.01em', textAlign:'center' },
+    subtitle: { margin:0, fontSize:'0.82rem', color:'rgba(255,255,255,0.55)', letterSpacing:'0.05em', textAlign:'center', textTransform:'uppercase' },
+    divider: { width:'60px', height:'3px', background:'linear-gradient(90deg,transparent,#f97316,transparent)', borderRadius:'99px', marginTop:'0.5rem' },
     tabRow: { display:'flex', gap:'0.5rem', background:'rgba(255,255,255,0.06)', borderRadius:'14px', padding:'4px' },
     tabBtn: { flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:'0.6rem 0', borderRadius:'10px', border:'none', cursor:'pointer', fontSize:'0.9rem', fontWeight:600, fontFamily:"'Outfit',sans-serif", transition:'all 0.25s' },
     tabBtnActive: { background:'linear-gradient(135deg,#f97316,#ea580c)', color:'#fff', boxShadow:'0 4px 14px rgba(249,115,22,0.4)' },
     tabBtnInactive: { color:'rgba(255,255,255,0.45)', background:'transparent' },
     errorBox: { display:'flex', alignItems:'center', gap:'0.6rem', background:'rgba(185,28,28,0.75)', border:'1px solid rgba(248,113,113,0.5)', padding:'0.75rem 1rem', borderRadius:'14px', color:'#fff', fontSize:'0.88rem', fontWeight:500, backdropFilter:'blur(8px)', lineHeight:1.4 },
-    form: { display:'flex', flexDirection:'column', gap:'1.1rem' },
-    fieldWrap: { display:'flex', flexDirection:'column', gap:'0.4rem' },
-    label: { fontSize:'0.88rem', fontWeight:600, color:'rgba(255,255,255,0.85)', letterSpacing:'0.02em' },
-    hint: { margin:'0.25rem 0 0', fontSize:'0.75rem', color:'rgba(255,255,255,0.35)' },
-    inputWrap: { display:'flex', alignItems:'center', gap:'0.6rem', background:'rgba(255,255,255,0.05)', borderWidth:'1.5px', borderStyle:'solid', borderColor:'rgba(255,255,255,0.12)', borderRadius:'14px', padding:'0 1rem', height:'52px', transition:'border-color 0.25s,background 0.25s,box-shadow 0.25s' },
-    inputWrapFocused: { background:'rgba(249,115,22,0.08)', borderColor:'#f97316', boxShadow:'0 0 0 3px rgba(249,115,22,0.18)' },
+    form: { display:'flex', flexDirection:'column', gap:'1.25rem' },
+    fieldWrap: { display:'flex', flexDirection:'column', gap:'0.5rem' },
+    label: { fontSize:'0.9rem', fontWeight:500, color:'rgba(255,255,255,0.9)', letterSpacing:'0.02em' },
+    hint: { margin:'0.25rem 0 0', fontSize:'0.85rem', color:'rgba(255,255,255,0.5)' },
+    inputWrap: { display:'flex', alignItems:'center', gap:'0.75rem', background:'rgba(255,255,255,0.06)', borderWidth:'1.5px', borderStyle:'solid', borderColor:'rgba(255,255,255,0.08)', borderRadius:'16px', padding:'0 1.25rem', height:'56px', transition:'all 0.25s' },
+    inputWrapFocused: { background:'rgba(255,255,255,0.1)', borderColor:'rgba(255,255,255,0.3)', boxShadow:'0 0 0 4px rgba(255,255,255,0.05)' },
     fieldIcon: { flexShrink:0, transition:'color 0.25s' },
-    input: { flex:1, background:'transparent', border:'none', outline:'none', color:'#fff', fontFamily:"'Outfit',sans-serif", fontSize:'1rem', minWidth:0 },
-    eyeBtn: { background:'none', border:'none', cursor:'pointer', padding:'0 0.1rem', display:'flex', alignItems:'center', flexShrink:0 },
-    submitBtn: { marginTop:'0.25rem', width:'100%', height:'52px', background:'linear-gradient(135deg,#f97316 0%,#ea580c 100%)', color:'#fff', border:'none', borderRadius:'14px', fontSize:'1.05rem', fontWeight:700, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', boxShadow:'0 8px 24px rgba(249,115,22,0.45)', letterSpacing:'0.02em' },
-    submitBtnSuccess: { background:'linear-gradient(135deg,#22c55e,#16a34a)', boxShadow:'0 8px 24px rgba(34,197,94,0.4)' },
+    input: { flex:1, background:'transparent', border:'none', outline:'none', color:'#fff', fontFamily:"'Outfit',sans-serif", fontSize:'1.05rem', minWidth:0 },
+    eyeBtn: { background:'none', border:'none', cursor:'pointer', padding:'0', display:'flex', alignItems:'center', flexShrink:0 },
+    submitBtn: { marginTop:'0.5rem', width:'100%', height:'56px', background:'linear-gradient(135deg,#f97316 0%,#ea580c 100%)', color:'#fff', border:'none', borderRadius:'16px', fontSize:'1.1rem', fontWeight:600, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', boxShadow:'0 8px 24px rgba(249,115,22,0.3)', letterSpacing:'0.02em' },
+    submitBtnSuccess: { background:'linear-gradient(135deg,#22c55e,#16a34a)', boxShadow:'0 8px 24px rgba(34,197,94,0.3)' },
     footer: { textAlign:'center', fontSize:'0.75rem', color:'rgba(255,255,255,0.3)', marginTop:'-0.25rem', letterSpacing:'0.02em' },
     otpOverlay: { position:'fixed', inset:0, zIndex:50, background:'rgba(0,0,0,0.6)', backdropFilter:'blur(6px)', display:'flex', alignItems:'center', justifyContent:'center', padding:'1.25rem' },
     otpModal: { position:'relative', width:'100%', maxWidth:'400px', background:'#fff', borderRadius:'24px', padding:'2.5rem 2rem 2rem', boxShadow:'0 32px 80px rgba(0,0,0,0.35)', display:'flex', flexDirection:'column', alignItems:'center', gap:'0.6rem' },
