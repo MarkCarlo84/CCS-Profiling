@@ -559,7 +559,7 @@ export default function StudentDataMap() {
                 ) : students.length === 0 ? (
                     <div className="empty"><GraduationCap size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No student records found.</p></div>
                 ) : (
-                    ['CS', 'IT', 'Unknown'].map(dept => grouped[dept] ? renderDeptTable(dept, grouped[dept]) : null)                )}
+                    Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))                )}
             </div>
 
             {viewing && <StudentDetailModal student={viewing} onClose={() => setViewing(null)} />}

@@ -19,6 +19,7 @@ class ReportController extends Controller
 
         if ($request->filled('status'))          $query->where('status', $request->status);
         if ($request->filled('gender'))          $query->where('gender', $request->gender);
+        if ($request->filled('department'))      $query->where('department', $request->department);
 
         if ($request->filled('skill')) {
             $skill = $request->skill;
@@ -70,7 +71,7 @@ class ReportController extends Controller
     {
         $query = Faculty::query();
 
-        if ($request->filled('department'))  $query->where('department', 'like', "%{$request->department}%");
+        if ($request->filled('department'))  $query->where('department', $request->department);
         if ($request->filled('search')) {
             $s = $request->search;
             $query->where(fn($q) => $q->where('first_name', 'like', "%$s%")

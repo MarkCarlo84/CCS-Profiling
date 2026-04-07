@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { getReportStudents, getReportFaculties, getReportPresets } from '../api';
+import { getReportStudents, getReportFaculties, getReportPresets, getDepartments } from '../api';
 import {
     BarChart3, Zap, Settings2, Play, Loader2,
     Search, Dumbbell, Code2, BookOpenCheck, AlertTriangle, Trophy, Users, Activity,
@@ -22,18 +22,33 @@ function presetIcon(name) {
 const formField = { width: '100%', padding: '9px 12px', borderRadius: 8, border: '1.5px solid #fed7aa', fontSize: '.875rem', fontFamily: 'Inter,sans-serif', background: '#fff', color: '#1c1917', outline: 'none' };
 const label = { fontSize: '.78rem', fontWeight: 700, display: 'block', marginBottom: 5, color: '#44403c', letterSpacing: .3 };
 
+const SHORTCUT_LIMIT = 4;
+
 export default function Reports() {
     const [results, setResults] = useState(null);
     const [resultType, setResultType] = useState('students');
     const [loading, setLoading] = useState(false);
     const [activePreset, setActivePreset] = useState(null);
-    const [presets, setPresets] = useState({ skills: [], categories: [] });
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 10;
+    const [presets, setPresets] = useState({ skills: [], affiliations: [] });
     const [presetsLoading, setPresetsLoading] = useState(true);
+    const [departments, setDepartments] = useState([
+        { id: 1, code: 'CS', name: 'Computer Science' },
+        { id: 2, code: 'IT', name: 'Information Technology' },
+    ]);
+    const [showAllGeneral, setShowAllGeneral] = useState(false);
+    const [showAllSkills, setShowAllSkills] = useState(false);
+    const [showAllAffiliations, setShowAllAffiliations] = useState(false);
 
     useEffect(() => {
         getReportPresets()
             .then(r => setPresets(r.data))
+            .catch(() => setPresets({ skills: [], affiliations: [] }))
             .finally(() => setPresetsLoading(false));
+        getDepartments()
+            .then(r => { if (r.data?.length) setDepartments(r.data); })
+            .catch(e => console.error('Departments load failed:', e));
     }, []);
 
     const [filters, setFilters] = useState({
@@ -49,12 +64,15 @@ export default function Reports() {
     const runQuery = async (overrideParams = null, type = null) => {
         setLoading(true);
         const t = type || filters.type;
-        const params = overrideParams || filters;
+        // strip 'type' key so it doesn't get sent as a query param
+        const { type: _omit, ...cleanFilters } = filters;
+        const params = overrideParams || cleanFilters;
         try {
             const fn = t === 'faculties' ? getReportFaculties : getReportStudents;
             const res = await fn(params);
             setResults(res.data);
             setResultType(t);
+            setPage(1);
         } finally { setLoading(false); }
     };
 
@@ -80,13 +98,13 @@ export default function Reports() {
                         <>
                             {/* Always-on presets */}
                             <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>General</div>
-                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
+                            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
                                 {[
                                     { label: 'Students with Major Violations', Icon: AlertTriangle, params: { violation_severity: 'major', status: 'active' }, type: 'students' },
                                     { label: 'Students with Grave Violations', Icon: AlertTriangle, params: { violation_severity: 'grave', status: 'active' }, type: 'students' },
                                     { label: 'Certified Skill Holders', Icon: BookOpenCheck, params: { certification: '1', status: 'active' }, type: 'students' },
                                     { label: 'All Faculty', Icon: Users, params: {}, type: 'faculties' },
-                                ].map(p => {
+                                ].slice(0, showAllGeneral ? undefined : SHORTCUT_LIMIT).map(p => {
                                     const IconComp = p.Icon;
                                     const active = activePreset === p.label;
                                     return (
@@ -96,13 +114,19 @@ export default function Reports() {
                                     );
                                 })}
                             </div>
+                            {[1,2,3,4].length > SHORTCUT_LIMIT && (
+                                <button className="btn btn-ghost" style={{ fontSize: '.78rem', marginBottom: 16 }} onClick={() => setShowAllGeneral(v => !v)}>
+                                    {showAllGeneral ? 'See less' : `See more`}
+                                </button>
+                            )}
+                            <div style={{ marginBottom: 8 }} />
 
                             {/* Skills-based presets */}
                             {presets.skills.length > 0 && (
                                 <>
                                     <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>By Skill</div>
-                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 16 }}>
-                                        {presets.skills.map(skill => {
+                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                                        {presets.skills.slice(0, showAllSkills ? undefined : SHORTCUT_LIMIT).map(skill => {
                                             const IconComp = presetIcon(skill);
                                             const label = `${skill} Students`;
                                             const active = activePreset === label;
@@ -113,6 +137,12 @@ export default function Reports() {
                                             );
                                         })}
                                     </div>
+                                    {presets.skills.length > SHORTCUT_LIMIT && (
+                                        <button className="btn btn-ghost" style={{ fontSize: '.78rem', marginBottom: 16 }} onClick={() => setShowAllSkills(v => !v)}>
+                                            {showAllSkills ? 'See less' : `See more (${presets.skills.length - SHORTCUT_LIMIT} more)`}
+                                        </button>
+                                    )}
+                                    <div style={{ marginBottom: 8 }} />
                                 </>
                             )}
 
@@ -120,8 +150,8 @@ export default function Reports() {
                             {presets.affiliations?.length > 0 && (
                                 <>
                                     <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>By Affiliations</div>
-                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                                        {presets.affiliations.map(aff => {
+                                    <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 8 }}>
+                                        {presets.affiliations.slice(0, showAllAffiliations ? undefined : SHORTCUT_LIMIT).map(aff => {
                                             const IconComp = presetIcon(aff);
                                             const lbl = `${aff}`;
                                             const active = activePreset === lbl;
@@ -132,6 +162,11 @@ export default function Reports() {
                                             );
                                         })}
                                     </div>
+                                    {presets.affiliations.length > SHORTCUT_LIMIT && (
+                                        <button className="btn btn-ghost" style={{ fontSize: '.78rem' }} onClick={() => setShowAllAffiliations(v => !v)}>
+                                            {showAllAffiliations ? 'See less' : `See more (${presets.affiliations.length - SHORTCUT_LIMIT} more)`}
+                                        </button>
+                                    )}
                                 </>
                             )}
 
@@ -159,7 +194,12 @@ export default function Reports() {
                         </div>
                         <div>
                             <label style={label}>Department</label>
-                            <input type="text" placeholder="e.g. CS, IT" value={filters.department} onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} style={formField} />
+                            <select value={filters.department} onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} style={formField}>
+                                <option value="">All Departments</option>
+                                {departments.map(d => (
+                                    <option key={d.id} value={d.code}>{d.code} — {d.name}</option>
+                                ))}
+                            </select>
                         </div>
                         {filters.type === 'students' && <>
                             <div>
@@ -186,6 +226,10 @@ export default function Reports() {
                                 </select>
                             </div>
                             <div>
+                                <label style={label}>Affiliation Name</label>
+                                <input type="text" placeholder="e.g. Chess Club" value={filters.affiliation} onChange={e => setFilters(f => ({ ...f, affiliation: e.target.value }))} style={formField} />
+                            </div>
+                            <div>
                                 <label style={label}>Affiliation Type</label>
                                 <input type="text" placeholder="e.g. Academic, Sports" value={filters.affiliation_type} onChange={e => setFilters(f => ({ ...f, affiliation_type: e.target.value }))} style={formField} />
                             </div>
@@ -202,17 +246,17 @@ export default function Reports() {
                                 <label style={label}>Activity Category</label>
                                 <input type="text" placeholder="e.g. Sports, Academic" value={filters.activity_category} onChange={e => setFilters(f => ({ ...f, activity_category: e.target.value }))} style={formField} />
                             </div>
+                            <div>
+                                <label style={label}>Status</label>
+                                <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} style={formField}>
+                                    <option value="">Any</option>
+                                    <option value="active">Active</option>
+                                    <option value="inactive">Inactive</option>
+                                    <option value="graduated">Graduated</option>
+                                    <option value="dropped">Dropped</option>
+                                </select>
+                            </div>
                         </>}
-                        <div>
-                            <label style={label}>Status</label>
-                            <select value={filters.status} onChange={e => setFilters(f => ({ ...f, status: e.target.value }))} style={formField}>
-                                <option value="">Any</option>
-                                <option value="active">Active</option>
-                                <option value="inactive">Inactive</option>
-                                <option value="graduated">Graduated</option>
-                                <option value="dropped">Dropped</option>
-                            </select>
-                        </div>
                         <div>
                             <label style={label}>Search</label>
                             <input type="text" placeholder="Name or ID…" value={filters.search} onChange={e => setFilters(f => ({ ...f, search: e.target.value }))} style={formField} />
@@ -226,7 +270,11 @@ export default function Reports() {
             </div>
 
             {/* Results */}
-            {results && (
+            {results && (() => {
+                const rows = resultType === 'students' ? (results.students || []) : (results.faculties || []);
+                const totalPages = Math.ceil(rows.length / PAGE_SIZE);
+                const paged = rows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+                return (
                 <div className="card">
                     <div className="card-header">
                         <h2 style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -245,9 +293,9 @@ export default function Reports() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {results.students?.map((s, i) => (
+                                        {paged.map((s, i) => (
                                             <tr key={s.id}>
-                                                <td>{i + 1}</td>
+                                                <td>{(page - 1) * PAGE_SIZE + i + 1}</td>
                                                 <td><strong>{s.student_id || `STU-${s.id}`}</strong></td>
                                                 <td>{s.last_name}, {s.first_name}</td>
                                                 <td>{s.gender || '—'}</td>
@@ -269,9 +317,9 @@ export default function Reports() {
                                         <tr><th>#</th><th>Faculty ID</th><th>Name</th><th>Department</th><th>Position</th><th>Contact</th></tr>
                                     </thead>
                                     <tbody>
-                                        {results.faculties?.map((f, i) => (
+                                        {paged.map((f, i) => (
                                             <tr key={f.id}>
-                                                <td>{i + 1}</td>
+                                                <td>{(page - 1) * PAGE_SIZE + i + 1}</td>
                                                 <td><strong>{f.faculty_id || `FAC-${f.id}`}</strong></td>
                                                 <td>{f.last_name}, {f.first_name}</td>
                                                 <td>{f.department || '—'}</td>
@@ -283,9 +331,24 @@ export default function Reports() {
                                 </table>
                             )}
                         </div>
+                        {totalPages > 1 && (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderTop: '1px solid #f1f5f9' }}>
+                                <span style={{ fontSize: '.8rem', color: '#78716c' }}>
+                                    Showing {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, rows.length)} of {rows.length}
+                                </span>
+                                <div style={{ display: 'flex', gap: 6 }}>
+                                    <button className="btn btn-outline" style={{ padding: '5px 12px', fontSize: '.8rem' }} disabled={page === 1} onClick={() => setPage(p => p - 1)}>← Prev</button>
+                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                                        <button key={p} className={`btn ${p === page ? 'btn-primary' : 'btn-outline'}`} style={{ padding: '5px 10px', fontSize: '.8rem', minWidth: 34 }} onClick={() => setPage(p)}>{p}</button>
+                                    ))}
+                                    <button className="btn btn-outline" style={{ padding: '5px 12px', fontSize: '.8rem' }} disabled={page === totalPages} onClick={() => setPage(p => p + 1)}>Next →</button>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
+                );
+            })()}
         </div>
     );
 }

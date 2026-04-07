@@ -125,6 +125,9 @@ export const deleteNonAcademicHistory = (id) => api.delete(`/non-academic-histor
 export const getNonAcademicDetails = (id) => api.get(`/non-academic-histories/${id}/details`);
 export const updateNonAcademicActivity = (id, description) => api.patch(`/non-academic-histories/${id}/update-activity`, { description });
 
+// ── Departments ───────────────────────────────────────────────────────────────
+export const getDepartments = () => api.get('/departments');
+
 // ── Reports ───────────────────────────────────────────────────────────────────
 export const getReportStudents = (params = {}) => api.get('/reports/students', { params });
 export const getReportFaculties = (params = {}) => api.get('/reports/faculties', { params });

@@ -400,7 +400,7 @@ export default function FacultyDataMap() {
                 ) : faculties.length === 0 ? (
                     <div className="empty"><Users size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No faculty records found.</p></div>
                 ) : (
-                    ['CS', 'IT', 'Computer Science', 'Information Technology'].filter(k => grouped[k]).map((deptKey) => {
+                    Object.keys(grouped).sort().map((deptKey) => {
                         const members = grouped[deptKey];
                         const label = deptKey === 'CS' ? 'Computer Science' : deptKey === 'IT' ? 'Information Technology' : deptKey;
                         const page = getDeptPage(deptKey);
