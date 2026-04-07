@@ -15,6 +15,10 @@ class DemoSeeder extends Seeder
 {
     public function run(): void
     {
+        // Hash once, reuse everywhere — bcrypt is intentionally slow
+        $this->teacherHash = Hash::make('Teacher1234');
+        $this->studentHash = Hash::make('Student1234');
+
         DB::transaction(function () {
             $this->seedFaculty();
             $this->seedStudents();
@@ -22,6 +26,9 @@ class DemoSeeder extends Seeder
         });
         $this->command->info('✓ DemoSeeder complete');
     }
+
+    private string $teacherHash;
+    private string $studentHash;
 
     private function now(): string { return Carbon::now()->toDateTimeString(); }
 
@@ -70,7 +77,7 @@ class DemoSeeder extends Seeder
             if (!DB::table('users')->where('email', $email)->exists()) {
                 DB::table('users')->insert([
                     'name' => "$fn $ln", 'email' => $email,
-                    'password' => Hash::make('Teacher1234'), 'role' => 'teacher',
+                    'password' => $this->teacherHash, 'role' => 'teacher',
                     'faculty_id' => $facultyId, 'created_at' => $now, 'updated_at' => $now,
                 ]);
             }
@@ -231,7 +238,7 @@ class DemoSeeder extends Seeder
             if (!DB::table('users')->where('email', $email)->exists()) {
                 DB::table('users')->insert([
                     'name' => "$fn $ln", 'email' => $email,
-                    'password' => Hash::make('Student1234'), 'role' => 'student',
+                    'password' => $this->studentHash, 'role' => 'student',
                     'student_id' => $studentId, 'created_at' => $now, 'updated_at' => $now,
                 ]);
             }
