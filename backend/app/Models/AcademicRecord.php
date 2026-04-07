@@ -9,11 +9,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class AcademicRecord extends Model
 {
     protected $fillable = [
-        'student_id', 'school_year', 'semester', 'gpa',
+        'student_id', 'school_year', 'semester', 'year_level', 'gpa',
     ];
 
     protected $casts = [
-        'gpa' => 'decimal:2',
+        'gpa'        => 'decimal:2',
+        'year_level' => 'integer',
     ];
 
     public function student(): BelongsTo
@@ -26,12 +27,23 @@ class AcademicRecord extends Model
         return $this->hasMany(Grade::class);
     }
 
-    /** + calculateGPA() : double */
+    /**
+     * Recalculate GPA using only finalized numeric grades.
+     * Skips INC, IP, OD, UD and null scores.
+     */
     public function calculateGPA(): float
     {
-        $grades = $this->grades;
-        if ($grades->isEmpty()) return 0.0;
-        $avg = $grades->avg('score');
+        $finalized = $this->grades()
+            ->whereNotNull('score')
+            ->whereNotIn('remarks', Grade::SPECIAL_REMARKS)
+            ->get();
+
+        if ($finalized->isEmpty()) {
+            $this->update(['gpa' => null]);
+            return 0.0;
+        }
+
+        $avg = $finalized->avg('score');
         $this->update(['gpa' => $avg]);
         return (float) $avg;
     }
@@ -47,5 +59,17 @@ class AcademicRecord extends Model
     public function getGPA(): float
     {
         return (float) $this->gpa;
+    }
+
+    /**
+     * Whether all subjects in this semester are passed.
+     * Used for auto-promotion logic.
+     */
+    public function allPassed(): bool
+    {
+        $grades = $this->grades;
+        if ($grades->isEmpty()) return false;
+
+        return $grades->every(fn($g) => $g->isPassed());
     }
 }

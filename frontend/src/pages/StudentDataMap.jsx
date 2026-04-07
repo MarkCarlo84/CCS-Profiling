@@ -568,7 +568,7 @@ export default function StudentDataMap() {
                         <div className="modal-grid-2col">
                             <div>
                                 <label style={lStyle}>Student ID</label>
-                                <input style={iStyle} value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })} placeholder="e.g. 2202184" />
+                                <input style={iStyle} value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })} placeholder="e.g. 2xxxxxx" />
                             </div>
                             <div>
                                 <label style={lStyle}>Department</label>
@@ -671,7 +671,7 @@ export default function StudentDataMap() {
 
 const iconWrap = { width: 44, height: 44, borderRadius: 12, background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #fed7aa' };
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 };
-const modalCard = { background: '#fff', borderRadius: 20, padding: '28px 32px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.2)' };
+const modalCard = { background: '#fff', borderRadius: 20, padding: '28px 32px', width: '100%', boxShadow: '0 20px 60px rgba(0,0,0,.2)', maxHeight: '90vh', overflowY: 'auto' };
 const iconBtnStyle = { background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#78716c' };
 const lStyle = { display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5, letterSpacing: .3 };
 const iStyle = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', fontFamily: "'Inter',sans-serif", color: '#1c1917', boxSizing: 'border-box' };

@@ -82,10 +82,10 @@ const NAV_BY_ROLE = {
         {
             label: 'My Profile',
             items: [
-                { to: '/', label: 'My Dashboard', Icon: LayoutDashboard },
-                { to: '/my-skills', label: 'My Skills', Icon: Zap },
-                { to: '/my-affiliations', label: 'My Affiliations', Icon: Network },
-                { to: '/my-activities', label: 'My Activities', Icon: Trophy },
+                { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
+                { to: '/my-skills', label: 'Skills', Icon: Zap },
+                { to: '/my-affiliations', label: 'Affiliations', Icon: Network },
+                { to: '/my-activities', label: 'Activities', Icon: Trophy },
                 { to: '/evaluate-faculty', label: 'Evaluate Faculty', Icon: Star },
                 { to: '/events', label: 'Events', Icon: PartyPopper },
                 { to: '/change-password', label: 'Change Password', Icon: KeyRound },

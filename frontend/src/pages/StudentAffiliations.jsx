@@ -111,9 +111,6 @@ export default function StudentAffiliations() {
                 <div className="empty">
                     <Network size={40} color="#fed7aa" />
                     <p style={{ marginTop: 10 }}>No affiliations yet. Add your first one!</p>
-                    <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ marginTop: 8 }}>
-                        <Plus size={14} /> Add Affiliation
-                    </button>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>

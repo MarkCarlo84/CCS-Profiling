@@ -94,6 +94,25 @@ class StudentProfileController extends Controller
     }
 
     /**
+     * PATCH /api/student/affiliations/{affiliation}
+     */
+    public function updateAffiliation(Request $request, \App\Models\Affiliation $affiliation): JsonResponse
+    {
+        $student = $this->getStudent($request);
+        if (!$student || $affiliation->student_id !== $student->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+        $data = $request->validate([
+            'name'        => 'sometimes|string|max:200',
+            'type'        => 'nullable|string|max:100',
+            'role'        => 'nullable|string|max:100',
+            'date_joined' => 'nullable|date',
+        ]);
+        $affiliation->update($data);
+        return response()->json($affiliation->fresh());
+    }
+
+    /**
      * DELETE /api/student/affiliations/{affiliation}
      */
     public function deleteAffiliation(Request $request, \App\Models\Affiliation $affiliation): JsonResponse
@@ -185,7 +204,30 @@ class StudentProfileController extends Controller
     }
 
     /**
-     * DELETE /api/student/non-academic-histories/{history}
+     * PATCH /api/student/non-academic-histories/{nonAcademicHistory}
+     */
+    public function updateNonAcademicHistory(Request $request, \App\Models\NonAcademicHistory $nonAcademicHistory): JsonResponse
+    {
+        $student = $this->getStudent($request);
+        if (!$student || $nonAcademicHistory->student_id !== $student->id) {
+            return response()->json(['message' => 'Unauthorized.'], 403);
+        }
+        $data = $request->validate([
+            'activity_title' => 'sometimes|string|max:200',
+            'category'       => 'nullable|string|max:100',
+            'description'    => 'nullable|string',
+            'date_started'   => 'nullable|date',
+            'date_ended'     => 'nullable|date|after_or_equal:date_started',
+            'role'           => 'nullable|string|max:100',
+            'organizer'      => 'nullable|string|max:200',
+            'game_result'    => 'nullable|string|max:100',
+        ]);
+        $nonAcademicHistory->update($data);
+        return response()->json($nonAcademicHistory->fresh());
+    }
+
+    /**
+     * DELETE /api/student/non-academic-histories/{nonAcademicHistory}
      */
     public function deleteNonAcademicHistory(Request $request, \App\Models\NonAcademicHistory $nonAcademicHistory): JsonResponse
     {

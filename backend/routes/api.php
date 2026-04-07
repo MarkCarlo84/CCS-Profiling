@@ -29,6 +29,7 @@ use App\Http\Controllers\Api\DepartmentController;
 use App\Http\Controllers\Api\EventController;
 use App\Http\Controllers\Api\AcademicPeriodController;
 use App\Http\Controllers\Api\FacultySubjectController;
+use App\Http\Controllers\Api\EnrollmentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -100,9 +101,8 @@ Route::get('grades/{grade}/get-score',                                    [Grade
 Route::apiResource('eligibility-criteria', EligibilityCriteriaController::class);
 Route::get('eligibility-criteria/{eligibilityCriterion}/evaluate/{student}', [EligibilityCriteriaController::class, 'evaluate']);
 
-// ── Affiliations ──────────────────────────────────────────────────────────────
-Route::apiResource('affiliations', AffiliationController::class);
-Route::get('affiliations/{affiliation}/details',                          [AffiliationController::class, 'details']);
+// ── Affiliations (admin only) ─────────────────────────────────────────────────
+// Student-facing routes are under /student prefix below
 
 // ── Violations ────────────────────────────────────────────────────────────────
 Route::apiResource('violations', ViolationController::class);
@@ -111,9 +111,10 @@ Route::patch('violations/{violation}/update-action',                      [Viola
 Route::patch('violations/{violation}/resolve',                            [ViolationController::class, 'resolve']);
 
 // ── Academic Records ──────────────────────────────────────────────────────────
-Route::apiResource('academic-records', AcademicRecordController::class);
+// Read-only (public/authenticated)
+Route::get('academic-records',                                            [AcademicRecordController::class, 'index']);
+Route::get('academic-records/{academicRecord}',                           [AcademicRecordController::class, 'show']);
 Route::get('academic-records/{academicRecord}/calculate-gpa',             [AcademicRecordController::class, 'calculateGPA']);
-Route::post('academic-records/{academicRecord}/add-grade',                [AcademicRecordController::class, 'addGrade']);
 Route::get('academic-records/{academicRecord}/get-gpa',                   [AcademicRecordController::class, 'getGPA']);
 
 // ── Skills ────────────────────────────────────────────────────────────────────
@@ -121,10 +122,8 @@ Route::apiResource('skills', SkillController::class);
 Route::get('skills/{skill}/level',                                        [SkillController::class, 'getSkillLevel']);
 Route::patch('skills/{skill}/level',                                      [SkillController::class, 'updateSkillLevel']);
 
-// ── Non-Academic Histories ────────────────────────────────────────────────────
-Route::apiResource('non-academic-histories', NonAcademicHistoryController::class);
-Route::get('non-academic-histories/{nonAcademicHistory}/details',         [NonAcademicHistoryController::class, 'activityDetails']);
-Route::patch('non-academic-histories/{nonAcademicHistory}/update-activity', [NonAcademicHistoryController::class, 'updateActivity']);
+// ── Non-Academic Histories (admin only) ──────────────────────────────────────
+// Student-facing routes are under /student prefix below
 
 // ── Reports (cross-module) ────────────────────────────────────────────────────
 Route::prefix('reports')->group(function () {
@@ -194,11 +193,13 @@ Route::middleware(['auth:sanctum', 'role:student'])->prefix('student')->group(fu
     Route::post('skills',                                    [StudentProfileController::class, 'addSkill']);
     Route::delete('skills/{skill}',                          [StudentProfileController::class, 'deleteSkill']);
     Route::post('affiliations',                              [StudentProfileController::class, 'addAffiliation']);
+    Route::patch('affiliations/{affiliation}',               [StudentProfileController::class, 'updateAffiliation']);
     Route::delete('affiliations/{affiliation}',              [StudentProfileController::class, 'deleteAffiliation']);
     Route::get('academic-records',                           [StudentProfileController::class, 'academicRecords']);
     Route::get('violations',                                 [StudentProfileController::class, 'violations']);
     Route::get('non-academic-histories',                     [StudentProfileController::class, 'nonAcademicHistories']);
     Route::post('non-academic-histories',                    [StudentProfileController::class, 'addNonAcademicHistory']);
+    Route::patch('non-academic-histories/{nonAcademicHistory}', [StudentProfileController::class, 'updateNonAcademicHistory']);
     Route::delete('non-academic-histories/{nonAcademicHistory}', [StudentProfileController::class, 'deleteNonAcademicHistory']);
     // Faculty evaluations
     Route::get('evaluations',                                [FacultyEvaluationController::class, 'index']);
@@ -239,6 +240,26 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::post('faculty-subjects',                          [FacultySubjectController::class, 'store']);
     Route::get('faculty-subjects/{faculty}',                 [FacultySubjectController::class, 'facultySubjects']);
     Route::delete('faculty-subjects/{faculty}/{subject}',    [FacultySubjectController::class, 'destroy']);
+    // Student enrollment & promotion (admin only)
+    Route::post('students/{student}/enroll-subjects',        [EnrollmentController::class, 'enrollSubjects']);
+    Route::post('students/{student}/promote',                [EnrollmentController::class, 'promote']);
+    // Affiliations (admin manages any student's)
+    Route::apiResource('affiliations', AffiliationController::class);
+    Route::get('affiliations/{affiliation}/details',         [AffiliationController::class, 'details']);
+    // Non-Academic Histories (admin manages any student's)
+    Route::apiResource('non-academic-histories', NonAcademicHistoryController::class);
+    Route::get('non-academic-histories/{nonAcademicHistory}/details', [NonAcademicHistoryController::class, 'activityDetails']);
+    // Academic Records — admin write operations
+    Route::post('academic-records',                                        [AcademicRecordController::class, 'store']);
+    Route::put('academic-records/{academicRecord}',                        [AcademicRecordController::class, 'update']);
+    Route::patch('academic-records/{academicRecord}',                      [AcademicRecordController::class, 'update']);
+    Route::delete('academic-records/{academicRecord}',                     [AcademicRecordController::class, 'destroy']);
+    Route::post('academic-records/{academicRecord}/add-grade',             [AcademicRecordController::class, 'addGrade']);
+    // Admin grade management (add/edit semester grades)
+    Route::post('grades',                                    [GradeController::class, 'store']);
+    Route::put('grades/{grade}',                             [GradeController::class, 'update']);
+    Route::patch('grades/{grade}',                           [GradeController::class, 'update']);
+    Route::delete('grades/{grade}',                          [GradeController::class, 'destroy']);
 });
 
 // ── OTP (admin only) ──────────────────────────────────────────────────────────

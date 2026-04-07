@@ -66,6 +66,9 @@ export default function DashboardStudent() {
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
 
+    // Academic records modal
+    const [recordsModal, setRecordsModal] = useState(false);
+
     // Skills state
     const [skillModal, setSkillModal] = useState(false);
     const [skillForm, setSkillForm] = useState({ skill_name: '', skill_level: 'beginner', certification: false });
@@ -351,24 +354,77 @@ export default function DashboardStudent() {
                 </SectionCard>
 
                 {/* Academic Records */}
-                <SectionCard title="Academic Records" Icon={Award} color="#059669">
-                    {profile.academic_records?.length ? profile.academic_records.map(rec => (
-                        <div key={rec.id} style={{ marginBottom: 14 }}>
-                            <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', marginBottom: 6 }}>
-                                {rec.school_year} — {rec.semester}
-                                <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, background: '#dcfce7', color: '#16a34a', fontSize: 11, fontWeight: 700 }}>
-                                    GPA: {rec.gpa ?? '—'}
-                                </span>
-                            </div>
-                            {rec.grades?.map(g => (
-                                <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#78716c', padding: '3px 0', borderBottom: '1px solid #f5f5f4' }}>
-                                    <span>{g.subject_name}</span>
-                                    <span style={{ fontWeight: 600, color: '#18120e' }}>{g.score} — {g.remarks}</span>
+                {(() => {
+                    const sortedRecords = [...(profile.academic_records ?? [])].sort((a, b) => {
+                        if (b.school_year !== a.school_year) return b.school_year.localeCompare(a.school_year);
+                        const semOrder = { 'Summer': 3, '2nd': 2, '1st': 1 };
+                        return (semOrder[b.semester] ?? 0) - (semOrder[a.semester] ?? 0);
+                    });
+                    const previewRecords = sortedRecords.slice(0, 2);
+                    return (
+                        <SectionCard title="Academic Records" Icon={Award} color="#059669"
+                            action={sortedRecords.length > 2 && (
+                                <button onClick={() => setRecordsModal(true)} style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#059669', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 7, padding: '4px 10px', cursor: 'pointer' }}>
+                                    See More
+                                </button>
+                            )}
+                        >
+                            {previewRecords.length ? previewRecords.map(rec => (
+                                <div key={rec.id} style={{ marginBottom: 14 }}>
+                                    <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', marginBottom: 6 }}>
+                                        {rec.school_year} — {rec.semester}
+                                        <span style={{ marginLeft: 8, padding: '1px 8px', borderRadius: 999, background: '#dcfce7', color: '#16a34a', fontSize: 11, fontWeight: 700 }}>
+                                            GPA: {rec.gpa ?? '—'}
+                                        </span>
+                                    </div>
+                                    {rec.grades?.map(g => (
+                                        <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#78716c', padding: '3px 0', borderBottom: '1px solid #f5f5f4' }}>
+                                            <span>{g.subject_name}</span>
+                                            <span style={{ fontWeight: 600, color: '#18120e' }}>{g.score} — {g.remarks}</span>
+                                        </div>
+                                    ))}
                                 </div>
-                            ))}
-                        </div>
-                    )) : <p style={{ color: '#a8a29e', fontSize: 13 }}>No academic records yet.</p>}
-                </SectionCard>
+                            )) : <p style={{ color: '#a8a29e', fontSize: 13 }}>No academic records yet.</p>}
+
+                            {/* All Records Modal */}
+                            {recordsModal && (
+                                <div onClick={() => setRecordsModal(false)} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16 }}>
+                                    <div onClick={e => e.stopPropagation()} style={{ background: '#fff', borderRadius: 16, width: '100%', maxWidth: 560, maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+                                        {/* Modal Header */}
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 22px', borderBottom: '1px solid #f0fdf4' }}>
+                                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 800, color: '#18120e', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <Award size={17} color="#059669" /> Academic Records
+                                            </h3>
+                                            <button onClick={() => setRecordsModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#78716c', display: 'flex', alignItems: 'center' }}>
+                                                <X size={18} />
+                                            </button>
+                                        </div>
+                                        {/* Modal Body */}
+                                        <div style={{ overflowY: 'auto', padding: '18px 22px', flex: 1 }}>
+                                            {sortedRecords.map((rec, idx) => (
+                                                <div key={rec.id} style={{ marginBottom: idx < sortedRecords.length - 1 ? 20 : 0 }}>
+                                                    <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                        {rec.school_year} — {rec.semester}
+                                                        <span style={{ padding: '1px 8px', borderRadius: 999, background: '#dcfce7', color: '#16a34a', fontSize: 11, fontWeight: 700 }}>
+                                                            GPA: {rec.gpa ?? '—'}
+                                                        </span>
+                                                    </div>
+                                                    {rec.grades?.length ? rec.grades.map(g => (
+                                                        <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: '#78716c', padding: '4px 0', borderBottom: '1px solid #f5f5f4' }}>
+                                                            <span>{g.subject_name}</span>
+                                                            <span style={{ fontWeight: 600, color: '#18120e' }}>{g.score} — {g.remarks}</span>
+                                                        </div>
+                                                    )) : <p style={{ fontSize: 12, color: '#a8a29e', margin: 0 }}>No grades recorded.</p>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </SectionCard>
+                    );
+                })()}
+
 
                 {/* Skills */}
                 <SectionCard title="Skills" Icon={Zap} color="#7c3aed"
@@ -393,7 +449,12 @@ export default function DashboardStudent() {
                 </SectionCard>
 
                 {/* Affiliations */}
-                <SectionCard title="Affiliations" Icon={Network} color="#0891b2">
+                <SectionCard title="Affiliations" Icon={Network} color="#0891b2"
+                    action={
+                        <Link to="/my-affiliations" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#0891b2', background: '#ecfeff', border: '1px solid #a5f3fc', borderRadius: 7, padding: '4px 10px', cursor: 'pointer', textDecoration: 'none' }}>
+                            <Plus size={13} /> Add Affiliation
+                        </Link>
+                    }>
                     {profile.affiliations?.length ? profile.affiliations.map((a, i) => (
                         <div key={a.id} style={{ padding: '8px 0', borderBottom: i < profile.affiliations.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
                             <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e' }}>{a.name}</div>
@@ -403,7 +464,12 @@ export default function DashboardStudent() {
                 </SectionCard>
 
                 {/* Non-Academic Histories */}
-                <SectionCard title="Non-Academic Activities" Icon={Trophy} color="#d97706">
+                <SectionCard title="Non-Academic Activities" Icon={Trophy} color="#d97706"
+                    action={
+                        <Link to="/my-activities" style={{ display: 'flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 600, color: '#d97706', background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 7, padding: '4px 10px', cursor: 'pointer', textDecoration: 'none' }}>
+                            <Plus size={13} /> Add Activity
+                        </Link>
+                    }>
                     {profile.non_academic_histories?.length ? profile.non_academic_histories.map((h, i) => (
                         <div key={h.id} style={{ padding: '8px 0', borderBottom: i < profile.non_academic_histories.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
                             <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e' }}>{h.activity_title}</div>

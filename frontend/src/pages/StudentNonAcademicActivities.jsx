@@ -149,9 +149,6 @@ export default function StudentNonAcademicActivities() {
                 <div className="empty">
                     <Trophy size={40} color="#fed7aa" />
                     <p style={{ marginTop: 10 }}>No activities yet. Add your first one!</p>
-                    <button className="btn btn-primary" onClick={() => setShowModal(true)} style={{ marginTop: 8 }}>
-                        <Plus size={14} /> Add Activity
-                    </button>
                 </div>
             ) : (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: 16 }}>

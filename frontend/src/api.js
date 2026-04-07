@@ -94,12 +94,18 @@ export const resolveViolation = (id) => api.patch(`/violations/${id}/resolve`);
 // ── Academic Records ──────────────────────────────────────────────────────────
 export const getAcademicRecords = (params = {}) => api.get('/academic-records', { params });
 export const getAcademicRecord = (id) => api.get(`/academic-records/${id}`);
-export const createAcademicRecord = (data) => api.post('/academic-records', data);
-export const updateAcademicRecord = (id, data) => api.put(`/academic-records/${id}`, data);
-export const deleteAcademicRecord = (id) => api.delete(`/academic-records/${id}`);
+export const createAcademicRecord = (data) => api.post('/admin/academic-records', data);
+export const updateAcademicRecord = (id, data) => api.patch(`/admin/academic-records/${id}`, data);
+export const deleteAcademicRecord = (id) => api.delete(`/admin/academic-records/${id}`);
 export const calculateRecordGPA = (id) => api.get(`/academic-records/${id}/calculate-gpa`);
-export const addGradeToRecord = (id, data) => api.post(`/academic-records/${id}/add-grade`, data);
+export const addGradeToRecord = (id, data) => api.post(`/admin/academic-records/${id}/add-grade`, data);
 export const getRecordGPA = (id) => api.get(`/academic-records/${id}/get-gpa`);
+// Admin: enroll subjects & promote
+export const adminEnrollSubjects = (studentId, data) => api.post(`/admin/students/${studentId}/enroll-subjects`, data);
+export const adminPromoteStudent = (studentId, data) => api.post(`/admin/students/${studentId}/promote`, data);
+// Admin: grade management
+export const adminUpdateGrade = (id, data) => api.patch(`/admin/grades/${id}`, data);
+export const adminDeleteGrade = (id) => api.delete(`/admin/grades/${id}`);
 
 // ── Skills ────────────────────────────────────────────────────────────────────
 export const getSkills = (params = {}) => api.get('/skills', { params });
