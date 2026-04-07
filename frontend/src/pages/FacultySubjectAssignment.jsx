@@ -41,6 +41,19 @@ export default function FacultySubjectAssignment() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    const [subjectSearch, setSubjectSearch] = useState('');
+    const [subjectDropdown, setSubjectDropdown] = useState(false);
+
+    const uniqueSubjects = subjects.filter((s, i, arr) => arr.findIndex(x => x.id === s.id) === i);
+
+    const filteredSubjects = subjectSearch.trim()
+        ? uniqueSubjects.filter(s =>
+            s.subject_code.toLowerCase().includes(subjectSearch.toLowerCase()) ||
+            s.subject_name.toLowerCase().includes(subjectSearch.toLowerCase())
+          )
+        : uniqueSubjects;
+
+    const selectedSubject = uniqueSubjects.find(s => String(s.id) === String(form.subject_id));
     const schoolYear = period?.school_year ?? '';
     const semester   = period?.semester ?? '';
 
@@ -67,6 +80,8 @@ export default function FacultySubjectAssignment() {
 
     const openModal = (facultyId = '') => {
         setForm({ faculty_id: facultyId, subject_id: '', school_year: schoolYear, semester });
+        setSubjectSearch('');
+        setSubjectDropdown(false);
         setError('');
         setModal(true);
     };
@@ -264,8 +279,11 @@ export default function FacultySubjectAssignment() {
 
             {/* Assign Modal */}
             {modal && (
-                <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
-                    <div style={{ background: '#fff', borderRadius: 18, padding: '28px 32px', width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }}>
+                <div
+                    style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}
+                    onClick={() => setSubjectDropdown(false)}
+                >
+                    <div style={{ background: '#fff', borderRadius: 18, padding: '28px 32px', width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,.2)' }} onClick={e => e.stopPropagation()}>
                         <h2 style={{ margin: '0 0 20px', fontSize: '1.1rem', fontWeight: 800, color: '#1c1917' }}>Assign Subject to Faculty</h2>
                         <form onSubmit={handleAssign} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                             <div>
@@ -279,20 +297,56 @@ export default function FacultySubjectAssignment() {
                             </div>
                             <div>
                                 <label style={{ display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#78716c', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Subject</label>
-                                <select required style={inputStyle} value={form.subject_id} onChange={e => setForm(p => ({ ...p, subject_id: e.target.value }))}>
-                                    <option value="">— Select Subject —</option>
-                                    {['BSIT', 'BSCS'].map(prog => {
-                                        const group = subjects.filter(s => s.program === prog);
-                                        if (!group.length) return null;
-                                        return (
-                                            <optgroup key={prog} label={prog === 'BSIT' ? '── Information Technology (BSIT)' : '── Computer Science (BSCS)'}>
-                                                {group.map(s => (
-                                                    <option key={s.id} value={s.id}>{s.subject_code} — {s.subject_name}</option>
+                                <div style={{ position: 'relative' }}>
+                                    <div
+                                        onClick={() => setSubjectDropdown(p => !p)}
+                                        style={{ ...inputStyle, cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', userSelect: 'none' }}
+                                    >
+                                        <span style={{ color: selectedSubject ? '#1c1917' : '#a8a29e' }}>
+                                            {selectedSubject ? `${selectedSubject.subject_code} — ${selectedSubject.subject_name}` : '— Select Subject —'}
+                                        </span>
+                                        <ChevronDown size={15} color="#a8a29e" />
+                                    </div>
+                                    {subjectDropdown && (
+                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 50, background: '#fff', border: '1px solid #fde8d0', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.12)', marginTop: 4, overflow: 'hidden' }}>
+                                            <div style={{ padding: '8px 10px', borderBottom: '1px solid #fde8d0' }}>
+                                                <input
+                                                    autoFocus
+                                                    style={{ ...inputStyle, padding: '6px 10px', fontSize: '.82rem' }}
+                                                    placeholder="Search subject…"
+                                                    value={subjectSearch}
+                                                    onChange={e => setSubjectSearch(e.target.value)}
+                                                    onClick={e => e.stopPropagation()}
+                                                />
+                                            </div>
+                                            <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+                                                {filteredSubjects.length === 0 ? (
+                                                    <div style={{ padding: '10px 14px', color: '#a8a29e', fontSize: '.82rem' }}>No subjects found.</div>
+                                                ) : filteredSubjects.map(s => (
+                                                    <div
+                                                        key={s.id}
+                                                        onClick={() => { setForm(p => ({ ...p, subject_id: s.id })); setSubjectDropdown(false); setSubjectSearch(''); }}
+                                                        style={{
+                                                            padding: '9px 14px', cursor: 'pointer', fontSize: '.85rem',
+                                                            background: String(form.subject_id) === String(s.id) ? '#fff7ed' : '#fff',
+                                                            color: String(form.subject_id) === String(s.id) ? '#f97316' : '#1c1917',
+                                                            fontWeight: String(form.subject_id) === String(s.id) ? 700 : 400,
+                                                            borderBottom: '1px solid #fafaf9',
+                                                        }}
+                                                        onMouseEnter={e => e.currentTarget.style.background = '#fff7ed'}
+                                                        onMouseLeave={e => e.currentTarget.style.background = String(form.subject_id) === String(s.id) ? '#fff7ed' : '#fff'}
+                                                    >
+                                                        <span style={{ fontWeight: 700, marginRight: 6 }}>{s.subject_code}</span>
+                                                        <span style={{ color: '#78716c' }}>{s.subject_name}</span>
+                                                        {s.program && <span style={{ marginLeft: 6, fontSize: '.72rem', color: '#a8a29e' }}>({s.program})</span>}
+                                                    </div>
                                                 ))}
-                                            </optgroup>
-                                        );
-                                    })}
-                                </select>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                {/* hidden input for form validation */}
+                                <input type="text" required style={{ opacity: 0, height: 0, position: 'absolute' }} value={form.subject_id} onChange={() => {}} tabIndex={-1} />
                             </div>
                             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                                 <div>

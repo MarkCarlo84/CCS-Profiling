@@ -152,7 +152,8 @@ export default function DashboardStudent() {
     );
 
     const latestRecord = profile.academic_records?.slice(-1)[0];
-    const totalViolations = profile.violations?.length ?? 0;
+    const activeViolations = profile.violations?.filter(v => !v.is_resolved) ?? [];
+    const totalViolations = activeViolations.length;
     const totalSkills = profile.skills?.length ?? 0;
     const totalAffiliations = profile.affiliations?.length ?? 0;
     const totalActivities = profile.non_academic_histories?.length ?? 0;
@@ -161,11 +162,11 @@ export default function DashboardStudent() {
         <div>
             {/* Violation Warnings */}
             {totalViolations > 0 && (() => {
-                const newViolations = profile.violations?.filter(v => {
+                const newViolations = activeViolations.filter(v => {
                     const created = new Date(v.created_at);
                     const diffDays = (Date.now() - created.getTime()) / (1000 * 60 * 60 * 24);
                     return diffDays <= 7;
-                }) ?? [];
+                });
                 return (
                 <div style={{
                     background: 'linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%)',
@@ -200,19 +201,19 @@ export default function DashboardStudent() {
                             </h3>
                             <p style={{ margin: 0, fontSize: '.875rem', color: '#7f1d1d', lineHeight: 1.6 }}>
                                 You have <strong>{totalViolations} violation{totalViolations !== 1 ? 's' : ''}</strong> on record.
-                                {profile.violations?.some(v => v.severity_level === 'grave') && (
+                                {activeViolations.some(v => v.severity_level === 'grave') && (
                                     <span style={{ display: 'block', marginTop: 4, fontWeight: 700 }}>
                                         ⚠️ This includes grave violations that may affect your academic standing.
                                     </span>
                                 )}
-                                {profile.violations?.some(v => v.severity_level === 'major') && !profile.violations?.some(v => v.severity_level === 'grave') && (
+                                {activeViolations.some(v => v.severity_level === 'major') && !activeViolations.some(v => v.severity_level === 'grave') && (
                                     <span style={{ display: 'block', marginTop: 4, fontWeight: 600 }}>
                                         ⚠️ This includes major violations. Please review your conduct.
                                     </span>
                                 )}
                             </p>
                             <div style={{ marginTop: 10, display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                {profile.violations?.slice(0, 3).map(v => {
+                                {activeViolations.slice(0, 3).map(v => {
                                     const isNew = (Date.now() - new Date(v.created_at).getTime()) / (1000 * 60 * 60 * 24) <= 7;
                                     return (
                                         <span key={v.id} style={{
