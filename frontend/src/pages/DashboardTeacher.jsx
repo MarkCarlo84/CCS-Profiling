@@ -27,7 +27,7 @@ const QUICK_ACTIONS = [
     { to: '/skills', label: 'Skills', Icon: Zap, desc: 'Student competencies', color: '#7c3aed' },
     { to: '/non-academic-histories', label: 'Non-Academic', Icon: Trophy, desc: 'Awards & achievements', color: '#d97706' },
     { to: '/eligibility-criteria', label: 'Eligibility Criteria', Icon: ClipboardCheck, desc: 'Evaluate students', color: '#64748b' },
-    { to: '/reports', label: 'Reports', Icon: BarChart3, desc: 'Filter & export', color: '#f97316' },
+    { to: '/reports', label: 'Filter', Icon: BarChart3, desc: 'Filter & export', color: '#f97316' },
 ];
 
 export default function DashboardTeacher() {

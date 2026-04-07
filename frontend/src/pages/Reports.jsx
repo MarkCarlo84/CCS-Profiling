@@ -63,7 +63,7 @@ export default function Reports() {
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 4 }}>
                     <div style={iconWrap}><BarChart3 size={22} color="#f97316" /></div>
-                    <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Reports &amp; Queries</h1>
+                    <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Filter &amp; Queries</h1>
                 </div>
                 <p style={{ color: '#78716c' }}>Filter students or faculty by any combination of criteria to generate targeted reports</p>
             </div>
@@ -84,8 +84,8 @@ export default function Reports() {
                                 {[
                                     { label: 'Students with Major Violations', Icon: AlertTriangle, params: { violation_severity: 'major', status: 'active' }, type: 'students' },
                                     { label: 'Students with Grave Violations', Icon: AlertTriangle, params: { violation_severity: 'grave', status: 'active' }, type: 'students' },
-                                    { label: 'Certified Skill Holders', Icon: BookOpenCheck, params: { status: 'active' }, type: 'students' },
-                                    { label: 'All Active Faculty', Icon: Users, params: { status: 'active' }, type: 'faculties' },
+                                    { label: 'Certified Skill Holders', Icon: BookOpenCheck, params: { certification: '1', status: 'active' }, type: 'students' },
+                                    { label: 'All Faculty', Icon: Users, params: {}, type: 'faculties' },
                                 ].map(p => {
                                     const IconComp = p.Icon;
                                     const active = activePreset === p.label;
@@ -116,18 +116,18 @@ export default function Reports() {
                                 </>
                             )}
 
-                            {/* Activity category presets */}
-                            {presets.categories.length > 0 && (
+                            {/* Affiliation presets */}
+                            {presets.affiliations?.length > 0 && (
                                 <>
-                                    <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>By Activity Category</div>
+                                    <div style={{ fontSize: '.72rem', fontWeight: 700, color: '#78716c', textTransform: 'uppercase', letterSpacing: '.06em', marginBottom: 8 }}>By Affiliations</div>
                                     <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                                        {presets.categories.map(cat => {
-                                            const IconComp = presetIcon(cat);
-                                            const label = `${cat} Activities`;
-                                            const active = activePreset === label;
+                                        {presets.affiliations.map(aff => {
+                                            const IconComp = presetIcon(aff);
+                                            const lbl = `${aff}`;
+                                            const active = activePreset === lbl;
                                             return (
-                                                <button key={cat} className={`btn ${active ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActivePreset(label); runQuery({ activity_category: cat, status: 'active' }, 'students'); }}>
-                                                    <IconComp size={14} />{label}
+                                                <button key={aff} className={`btn ${active ? 'btn-primary' : 'btn-outline'}`} onClick={() => { setActivePreset(lbl); runQuery({ affiliation: aff, status: 'active' }, 'students'); }}>
+                                                    <IconComp size={14} />{lbl}
                                                 </button>
                                             );
                                         })}
@@ -135,8 +135,8 @@ export default function Reports() {
                                 </>
                             )}
 
-                            {presets.skills.length === 0 && presets.categories.length === 0 && (
-                                <p style={{ color: '#a8a29e', fontSize: '.85rem', margin: '8px 0 0' }}>No skill or activity data yet. Add student skills and activities to generate dynamic presets.</p>
+                            {presets.skills.length === 0 && !presets.affiliations?.length && (
+                                <p style={{ color: '#a8a29e', fontSize: '.85rem', margin: '8px 0 0' }}>No skill or affiliation data yet. Add student skills and affiliations to generate dynamic presets.</p>
                             )}
                         </>
                     )}
@@ -159,7 +159,7 @@ export default function Reports() {
                         </div>
                         <div>
                             <label style={label}>Department</label>
-                            <input type="text" placeholder="e.g. CCS, CE, CBA" value={filters.department} onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} style={formField} />
+                            <input type="text" placeholder="e.g. CS, IT" value={filters.department} onChange={e => setFilters(f => ({ ...f, department: e.target.value }))} style={formField} />
                         </div>
                         {filters.type === 'students' && <>
                             <div>

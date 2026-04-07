@@ -4,24 +4,12 @@ import { useLoading } from './LoadingContext';
 
 const AuthContext = createContext(null);
 
-// In-memory flag — lives only for the current tab's JS runtime.
-// A new tab starts fresh (this is false), so the token is cleared on mount.
-let _tabAuthenticated = false;
-
 export function AuthProvider({ children }) {
     const [user, setUser] = useState(null);
     const [loading, setLoading] = useState(true);
     const { showLoader } = useLoading();
 
     useEffect(() => {
-        // If this tab hasn't authenticated in its own JS session, clear any
-        // inherited sessionStorage token (e.g. from a duplicated tab).
-        if (!_tabAuthenticated) {
-            sessionStorage.removeItem('ccs_token');
-            setLoading(false);
-            return;
-        }
-
         const token = sessionStorage.getItem('ccs_token');
         if (token) {
             api.get('/auth/me')
@@ -39,7 +27,6 @@ export function AuthProvider({ children }) {
 
         const { token, user: u } = res.data;
         sessionStorage.setItem('ccs_token', token);
-        _tabAuthenticated = true;
         showLoader();
         setUser(u);
         
@@ -53,7 +40,6 @@ export function AuthProvider({ children }) {
         const { token, user: u } = res.data;
         sessionStorage.setItem('ccs_token', token);
         localStorage.setItem('ccs_portal', '/student');
-        _tabAuthenticated = true;
         showLoader();
         setUser(u);
         return u;
@@ -66,7 +52,6 @@ export function AuthProvider({ children }) {
         const { token, user: u } = res.data;
         sessionStorage.setItem('ccs_token', token);
         localStorage.setItem('ccs_portal', '/facultyadmin');
-        _tabAuthenticated = true;
         showLoader();
         setUser(u);
         return u;
@@ -76,7 +61,6 @@ export function AuthProvider({ children }) {
         const res = await apiVerifyLoginOtp(email, otp);
         const { token, user: u } = res.data;
         sessionStorage.setItem('ccs_token', token);
-        _tabAuthenticated = true;
         showLoader();
         setUser(u);
         
@@ -86,8 +70,6 @@ export function AuthProvider({ children }) {
     const logout = useCallback(async () => {
         await api.post('/auth/logout').catch(() => { });
         sessionStorage.removeItem('ccs_token');
-        localStorage.setItem('ccs_portal', '/student');
-        _tabAuthenticated = false;
         setUser(null);
     }, []);
 

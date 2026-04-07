@@ -18,7 +18,7 @@ const NAV_BY_ROLE = {
             label: 'Overview',
             items: [
                 { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
-                { to: '/reports', label: 'Reports', Icon: BarChart3 },
+                { to: '/reports', label: 'Filter', Icon: BarChart3 },
                 { to: '/search', label: 'Search', Icon: Search },
             ],
         },

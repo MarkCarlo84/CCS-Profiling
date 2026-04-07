@@ -28,6 +28,9 @@ class ReportController extends Controller
             $lvl = $request->skill_level;
             $query->whereHas('skills', fn($q) => $q->where('skill_level', $lvl));
         }
+        if ($request->filled('certification')) {
+            $query->whereHas('skills', fn($q) => $q->where('certification', true));
+        }
         if ($request->filled('affiliation')) {
             $org = $request->affiliation;
             $query->whereHas('affiliations', fn($q) => $q->where('name', 'like', "%$org%"));
@@ -107,15 +110,15 @@ class ReportController extends Controller
             ->orderBy('skill_name')
             ->pluck('skill_name');
 
-        $categories = \App\Models\NonAcademicHistory::select('category')
-            ->whereNotNull('category')
+        $affiliations = \App\Models\Affiliation::select('name')
+            ->whereNotNull('name')
             ->distinct()
-            ->orderBy('category')
-            ->pluck('category');
+            ->orderBy('name')
+            ->pluck('name');
 
         return response()->json([
-            'skills'     => $skills,
-            'categories' => $categories,
+            'skills'       => $skills,
+            'affiliations' => $affiliations,
         ]);
     }
     public function search(Request $request): JsonResponse
