@@ -101,7 +101,8 @@ Route::get('grades/{grade}/get-score',                                    [Grade
 Route::apiResource('eligibility-criteria', EligibilityCriteriaController::class);
 Route::get('eligibility-criteria/{eligibilityCriterion}/evaluate/{student}', [EligibilityCriteriaController::class, 'evaluate']);
 
-// ── Affiliations (admin only) ─────────────────────────────────────────────────
+// ── Affiliations (public read) ────────────────────────────────────────────────
+Route::get('affiliations', [AffiliationController::class, 'index']);
 // Student-facing routes are under /student prefix below
 
 // ── Violations ────────────────────────────────────────────────────────────────
@@ -122,7 +123,8 @@ Route::apiResource('skills', SkillController::class);
 Route::get('skills/{skill}/level',                                        [SkillController::class, 'getSkillLevel']);
 Route::patch('skills/{skill}/level',                                      [SkillController::class, 'updateSkillLevel']);
 
-// ── Non-Academic Histories (admin only) ──────────────────────────────────────
+// ── Non-Academic Histories (public read) ─────────────────────────────────────
+Route::get('non-academic-histories', [NonAcademicHistoryController::class, 'index']);
 // Student-facing routes are under /student prefix below
 
 // ── Reports (cross-module) ────────────────────────────────────────────────────

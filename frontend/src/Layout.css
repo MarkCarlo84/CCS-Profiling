@@ -514,7 +514,8 @@ tbody td {
     border: 1px solid #bae6fd;
 }
 
-.badge-dropped {
+.badge-dropped,
+.badge-loa {
     background: #fdf4ff;
     color: #a21caf;
     border: 1px solid #f0abfc;

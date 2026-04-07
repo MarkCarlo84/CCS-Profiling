@@ -253,7 +253,7 @@ export default function Reports() {
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
                                     <option value="graduated">Graduated</option>
-                                    <option value="dropped">Dropped</option>
+                                    <option value="loa">LOA</option>
                                 </select>
                             </div>
                         </>}

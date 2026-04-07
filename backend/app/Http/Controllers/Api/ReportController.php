@@ -130,7 +130,7 @@ class ReportController extends Controller
             return response()->json(['query' => $q, 'total' => 0, 'students' => [], 'faculties' => [], 'courses' => [], 'events' => []]);
         }
 
-        $students = Student::with(['violations', 'skills', 'academicRecords'])
+        $students = Student::with(['violations', 'skills', 'affiliations', 'nonAcademicHistories', 'academicRecords.grades.subject'])
             ->where(fn($query) => $query
                 ->where('first_name', 'like', "%$q%")
                 ->orWhere('last_name', 'like', "%$q%")

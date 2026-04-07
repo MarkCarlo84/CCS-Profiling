@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { getAdminFacultyEvaluationSummary, getAdminFacultyEvaluations } from '../api';
-import { Star, Users, ChevronLeft, UserCircle } from 'lucide-react';
+import { Star, Users, ChevronLeft, UserCircle, ChevronRight } from 'lucide-react';
 
 const CRITERIA = [
     { key: 'teaching_effectiveness', label: 'Teaching' },
@@ -18,8 +18,26 @@ const ratingColor = (r) => {
     return '#dc2626';
 };
 
-function DetailView({ faculty, evaluations, onBack }) {
-    const evals = evaluations.filter(e => e.faculty_id === faculty.id);
+function DetailView({ faculty, onBack }) {
+    const [evals, setEvals] = useState([]);
+    const [loading, setLoading] = useState(true);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
+    const [total, setTotal] = useState(0);
+
+    const load = (page = 1) => {
+        setLoading(true);
+        getAdminFacultyEvaluations({ faculty_id: faculty.id, page })
+            .then(r => {
+                setEvals(r.data.data ?? r.data);
+                setCurrentPage(r.data.current_page ?? 1);
+                setLastPage(r.data.last_page ?? 1);
+                setTotal(r.data.total ?? (r.data.data ?? r.data).length);
+            })
+            .finally(() => setLoading(false));
+    };
+
+    useEffect(() => { load(1); }, [faculty.id]);
     return (
         <div>
             <div className="page-header">
@@ -30,70 +48,91 @@ function DetailView({ faculty, evaluations, onBack }) {
                             {faculty.first_name} {faculty.last_name}
                         </h1>
                         <p style={{ color: '#78716c', margin: 0, fontSize: '.875rem' }}>
-                            {faculty.department} — {evals.length} evaluation{evals.length !== 1 ? 's' : ''}
+                            {faculty.department} — {total} evaluation{total !== 1 ? 's' : ''}
                         </p>
                     </div>
                 </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {evals.length === 0 ? (
-                    <div className="empty"><Star size={36} color="#fed7aa" /><p style={{ marginTop: 8 }}>No evaluations yet.</p></div>
-                ) : evals.map(ev => (
-                    <div key={ev.id} className="card">
-                        <div className="card-body">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
-                                <div>
-                                    <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917' }}>
-                                        {ev.student ? `${ev.student.first_name} ${ev.student.last_name}` : 'Anonymous'}
-                                        {ev.student?.student_id ? ` (${ev.student.student_id})` : ''}
-                                    </div>
-                                    <div style={{ fontSize: '.75rem', color: '#78716c' }}>
-                                        {ev.school_year}{ev.semester ? ` · ${ev.semester}` : ''}
-                                    </div>
-                                </div>
-                                <div style={{ fontSize: '1.3rem', fontWeight: 900, color: ratingColor(ev.average_rating) }}>
-                                    {ev.average_rating} <span style={{ fontSize: '.7rem', color: '#78716c', fontWeight: 400 }}>/ 5</span>
-                                </div>
-                            </div>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
-                                {CRITERIA.map(c => (
-                                    <div key={c.key} style={{ fontSize: '.78rem' }}>
-                                        <div style={{ color: '#78716c', marginBottom: 2 }}>{c.label}</div>
-                                        <div style={{ height: 5, background: '#f5f5f4', borderRadius: 99 }}>
-                                            <div style={{ height: '100%', width: `${(ev[c.key] / 5) * 100}%`, background: '#f97316', borderRadius: 99 }} />
+            {loading ? (
+                <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div>
+            ) : (
+                <>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {evals.length === 0 ? (
+                            <div className="empty"><Star size={36} color="#fed7aa" /><p style={{ marginTop: 8 }}>No evaluations yet.</p></div>
+                        ) : evals.map(ev => (
+                            <div key={ev.id} className="card">
+                                <div className="card-body">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
+                                        <div>
+                                            <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917' }}>
+                                                {ev.student ? `${ev.student.first_name} ${ev.student.last_name}` : 'Anonymous'}
+                                                {ev.student?.student_id ? ` (${ev.student.student_id})` : ''}
+                                            </div>
+                                            <div style={{ fontSize: '.75rem', color: '#78716c' }}>
+                                                {ev.school_year}{ev.semester ? ` · ${ev.semester}` : ''}
+                                            </div>
                                         </div>
-                                        <div style={{ fontWeight: 700, color: '#44403c', marginTop: 2 }}>{ev[c.key]}/5</div>
+                                        <div style={{ fontSize: '1.3rem', fontWeight: 900, color: ratingColor(ev.average_rating) }}>
+                                            {ev.average_rating} <span style={{ fontSize: '.7rem', color: '#78716c', fontWeight: 400 }}>/ 5</span>
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-                            {ev.comments && (
-                                <div style={{ marginTop: 10, fontSize: '.8rem', color: '#78716c', fontStyle: 'italic', borderTop: '1px solid #f5f5f4', paddingTop: 8 }}>
-                                    "{ev.comments}"
+                                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(160px, 1fr))', gap: 8 }}>
+                                        {CRITERIA.map(c => (
+                                            <div key={c.key} style={{ fontSize: '.78rem' }}>
+                                                <div style={{ color: '#78716c', marginBottom: 2 }}>{c.label}</div>
+                                                <div style={{ height: 5, background: '#f5f5f4', borderRadius: 99 }}>
+                                                    <div style={{ height: '100%', width: `${(ev[c.key] / 5) * 100}%`, background: '#f97316', borderRadius: 99 }} />
+                                                </div>
+                                                <div style={{ fontWeight: 700, color: '#44403c', marginTop: 2 }}>{ev[c.key]}/5</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {ev.comments && (
+                                        <div style={{ marginTop: 10, fontSize: '.8rem', color: '#78716c', fontStyle: 'italic', borderTop: '1px solid #f5f5f4', paddingTop: 8 }}>
+                                            "{ev.comments}"
+                                        </div>
+                                    )}
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        ))}
                     </div>
-                ))}
-            </div>
+                    {lastPage > 1 && (
+                        <div style={paginationWrap}>
+                            <button style={pageBtn} disabled={currentPage === 1} onClick={() => load(currentPage - 1)}>
+                                <ChevronLeft size={14} />
+                            </button>
+                            <span style={{ fontSize: '.82rem', color: '#78716c' }}>Page {currentPage} of {lastPage} · {total} records</span>
+                            <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => load(currentPage + 1)}>
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
+                    )}
+                </>
+            )}
         </div>
     );
 }
 
 export default function AdminFacultyEvaluations() {
     const [summary, setSummary] = useState([]);
-    const [allEvals, setAllEvals] = useState([]);
     const [loading, setLoading] = useState(true);
     const [selected, setSelected] = useState(null);
+    const [currentPage, setCurrentPage] = useState(1);
+    const perPage = 15;
 
     useEffect(() => {
-        Promise.all([getAdminFacultyEvaluationSummary(), getAdminFacultyEvaluations()])
-            .then(([sRes, eRes]) => { setSummary(sRes.data); setAllEvals(eRes.data); })
+        getAdminFacultyEvaluationSummary()
+            .then(r => setSummary(r.data))
             .finally(() => setLoading(false));
     }, []);
 
     if (selected) {
-        return <DetailView faculty={selected} evaluations={allEvals} onBack={() => setSelected(null)} />;
+        return <DetailView faculty={selected} onBack={() => setSelected(null)} />;
     }
+
+    const totalPages = Math.ceil(summary.length / perPage);
+    const paginated = summary.slice((currentPage - 1) * perPage, currentPage * perPage);
 
     return (
         <div>
@@ -102,7 +141,7 @@ export default function AdminFacultyEvaluations() {
                     <div style={s.iconWrap}><Star size={22} color="#f97316" /></div>
                     <div>
                         <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Faculty Evaluations</h1>
-                        <p style={{ color: '#78716c', margin: 0, fontSize: '.875rem' }}>Student ratings per faculty member</p>
+                        <p style={{ color: '#78716c', margin: 0, fontSize: '.875rem' }}>Student ratings per faculty member — {summary.length} total</p>
                     </div>
                 </div>
             </div>
@@ -110,57 +149,73 @@ export default function AdminFacultyEvaluations() {
             {loading ? (
                 <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div>
             ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
-                    {summary.map(f => (
-                        <div key={f.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setSelected(f)}>
-                            <div className="card-body">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
-                                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                                        <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#f97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                                            <UserCircle size={20} color="#fff" strokeWidth={1.8} />
-                                        </div>
-                                        <div>
-                                            <div style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>
-                                                {f.first_name} {f.last_name}
+                <>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 16 }}>
+                        {paginated.map(f => (
+                            <div key={f.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setSelected(f)}>
+                                <div className="card-body">
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
+                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                                            <div style={{ width: 38, height: 38, borderRadius: '50%', background: 'linear-gradient(135deg,#f97316,#ea580c)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                                                <UserCircle size={20} color="#fff" strokeWidth={1.8} />
                                             </div>
-                                            <div style={{ fontSize: '.78rem', color: '#78716c' }}>{f.department} — {f.position}</div>
-                                            <div style={{ fontSize: '.72rem', color: '#a8a29e', marginTop: 2 }}>
-                                                {f.evaluation_count} evaluation{f.evaluation_count !== 1 ? 's' : ''}
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div style={{ textAlign: 'right' }}>
-                                        {f.average_rating ? (
-                                            <>
-                                                <div style={{ fontSize: '1.6rem', fontWeight: 900, color: ratingColor(f.average_rating), lineHeight: 1 }}>
-                                                    {f.average_rating}
+                                            <div>
+                                                <div style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>
+                                                    {f.first_name} {f.last_name}
                                                 </div>
-                                                <div style={{ fontSize: '.7rem', color: '#78716c' }}>/ 5.00</div>
-                                            </>
-                                        ) : (
-                                            <div style={{ fontSize: '.78rem', color: '#a8a29e' }}>No ratings</div>
-                                        )}
+                                                <div style={{ fontSize: '.78rem', color: '#78716c' }}>{f.department} — {f.position}</div>
+                                                <div style={{ fontSize: '.72rem', color: '#a8a29e', marginTop: 2 }}>
+                                                    {f.evaluation_count} evaluation{f.evaluation_count !== 1 ? 's' : ''}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right' }}>
+                                            {f.average_rating ? (
+                                                <>
+                                                    <div style={{ fontSize: '1.6rem', fontWeight: 900, color: ratingColor(f.average_rating), lineHeight: 1 }}>
+                                                        {f.average_rating}
+                                                    </div>
+                                                    <div style={{ fontSize: '.7rem', color: '#78716c' }}>/ 5.00</div>
+                                                </>
+                                            ) : (
+                                                <div style={{ fontSize: '.78rem', color: '#a8a29e' }}>No ratings</div>
+                                            )}
+                                        </div>
                                     </div>
+                                    {f.average_rating && (
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+                                            {CRITERIA.map(c => (
+                                                <div key={c.key}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.7rem', color: '#78716c', marginBottom: 2 }}>
+                                                        <span>{c.label}</span>
+                                                        <span style={{ fontWeight: 700, color: '#44403c' }}>{f[c.key] ?? '—'}</span>
+                                                    </div>
+                                                    <div style={{ height: 4, background: '#f5f5f4', borderRadius: 99 }}>
+                                                        <div style={{ height: '100%', width: `${((f[c.key] ?? 0) / 5) * 100}%`, background: '#f97316', borderRadius: 99 }} />
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                {f.average_rating && (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-                                        {CRITERIA.map(c => (
-                                            <div key={c.key}>
-                                                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.7rem', color: '#78716c', marginBottom: 2 }}>
-                                                    <span>{c.label}</span>
-                                                    <span style={{ fontWeight: 700, color: '#44403c' }}>{f[c.key] ?? '—'}</span>
-                                                </div>
-                                                <div style={{ height: 4, background: '#f5f5f4', borderRadius: 99 }}>
-                                                    <div style={{ height: '100%', width: `${((f[c.key] ?? 0) / 5) * 100}%`, background: '#f97316', borderRadius: 99 }} />
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
                             </div>
+                        ))}
+                    </div>
+
+                    {totalPages > 1 && (
+                        <div style={paginationWrap}>
+                            <button style={pageBtn} disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)}>
+                                <ChevronLeft size={14} />
+                            </button>
+                            <span style={{ fontSize: '.82rem', color: '#78716c' }}>
+                                Page {currentPage} of {totalPages} · {summary.length} faculty
+                            </span>
+                            <button style={pageBtn} disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)}>
+                                <ChevronRight size={14} />
+                            </button>
                         </div>
-                    ))}
-                </div>
+                    )}
+                </>
             )}
         </div>
     );
@@ -169,3 +224,5 @@ export default function AdminFacultyEvaluations() {
 const s = {
     iconWrap: { width: 44, height: 44, borderRadius: 12, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center' },
 };
+const paginationWrap = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '16px 0', marginTop: 8 };
+const pageBtn = { background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };

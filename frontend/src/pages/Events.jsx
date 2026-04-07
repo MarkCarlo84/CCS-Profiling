@@ -44,6 +44,8 @@ export default function Events() {
     const [expanded, setExpanded] = useState(null);
     const [detail, setDetail] = useState(null);
     const [loadingDetail, setLoadingDetail] = useState(false);
+    const [page, setPage] = useState(1);
+    const PAGE_SIZE = 5;
 
     const fetchEvents = async () => {
         setLoading(true);
@@ -52,7 +54,7 @@ export default function Events() {
         if (filterType) params.type = filterType;
         if (filterStatus) params.status = filterStatus;
         if (filterDept) params.department_id = filterDept;
-        try { const res = await api.get(`${prefix}/events`, { params }); setEvents(res.data); }
+        try { const res = await api.get(`${prefix}/events`, { params }); setEvents(res.data); setPage(1); }
         catch (e) { console.error(e); }
         setLoading(false);
     };
@@ -133,7 +135,7 @@ export default function Events() {
             {loading ? <div className="loading"><div className="loading-spinner" /><span>Loading events…</span></div> : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                     {events.length === 0 && <div className="empty"><PartyPopper size={36} color="#fed7aa" /><span>No events found.</span></div>}
-                    {events.map(event => {
+                    {events.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE).map(event => {
                         const CatIcon = categoryIcons[event.category] ?? CalendarRange;
                         const isOpen = expanded === event.id;
                         const sc = statusCfg[event.status] ?? statusCfg.upcoming;
@@ -194,6 +196,24 @@ export default function Events() {
                             </div>
                         );
                     })}
+                    {/* Pagination */}
+                    {events.length > PAGE_SIZE && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 8 }}>
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                style={{ padding: '6px 16px', borderRadius: 8, border: '1.5px solid #e7e5e4', background: page === 1 ? '#f5f5f4' : '#fff', color: page === 1 ? '#a8a29e' : '#44403c', fontWeight: 700, fontSize: 13, cursor: page === 1 ? 'default' : 'pointer' }}
+                            >← Prev</button>
+                            <span style={{ fontSize: 13, color: '#78716c', fontWeight: 600 }}>
+                                Page {page} of {Math.ceil(events.length / PAGE_SIZE)}
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(Math.ceil(events.length / PAGE_SIZE), p + 1))}
+                                disabled={page === Math.ceil(events.length / PAGE_SIZE)}
+                                style={{ padding: '6px 16px', borderRadius: 8, border: '1.5px solid #e7e5e4', background: page === Math.ceil(events.length / PAGE_SIZE) ? '#f5f5f4' : '#fff', color: page === Math.ceil(events.length / PAGE_SIZE) ? '#a8a29e' : '#44403c', fontWeight: 700, fontSize: 13, cursor: page === Math.ceil(events.length / PAGE_SIZE) ? 'default' : 'pointer' }}
+                            >Next →</button>
+                        </div>
+                    )}
                 </div>
             )}
         </div>

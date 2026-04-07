@@ -110,6 +110,14 @@ export default function FacultySubjectAssignment() {
         `${f.first_name} ${f.last_name} ${f.faculty_id}`.toLowerCase().includes(search.toLowerCase())
     );
 
+    const PAGE_SIZE = 10;
+    const [page, setPage] = useState(1);
+    const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+    const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+    // Reset to page 1 when search changes
+    useEffect(() => { setPage(1); }, [search]);
+
     return (
         <div>
             <div className="page-header">
@@ -150,7 +158,9 @@ export default function FacultySubjectAssignment() {
                 <div className="loading"><div className="loading-spinner" /><span>Loading…</span></div>
             ) : filtered.length === 0 ? (
                 <div style={{ textAlign: 'center', color: '#a8a29e', padding: 40 }}>No faculty found.</div>
-            ) : filtered.map(faculty => {
+            ) : (
+                <>
+                    {paginated.map(faculty => {
                 const assigned = assignments[faculty.id] ?? [];
                 const isOpen = expanded === faculty.id;
                 return (
@@ -231,6 +241,26 @@ export default function FacultySubjectAssignment() {
                     </div>
                 );
             })}
+
+                    {totalPages > 1 && (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, marginTop: 8, marginBottom: 4 }}>
+                            <button
+                                onClick={() => setPage(p => Math.max(1, p - 1))}
+                                disabled={page === 1}
+                                style={{ padding: '6px 16px', borderRadius: 8, border: '1.5px solid #fde8d0', background: page === 1 ? '#fff7ed' : '#fff', color: page === 1 ? '#a8a29e' : '#f97316', fontWeight: 700, fontSize: 13, cursor: page === 1 ? 'default' : 'pointer' }}
+                            >← Prev</button>
+                            <span style={{ fontSize: 13, color: '#78716c', fontWeight: 600 }}>
+                                Page {page} of {totalPages} · {filtered.length} faculty
+                            </span>
+                            <button
+                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                disabled={page === totalPages}
+                                style={{ padding: '6px 16px', borderRadius: 8, border: '1.5px solid #fde8d0', background: page === totalPages ? '#fff7ed' : '#fff', color: page === totalPages ? '#a8a29e' : '#f97316', fontWeight: 700, fontSize: 13, cursor: page === totalPages ? 'default' : 'pointer' }}
+                            >Next →</button>
+                        </div>
+                    )}
+                </>
+            )}
 
             {/* Assign Modal */}
             {modal && (

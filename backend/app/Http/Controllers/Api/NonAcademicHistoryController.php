@@ -11,14 +11,58 @@ class NonAcademicHistoryController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = NonAcademicHistory::with('student');
+        $perPage = 5;
+
+        $baseQuery = NonAcademicHistory::with('student');
         if ($request->filled('student_id')) {
-            $query->where('student_id', $request->student_id);
+            $baseQuery->where('student_id', $request->student_id);
         }
+        if ($request->filled('search')) {
+            $baseQuery->where('activity_title', 'like', "%{$request->search}%");
+        }
+
+        // Single category filter
         if ($request->filled('category')) {
-            $query->where('category', 'like', "%{$request->category}%");
+            $paginated = (clone $baseQuery)
+                ->where('category', $request->category)
+                ->orderBy('date_started', 'desc')
+                ->paginate($perPage, ['*'], 'page');
+
+            return response()->json([
+                $request->category => [
+                    'data'         => $paginated->items(),
+                    'current_page' => $paginated->currentPage(),
+                    'last_page'    => $paginated->lastPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                ],
+            ]);
         }
-        return response()->json($query->orderBy('date_started', 'desc')->get());
+
+        // All categories paginated independently
+        $categories = (clone $baseQuery)->distinct()->pluck('category');
+
+        $result = [];
+        foreach ($categories as $cat) {
+            $pageKey   = 'page_' . str_replace(' ', '_', strtolower($cat ?? 'uncategorized'));
+            $page      = (int) $request->get($pageKey, 1);
+
+            $paginated = (clone $baseQuery)
+                ->where('category', $cat)
+                ->orderBy('date_started', 'desc')
+                ->paginate($perPage, ['*'], $pageKey, $page);
+
+            $label = $cat ?? 'Uncategorized';
+            $result[$label] = [
+                'data'         => $paginated->items(),
+                'current_page' => $paginated->currentPage(),
+                'last_page'    => $paginated->lastPage(),
+                'per_page'     => $paginated->perPage(),
+                'total'        => $paginated->total(),
+            ];
+        }
+
+        return response()->json($result);
     }
 
     public function store(Request $request): JsonResponse

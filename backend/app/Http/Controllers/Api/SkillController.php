@@ -11,17 +11,62 @@ class SkillController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Skill::with('student');
+        $perPage = 5;
+
+        $baseQuery = Skill::with('student');
         if ($request->filled('student_id')) {
-            $query->where('student_id', $request->student_id);
+            $baseQuery->where('student_id', $request->student_id);
         }
-        if ($request->filled('skill_level')) {
-            $query->where('skill_level', $request->skill_level);
+        if ($request->filled('search')) {
+            $baseQuery->where('skill_name', 'like', '%' . $request->search . '%');
         }
         if ($request->filled('certification')) {
-            $query->where('certification', filter_var($request->certification, FILTER_VALIDATE_BOOLEAN));
+            $baseQuery->where('certification', filter_var($request->certification, FILTER_VALIDATE_BOOLEAN));
         }
-        return response()->json($query->orderBy('skill_name')->get());
+
+        // Single level requested
+        if ($request->filled('skill_level')) {
+            $paginated = (clone $baseQuery)
+                ->where('skill_level', $request->skill_level)
+                ->orderBy('skill_name')
+                ->paginate($perPage, ['*'], 'page');
+
+            return response()->json([
+                $request->skill_level => [
+                    'data'         => $paginated->items(),
+                    'current_page' => $paginated->currentPage(),
+                    'last_page'    => $paginated->lastPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                ],
+            ]);
+        }
+
+        // All levels paginated independently
+        $levels = ['beginner', 'intermediate', 'advanced', 'expert'];
+        $result = [];
+
+        foreach ($levels as $level) {
+            $pageKey   = 'page_' . $level;
+            $page      = (int) $request->get($pageKey, 1);
+
+            $paginated = (clone $baseQuery)
+                ->where('skill_level', $level)
+                ->orderBy('skill_name')
+                ->paginate($perPage, ['*'], $pageKey, $page);
+
+            if ($paginated->total() > 0) {
+                $result[$level] = [
+                    'data'         => $paginated->items(),
+                    'current_page' => $paginated->currentPage(),
+                    'last_page'    => $paginated->lastPage(),
+                    'per_page'     => $paginated->perPage(),
+                    'total'        => $paginated->total(),
+                ];
+            }
+        }
+
+        return response()->json($result);
     }
 
     public function store(Request $request): JsonResponse

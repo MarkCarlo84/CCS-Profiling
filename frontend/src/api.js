@@ -144,7 +144,7 @@ export const deleteTeacherReport = (id) => api.delete(`/teacher/reports/${id}`);
 export const getAllFacultyReports = () => api.get('/admin/faculty-reports');
 
 // ── Admin: Faculty Evaluations ────────────────────────────────────────────────
-export const getAdminFacultyEvaluations = () => api.get('/admin/faculty-evaluations');
+export const getAdminFacultyEvaluations = (params = {}) => api.get('/admin/faculty-evaluations', { params });
 export const getAdminFacultyEvaluationSummary = () => api.get('/admin/faculty-evaluations/summary');
 
 // ── Student: Faculty Evaluations ──────────────────────────────────────────────

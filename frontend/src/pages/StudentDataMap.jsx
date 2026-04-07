@@ -27,6 +27,10 @@ function Modal({ title, onClose, width = 520, children }) {
 
 function StudentDetailModal({ student: s, onClose }) {
     const fmt = (d) => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
+    const currentYear = s.academic_records?.length
+        ? Math.max(...s.academic_records.map(r => r.year_level ?? 0)) || null
+        : null;
+    const yearLabel = n => n ? `${['1st','2nd','3rd','4th','5th','6th'][n-1] ?? n+'th'} Year` : null;
 
     const Section = ({ label, color = '#f97316', children }) => (
         <div style={{ marginBottom: 20 }}>
@@ -46,7 +50,7 @@ function StudentDetailModal({ student: s, onClose }) {
         </div>
     );
 
-    const statusColor = { active: '#16a34a', inactive: '#78716c', graduated: '#2563eb', dropped: '#dc2626' };
+    const statusColor = { active: '#16a34a', inactive: '#78716c', graduated: '#2563eb', dropped: '#dc2626', loa: '#dc2626' };
     const deptLabel = { IT: 'Information Technology', CS: 'Computer Science' };
 
     return (
@@ -71,6 +75,10 @@ function StudentDetailModal({ student: s, onClose }) {
                                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
                                 <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)' }}>{deptLabel[s.department] || s.department}</span>
                                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                {currentYear && <>
+                                    <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', color: '#fff' }}>{yearLabel(currentYear)}</span>
+                                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                </>}
                                 <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', color: '#fff', textTransform: 'capitalize' }}>
                                     {s.status}
                                 </span>
@@ -108,6 +116,7 @@ function StudentDetailModal({ student: s, onClose }) {
                             <Row label="Email"         value={s.email} />
                             <Row label="Guardian"      value={s.guardian_name} />
                             <Row label="Department"    value={deptLabel[s.department] || s.department} />
+                            <Row label="Year Level"    value={yearLabel(currentYear)} />
                             <Row label="Enrolled"      value={fmt(s.enrollment_date)} />
                             <div style={{ gridColumn: '1 / -1' }}>
                                 <Row label="Address" value={s.address} />
@@ -537,7 +546,7 @@ export default function StudentDataMap() {
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
                     <option value="graduated">Graduated</option>
-                    <option value="dropped">Dropped</option>
+                    <option value="loa">LOA</option>
                 </select>
 
                 <div style={{ flex: 1 }} />
@@ -584,12 +593,12 @@ export default function StudentDataMap() {
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
                                     <option value="graduated">Graduated</option>
-                                    <option value="dropped">Dropped</option>
+                                    <option value="loa">LOA</option>
                                 </select>
                             </div>
                             <div>
                                 <label style={lStyle}>Enrollment Date</label>
-                                <input style={iStyle} type="date" value={form.enrollment_date} onChange={e => setForm({ ...form, enrollment_date: e.target.value })} />
+                                <input style={iStyle} type="date" value={form.enrollment_date} max={new Date().toISOString().split('T')[0]} onChange={e => setForm({ ...form, enrollment_date: e.target.value })} />
                             </div>
                         </div>
 
@@ -623,7 +632,7 @@ export default function StudentDataMap() {
                             </div>
                             <div>
                                 <label style={lStyle}>Birthday</label>
-                                <input style={iStyle} type="date" value={form.date_of_birth} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} />
+                                <input style={iStyle} type="date" value={form.date_of_birth} max={new Date().toISOString().split('T')[0]} onChange={e => setForm({ ...form, date_of_birth: e.target.value })} />
                             </div>
                         </div>
 

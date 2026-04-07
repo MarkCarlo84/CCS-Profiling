@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { getViolations, deleteViolation, updateViolationAction, createViolation, getStudents, resolveViolation } from '../api';
 import { useAuth } from '../AuthContext';
-import { ShieldAlert, Search, Trash2, Pencil, X, Check, CheckCircle, Plus, History, AlertTriangle } from 'lucide-react';
+import { ShieldAlert, Search, Trash2, Pencil, X, Check, CheckCircle, Plus, History, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
 
 function Badge({ value }) {
     return value ? <span className={`badge badge-${value.toLowerCase()}`}>{value.replace(/_/g, ' ')}</span> : null;
@@ -178,19 +178,30 @@ export default function ViolationsMap() {
 
     const [tab, setTab] = useState('active'); // 'active' | 'history'
     const [violations, setViolations] = useState([]);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [lastPage, setLastPage] = useState(1);
+    const [total, setTotal] = useState(0);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [severity, setSeverity] = useState('');
     const [editing, setEditing] = useState(null);
     const [recording, setRecording] = useState(false);
 
-    const load = () => {
+    const load = (page = currentPage) => {
         setLoading(true);
-        getViolations({ search, severity_level: severity, is_resolved: tab === 'history' ? true : false })
-            .then(r => setViolations(r.data))
+        getViolations({ search, severity_level: severity, is_resolved: tab === 'history' ? true : false, page })
+            .then(r => {
+                setViolations(r.data.data);
+                setCurrentPage(r.data.current_page);
+                setLastPage(r.data.last_page);
+                setTotal(r.data.total);
+            })
             .finally(() => setLoading(false));
     };
-    useEffect(load, [search, severity, tab]);
+
+    useEffect(() => { setCurrentPage(1); load(1); }, [search, severity, tab]);
+
+    const goToPage = (page) => { setCurrentPage(page); load(page); };
 
     const handleResolve = async (v) => {
         if (!window.confirm(`Mark "${v.violation_type}" as resolved?\n\nThis will move it to Violation History.`)) return;
@@ -228,7 +239,7 @@ export default function ViolationsMap() {
                         </button>
                     )}
                 </div>
-                <p style={sub}>Student violation records</p>
+                <p style={sub}>Student violation records — {total} total</p>
             </div>
 
             {/* Tabs */}
@@ -279,7 +290,7 @@ export default function ViolationsMap() {
                                 <tbody>
                                     {violations.map((v, i) => (
                                         <tr key={v.id} style={{ opacity: tab === 'history' ? 0.85 : 1 }}>
-                                            <td>{i + 1}</td>
+                                            <td>{(currentPage - 1) * 10 + i + 1}</td>
                                             <td><strong>{v.student?.student_id || '—'}</strong></td>
                                             <td>{v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}</td>
                                             <td>{v.violation_type}</td>
@@ -369,6 +380,20 @@ export default function ViolationsMap() {
                             ))}
                         </div>
                     </div>
+
+                    {lastPage > 1 && (
+                        <div style={paginationWrap}>
+                            <button style={pageBtn} disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)}>
+                                <ChevronLeft size={14} />
+                            </button>
+                            <span style={{ fontSize: '.82rem', color: '#78716c' }}>
+                                Page {currentPage} of {lastPage} &nbsp;·&nbsp; {total} records
+                            </span>
+                            <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => goToPage(currentPage + 1)}>
+                                <ChevronRight size={14} />
+                            </button>
+                        </div>
+                    )}
                 </div>
             )}
             {editing && <ActionModal violation={editing} onClose={() => setEditing(null)} onSaved={load} />}
@@ -383,5 +408,7 @@ const iconWrap = { width: 44, height: 44, borderRadius: 12, background: '#fff7ed
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 };
 const modalCard = { background: '#fff', borderRadius: 20, padding: '28px 32px', width: '100%', maxWidth: 460, boxShadow: '0 20px 60px rgba(0,0,0,.2)' };
 const iconBtn = { background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', color: '#78716c' };
+const paginationWrap = { display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12, padding: '12px 14px', borderTop: '1px solid var(--border)' };
+const pageBtn = { background: 'rgba(0,0,0,.04)', border: '1px solid rgba(0,0,0,.08)', borderRadius: 7, width: 30, height: 30, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' };
 const lStyle = { display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5, letterSpacing: .3 };
 const iStyle = { width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', fontFamily: "'Inter',sans-serif", color: '#1c1917', boxSizing: 'border-box' };

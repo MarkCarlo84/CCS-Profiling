@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
     getAcademicRecords, createAcademicRecord, deleteAcademicRecord,
     addGradeToRecord, adminUpdateGrade, adminDeleteGrade,
-    adminPromoteStudent, getSubjects,
+    adminPromoteStudent, getSubjects, updateStudent,
 } from '../api';
 import {
     GraduationCap, Search, Trash2, ChevronDown, ChevronUp,
@@ -47,7 +47,7 @@ const getStatus = (s) => {
     if (st === 'active' || st === 'regular') return 'Regular';
     if (st === 'inactive' || st === 'irregular') return 'Irregular';
     if (st === 'graduated') return 'Graduated';
-    if (st === 'dropped') return 'Dropped';
+    if (st === 'dropped' || st === 'loa') return 'LOA';
     return 'Other';
 };
 
@@ -69,6 +69,11 @@ export default function AcademicRecordsMap() {
     const [showAddGrade, setShowAddGrade] = useState(null);
     const [showEditGrade, setShowEditGrade] = useState(null);
     const [showPromote, setShowPromote] = useState(null);
+    // Per-year-level pagination
+    const [ylPages, setYlPages] = useState({});
+    const YL_PAGE_SIZE = 8;
+    const getYlPage = (yl) => ylPages[yl] || 1;
+    const setYlPage = (yl, p) => setYlPages(prev => ({ ...prev, [yl]: p }));
 
     const load = () => {
         setLoading(true);
@@ -89,7 +94,7 @@ export default function AcademicRecordsMap() {
     const allStudents = Object.values(studentMap);
 
     // Status counts (unique students)
-    const statusCounts = { Regular: 0, Irregular: 0, Graduated: 0, Dropped: 0 };
+    const statusCounts = { Regular: 0, Irregular: 0, Graduated: 0, LOA: 0 };
     allStudents.forEach(s => { const st = getStatus(s); if (statusCounts[st] !== undefined) statusCounts[st]++; });
 
     // Group students by year level (derived from their highest year_level record)
@@ -140,7 +145,7 @@ export default function AcademicRecordsMap() {
         { label: 'REGULAR',   key: 'Regular',   color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: User },
         { label: 'IRREGULAR', key: 'Irregular', color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: AlertTriangle },
         { label: 'GRADUATED', key: 'Graduated', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: GraduationCap },
-        { label: 'DROPPED',   key: 'Dropped',   color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: UserX },
+        { label: 'LOA',       key: 'LOA',       color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: UserX },
     ];
 
     const removeRecord = async (id) => {
@@ -190,7 +195,7 @@ export default function AcademicRecordsMap() {
                             const isActive = activeProgram === p.value;
                             return (
                                 <button key={p.value}
-                                    onClick={() => { setActiveProgram(p.value); setStatusFilter('All'); setLocalQuery(''); setSelectedStudent(null); }}
+                                    onClick={() => { setActiveProgram(p.value); setStatusFilter('All'); setLocalQuery(''); setSelectedStudent(null); setYlPages({}); }}
                                     style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '10px 20px', borderRadius: 8, border: '1px solid', borderColor: isActive ? '#3b82f6' : '#cbd5e1', background: isActive ? '#eff6ff' : '#fff', color: isActive ? '#2563eb' : '#64748b', fontWeight: 600, fontSize: '.9rem', cursor: 'pointer' }}>
                                     <BookOpen size={16} color={isActive ? '#3b82f6' : '#64748b'} />
                                     <span><strong style={{ color: isActive ? '#1d4ed8' : '#334155' }}>{p.short}</strong> {p.label}</span>
@@ -240,7 +245,7 @@ export default function AcademicRecordsMap() {
                     <div style={{ position: 'relative', marginBottom: 24 }}>
                         <Search size={18} color="#f97316" style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)' }} />
                         <input type="text" placeholder="Search by student name or ID..." value={localQuery}
-                            onChange={e => setLocalQuery(e.target.value)}
+                            onChange={e => { setLocalQuery(e.target.value); setYlPages({}); }}
                             style={{ width: '100%', padding: '12px 14px 12px 44px', borderRadius: 10, border: '1px solid #cbd5e1', background: '#fff', fontSize: '.9rem', outline: 'none', boxSizing: 'border-box' }} />
                     </div>
 
@@ -255,6 +260,9 @@ export default function AcademicRecordsMap() {
                         if (!students || students.length === 0) return null;
                         const ylColors = { 4: '#7c3aed', 3: '#2563eb', 2: '#0891b2', 1: '#16a34a' };
                         const color = ylColors[yl] || '#475569';
+                        const page = getYlPage(yl);
+                        const totalPages = Math.ceil(students.length / YL_PAGE_SIZE);
+                        const pageStudents = students.slice((page - 1) * YL_PAGE_SIZE, page * YL_PAGE_SIZE);
                         return (
                             <div key={yl} style={{ marginBottom: 32 }}>
                                 {/* Year Level Header */}
@@ -268,10 +276,10 @@ export default function AcademicRecordsMap() {
 
                                 {/* Student Cards */}
                                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: 12 }}>
-                                    {students.map(s => {
+                                    {pageStudents.map(s => {
                                         const recCount = programRecords.filter(r => r.student?.id === s.id).length;
                                         const status = getStatus(s);
-                                        const statusColors = { Regular: '#16a34a', Irregular: '#d97706', Graduated: '#2563eb', Dropped: '#dc2626', Other: '#64748b' };
+                                        const statusColors = { Regular: '#16a34a', Irregular: '#d97706', Graduated: '#2563eb', LOA: '#dc2626', Other: '#64748b' };
                                         const sc = statusColors[status] || '#64748b';
                                         return (
                                             <div key={s.id} onClick={() => setSelectedStudent(s)}
@@ -296,6 +304,23 @@ export default function AcademicRecordsMap() {
                                         );
                                     })}
                                 </div>
+
+                                {/* Pagination */}
+                                {totalPages > 1 && (
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginTop: 14 }}>
+                                        <button onClick={() => setYlPage(yl, page - 1)} disabled={page === 1}
+                                            style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: page === 1 ? '#f8fafc' : '#fff', color: page === 1 ? '#cbd5e1' : '#475569', fontWeight: 700, fontSize: 13, cursor: page === 1 ? 'default' : 'pointer' }}>
+                                            ← Prev
+                                        </button>
+                                        <span style={{ fontSize: 13, color: '#64748b', fontWeight: 600 }}>
+                                            {page} / {totalPages}
+                                        </span>
+                                        <button onClick={() => setYlPage(yl, page + 1)} disabled={page === totalPages}
+                                            style={{ padding: '5px 14px', borderRadius: 8, border: '1.5px solid #e2e8f0', background: page === totalPages ? '#f8fafc' : '#fff', color: page === totalPages ? '#cbd5e1' : '#475569', fontWeight: 700, fontSize: 13, cursor: page === totalPages ? 'default' : 'pointer' }}>
+                                            Next →
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         );
                     })}
@@ -327,7 +352,12 @@ export default function AcademicRecordsMap() {
                     onClose={() => { setShowAddRecord(false); setError(''); }}
                     onSave={async (data) => {
                         setSaving(true); setError('');
-                        try { await createAcademicRecord(data); load(); setShowAddRecord(false); }
+                        try {
+                            const { studentId, status, ...recordData } = data;
+                            await createAcademicRecord(recordData);
+                            if (studentId && status) await updateStudent(studentId, { status });
+                            load(); setShowAddRecord(false);
+                        }
                         catch (e) { setError(e.response?.data?.message || 'Failed to create record.'); }
                         finally { setSaving(false); }
                     }}
@@ -498,14 +528,149 @@ function StudentDetail({ student, recordsByYearSem, subjects, expandedRecord, se
 // ── Modals ────────────────────────────────────────────────────────────────────
 function AddRecordModal({ onClose, onSave, saving, error }) {
     const [form, setForm] = useState({ student_id_number: '', school_year: '', semester: '1st', year_level: 1 });
+    const [studentQuery, setStudentQuery] = useState('');
+    const [studentResults, setStudentResults] = useState([]);
+    const [selectedStudent, setSelectedStudent] = useState(null);
+    const [searching, setSearching] = useState(false);
+    const [searchTimer, setSearchTimer] = useState(null);
+    const [status, setStatus] = useState('active');
+    // Irregular fields
+    const [irregFromYear, setIrregFromYear] = useState(1);
+    const [irregFromSem, setIrregFromSem] = useState('2nd');
+    // Per-period subject picker: { 'Y1-1st': [subj, ...], 'Y2-2nd': [...] }
+    const [irregSubjects, setIrregSubjects] = useState({});
+    const [subjectQuery, setSubjectQuery] = useState({});
+    const [allSubjects, setAllSubjects] = useState([]);
+
     const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
-    const showNote = form.year_level > 1 || (form.year_level === 1 && form.semester === '2nd');
+    const isIrregular = status === 'inactive';
+    const showNote = !isIrregular && (form.year_level > 1 || (form.year_level === 1 && form.semester === '2nd'));
+
+    useEffect(() => {
+        import('../api').then(({ getSubjects }) =>
+            getSubjects().then(r => setAllSubjects(r.data)).catch(() => {})
+        );
+    }, []);
+
+    // Build list of periods from irregFromYear/Sem to current year/sem
+    const buildIrregPeriods = () => {
+        const semOrder = ['1st', '2nd'];
+        const periods = [];
+        for (let y = irregFromYear; y <= form.year_level; y++) {
+            for (const sem of semOrder) {
+                const idx = (y - 1) * 3 + semOrder.indexOf(sem);
+                const startIdx = (irregFromYear - 1) * 3 + semOrder.indexOf(irregFromSem);
+                const endIdx = (form.year_level - 1) * 3 + semOrder.indexOf(form.semester);
+                if (idx >= startIdx && idx <= endIdx) periods.push({ year_level: y, semester: sem });
+            }
+        }
+        return periods;
+    };
+
+    const irregPeriods = isIrregular ? buildIrregPeriods() : [];
+
+    const periodKey = (y, s) => `Y${y}-${s}`;
+
+    const addSubjectToPeriod = (y, s, sub) => {
+        const key = periodKey(y, s);
+        setIrregSubjects(prev => {
+            const existing = prev[key] || [];
+            if (existing.find(e => e.id === sub.id)) return prev;
+            return { ...prev, [key]: [...existing, sub] };
+        });
+        setSubjectQuery(prev => ({ ...prev, [key]: '' }));
+    };
+
+    const removeSubjectFromPeriod = (y, s, subId) => {
+        const key = periodKey(y, s);
+        setIrregSubjects(prev => ({ ...prev, [key]: (prev[key] || []).filter(e => e.id !== subId) }));
+    };
+
+    const getFilteredSubjects = (key) => {
+        const q = (subjectQuery[key] || '').toLowerCase();
+        if (!q) return [];
+        return allSubjects.filter(s =>
+            s.subject_name?.toLowerCase().includes(q) || s.subject_code?.toLowerCase().includes(q)
+        ).slice(0, 8);
+    };
+
+    const handleStudentSearch = (q) => {
+        setStudentQuery(q);
+        setSelectedStudent(null);
+        set('student_id_number', '');
+        clearTimeout(searchTimer);
+        if (q.length < 2) { setStudentResults([]); return; }
+        setSearchTimer(setTimeout(async () => {
+            setSearching(true);
+            try {
+                const { getStudents } = await import('../api');
+                const res = await getStudents({ search: q });
+                setStudentResults(res.data.slice(0, 8));
+            } catch { setStudentResults([]); }
+            setSearching(false);
+        }, 350));
+    };
+
+    const pickStudent = (s) => {
+        setSelectedStudent(s);
+        setStudentQuery(`${s.first_name} ${s.last_name} (${s.student_id})`);
+        setStudentResults([]);
+        set('student_id_number', s.student_id);
+        setStatus(s.status || 'active');
+        setIrregSubjects({});
+    };
+
+    const allIrregPeriodsHaveSubjects = irregPeriods.every(p => (irregSubjects[periodKey(p.year_level, p.semester)] || []).length > 0);
+    const canSave = selectedStudent && (!isIrregular || (irregPeriods.length > 0 && allIrregPeriodsHaveSubjects));
+
+    const handleSave = () => {
+        const payload = {
+            ...form,
+            studentId: selectedStudent?.id,
+            status,
+            is_irregular: isIrregular,
+            irregular_from_year: isIrregular ? irregFromYear : undefined,
+            irregular_from_semester: isIrregular ? irregFromSem : undefined,
+            irregular_subjects: isIrregular ? irregPeriods.map(p => ({
+                year_level: p.year_level,
+                semester: p.semester,
+                subjects: (irregSubjects[periodKey(p.year_level, p.semester)] || []).map(s => ({
+                    subject_id: s.id,
+                    subject_name: s.subject_name,
+                })),
+            })) : [],
+        };
+        onSave(payload);
+    };
+
     return (
         <Modal title="Add Academic Record" onClose={onClose}>
             {error && <p style={S.err}>{error}</p>}
             <div style={S.grid}>
-                <label style={S.lbl}>Student ID Number</label>
-                <input style={S.inp} type="text" value={form.student_id_number} onChange={e => set('student_id_number', e.target.value)} placeholder="e.g. 2xxxxxx" />
+                <label style={S.lbl}>Student</label>
+                <div style={{ position: 'relative' }}>
+                    <input style={{ ...S.inp, paddingRight: 32 }} type="text" value={studentQuery}
+                        onChange={e => handleStudentSearch(e.target.value)} placeholder="Search by name or student ID…" autoComplete="off" />
+                    {searching && <span style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 11, color: '#a8a29e' }}>…</span>}
+                    {studentResults.length > 0 && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 50, maxHeight: 220, overflowY: 'auto', marginTop: 4 }}>
+                            {studentResults.map(s => (
+                                <div key={s.id} onClick={() => pickStudent(s)}
+                                    style={{ padding: '9px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, borderBottom: '1px solid #f1f5f9' }}
+                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                                    <div style={{ width: 32, height: 32, borderRadius: '50%', background: '#fff7ed', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, fontSize: '.8rem', color: '#f97316', flexShrink: 0 }}>
+                                        {s.first_name?.[0]}{s.last_name?.[0]}
+                                    </div>
+                                    <div>
+                                        <div style={{ fontWeight: 600, fontSize: '.875rem', color: '#0f172a' }}>{s.first_name} {s.last_name}</div>
+                                        <div style={{ fontSize: '.75rem', color: '#94a3b8' }}>{s.student_id} · {s.department}</div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
                 <label style={S.lbl}>School Year</label>
                 <input style={S.inp} value={form.school_year} onChange={e => set('school_year', e.target.value)} placeholder="e.g. 2025-2026" />
                 <label style={S.lbl}>Semester</label>
@@ -516,15 +681,103 @@ function AddRecordModal({ onClose, onSave, saving, error }) {
                 <select style={S.inp} value={form.year_level} onChange={e => set('year_level', Number(e.target.value))}>
                     {[1,2,3,4].map(y => <option key={y} value={y}>Year {y}</option>)}
                 </select>
+                <label style={S.lbl}>Student Status</label>
+                <select style={S.inp} value={status} onChange={e => { setStatus(e.target.value); setIrregSubjects({}); }}>
+                    <option value="active">Regular</option>
+                    <option value="inactive">Irregular</option>
+                    <option value="loa">LOA</option>
+                    <option value="graduated">Graduated</option>
+                </select>
             </div>
+
+            {/* Irregular: ask from which point they became irregular */}
+            {isIrregular && (
+                <div style={{ marginTop: 16, background: '#fffbeb', border: '1px solid #fde68a', borderRadius: 10, padding: '14px 16px' }}>
+                    <div style={{ fontSize: '.72rem', fontWeight: 800, color: '#d97706', textTransform: 'uppercase', letterSpacing: '.08em', marginBottom: 10 }}>
+                        When did the student become irregular?
+                    </div>
+                    <div style={{ display: 'flex', gap: 10 }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ ...S.lbl, color: '#92400e' }}>Year Level</label>
+                            <select style={S.inp} value={irregFromYear} onChange={e => {
+                                const y = Number(e.target.value);
+                                setIrregFromYear(y);
+                                if (y === 1) setIrregFromSem('2nd');
+                                setIrregSubjects({});
+                            }}>
+                                {[1,2,3,4].map(y => <option key={y} value={y}>Year {y}</option>)}
+                            </select>
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ ...S.lbl, color: '#92400e' }}>Semester</label>
+                            <select style={S.inp} value={irregFromSem} onChange={e => { setIrregFromSem(e.target.value); setIrregSubjects({}); }}>
+                                {irregFromYear === 1 ? null : <option value="1st">1st</option>}
+                                <option value="2nd">2nd</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {/* Per-period subject pickers */}
+                    {irregPeriods.map(p => {
+                        const key = periodKey(p.year_level, p.semester);
+                        const picked = irregSubjects[key] || [];
+                        const filtered = getFilteredSubjects(key);
+                        return (
+                            <div key={key} style={{ marginTop: 14, borderTop: '1px solid #fde68a', paddingTop: 12 }}>
+                                <div style={{ fontSize: '.78rem', fontWeight: 700, color: '#92400e', marginBottom: 8 }}>
+                                    Year {p.year_level} — {p.semester} Semester
+                                    <span style={{ marginLeft: 8, fontSize: '.7rem', fontWeight: 600, color: '#b45309' }}>({picked.length} subject{picked.length !== 1 ? 's' : ''})</span>
+                                </div>
+                                <div style={{ position: 'relative', marginBottom: 6 }}>
+                                    <input style={{ ...S.inp, margin: 0 }}
+                                        value={subjectQuery[key] || ''}
+                                        onChange={e => setSubjectQuery(prev => ({ ...prev, [key]: e.target.value }))}
+                                        placeholder="Search subject to add…"
+                                        autoComplete="off" />
+                                    {filtered.length > 0 && (
+                                        <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #e2e8f0', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.1)', zIndex: 50, maxHeight: 180, overflowY: 'auto', marginTop: 4 }}>
+                                            {filtered.map(s => (
+                                                <div key={s.id} onClick={() => addSubjectToPeriod(p.year_level, p.semester, s)}
+                                                    style={{ padding: '8px 14px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #f1f5f9', fontSize: '.83rem' }}
+                                                    onMouseEnter={e => e.currentTarget.style.background = '#f8fafc'}
+                                                    onMouseLeave={e => e.currentTarget.style.background = '#fff'}>
+                                                    <span style={{ fontWeight: 600, color: '#0f172a' }}>{s.subject_name}</span>
+                                                    <span style={{ color: '#94a3b8', fontSize: '.72rem' }}>{s.subject_code} · {s.units} units</span>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                                {picked.length === 0
+                                    ? <p style={{ fontSize: '.78rem', color: '#b45309', margin: '4px 0 0' }}>No subjects added yet.</p>
+                                    : <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                                        {picked.map(s => (
+                                            <div key={s.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', border: '1px solid #fde68a', borderRadius: 6, padding: '5px 10px', fontSize: '.82rem' }}>
+                                                <span style={{ fontWeight: 600, color: '#92400e' }}>{s.subject_name}
+                                                    <span style={{ color: '#b45309', fontWeight: 400, marginLeft: 6 }}>{s.subject_code}</span>
+                                                </span>
+                                                <button onClick={() => removeSubjectFromPeriod(p.year_level, p.semester, s.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', fontSize: 16, lineHeight: 1 }}>×</button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                }
+                            </div>
+                        );
+                    })}
+                </div>
+            )}
+
             {showNote && (
                 <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '10px 14px', marginTop: 14, fontSize: '.82rem', color: '#1d4ed8' }}>
-                    <strong>Regular student:</strong> all previous year/semester records will be auto-created with their subjects (IP status).
+                    <strong>Regular student:</strong> all previous year/semester records will be auto-created with their subjects.
                 </div>
             )}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 20 }}>
                 <button onClick={onClose} style={S.cancelBtn}>Cancel</button>
-                <button onClick={() => onSave(form)} disabled={saving} style={S.primaryBtn}>{saving ? 'Saving…' : 'Create Record'}</button>
+                <button onClick={handleSave} disabled={saving || !canSave}
+                    style={{ ...S.primaryBtn, opacity: saving || !canSave ? 0.6 : 1 }}>
+                    {saving ? 'Saving…' : 'Create Record'}
+                </button>
             </div>
         </Modal>
     );

@@ -15,9 +15,14 @@ const StatusPill = ({ val }) => <span style={{ background: '#fff7ed', color: '#c
 
 const overlay = { position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 };
 
+const yearLabel = n => n ? `${['1st','2nd','3rd','4th','5th','6th'][n-1] ?? n+'th'} Year` : null;
+
 function StudentQuickModal({ s, onClose }) {
     const fmt = d => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
     const deptLabel = { IT: 'Information Technology', CS: 'Computer Science' };
+    const currentYear = s.academic_records?.length
+        ? Math.max(...s.academic_records.map(r => r.year_level ?? 0)) || null
+        : null;
 
     const Section = ({ label, color = '#f97316' }) => (
         <div style={{ fontSize: '.68rem', fontWeight: 800, color, textTransform: 'uppercase', letterSpacing: '.1em', margin: '20px 0 10px', display: 'flex', alignItems: 'center', gap: 6 }}>
@@ -47,6 +52,10 @@ function StudentQuickModal({ s, onClose }) {
                                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
                                 <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)' }}>{deptLabel[s.department] || s.department}</span>
                                 <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                {currentYear && <>
+                                    <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', color: '#fff' }}>{yearLabel(currentYear)}</span>
+                                    <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'rgba(255,255,255,.5)' }} />
+                                </>}
                                 <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', color: '#fff', textTransform: 'capitalize' }}>{s.status}</span>
                             </div>
                         </div>
@@ -81,6 +90,7 @@ function StudentQuickModal({ s, onClose }) {
                             ['Email', s.email],
                             ['Guardian', s.guardian_name],
                             ['Department', deptLabel[s.department] || s.department],
+                            ['Year Level', yearLabel(currentYear)],
                             ['Enrolled', fmt(s.enrollment_date)],
                         ].map(([label, value]) => (
                             <div key={label} style={{ display: 'flex', alignItems: 'baseline', padding: '8px 0', borderBottom: '1px solid #f5f5f4' }}>
@@ -93,6 +103,25 @@ function StudentQuickModal({ s, onClose }) {
                             <span style={{ color: '#1c1917', fontWeight: 500, fontSize: '.875rem', flex: 1 }}>{s.address || '—'}</span>
                         </div>
                     </div>
+
+                    {/* Academic Records */}
+                    {s.academic_records?.length > 0 && <>
+                        <Section label="Academic Records" color="#2563eb" />
+                        {s.academic_records.map(rec => (
+                            <div key={rec.id} style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 16px', marginBottom: 10 }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                                    <span style={{ fontWeight: 700, fontSize: '.875rem', color: '#1e40af' }}>{rec.school_year} — {rec.semester}</span>
+                                    <span style={{ padding: '2px 10px', borderRadius: 999, background: '#dcfce7', color: '#16a34a', fontSize: '.75rem', fontWeight: 700 }}>GPA: {rec.gpa ?? '—'}</span>
+                                </div>
+                                {rec.grades?.map(g => (
+                                    <div key={g.id} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '.78rem', color: '#64748b', padding: '3px 0', borderTop: '1px solid #dbeafe' }}>
+                                        <span>{g.subject?.name ?? g.subject_name ?? '—'}</span>
+                                        <span style={{ fontWeight: 600, color: '#1e40af' }}>{g.score} — {g.remarks}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ))}
+                    </>}
 
                     {/* Violations */}
                     {s.violations?.length > 0 && <>
@@ -328,9 +357,9 @@ export default function SearchPage() {
                                     </thead>
                                     <tbody>
                                         {results.students.map(s => (
-                                            <tr key={s.id}>
-                                                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><strong style={{ color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewingStudent(s)}>{s.student_id || '—'}</strong></td>
-                                                <td style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{s.last_name}, {s.first_name}</td>
+                                            <tr key={s.id} style={{ cursor: 'pointer' }} onClick={() => setViewingStudent(s)}>
+                                                <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}><strong style={{ color: '#3b82f6' }}>{s.student_id || '—'}</strong></td>
+                                                <td style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#3b82f6', textDecoration: 'underline', textUnderlineOffset: 3 }}>{s.last_name}, {s.first_name}</td>
                                                 <td style={{ color: '#78716c', fontSize: 13 }}>{s.department || '—'}</td>
                                                 <td style={{ fontSize: 13 }}>{s.gender || '—'}</td>
                                                 <td><StatusPill val={s.status} /></td>

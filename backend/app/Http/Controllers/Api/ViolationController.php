@@ -21,11 +21,19 @@ class ViolationController extends Controller
         if ($request->filled('search')) {
             $query->where('violation_type', 'like', "%{$request->search}%");
         }
-        // Filter by resolved status
         if ($request->filled('is_resolved')) {
             $query->where('is_resolved', filter_var($request->is_resolved, FILTER_VALIDATE_BOOLEAN));
         }
-        return response()->json($query->orderBy('date_committed', 'desc')->get());
+
+        $paginated = $query->orderBy('date_committed', 'desc')->paginate(10);
+
+        return response()->json([
+            'data'         => $paginated->items(),
+            'current_page' => $paginated->currentPage(),
+            'last_page'    => $paginated->lastPage(),
+            'per_page'     => $paginated->perPage(),
+            'total'        => $paginated->total(),
+        ]);
     }
 
     public function store(Request $request): JsonResponse

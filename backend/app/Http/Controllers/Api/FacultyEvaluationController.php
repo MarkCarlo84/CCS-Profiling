@@ -121,15 +121,26 @@ class FacultyEvaluationController extends Controller
 
         return response()->json($evals);
     }
-    public function adminIndex(): JsonResponse
+    public function adminIndex(Request $request): JsonResponse
     {
-        $evals = FacultyEvaluation::with([
+        $query = FacultyEvaluation::with([
             'faculty:id,first_name,last_name,department,position',
             'student:id,first_name,last_name,student_id',
-        ])->orderBy('created_at', 'desc')->get()
-          ->map(fn($e) => array_merge($e->toArray(), ['average_rating' => $e->average_rating]));
+        ])->orderBy('created_at', 'desc');
 
-        return response()->json($evals);
+        if ($request->filled('faculty_id')) {
+            $query->where('faculty_id', $request->faculty_id);
+        }
+
+        $paginated = $query->paginate(15);
+
+        return response()->json([
+            'data'         => collect($paginated->items())->map(fn($e) => array_merge($e->toArray(), ['average_rating' => $e->average_rating])),
+            'current_page' => $paginated->currentPage(),
+            'last_page'    => $paginated->lastPage(),
+            'per_page'     => $paginated->perPage(),
+            'total'        => $paginated->total(),
+        ]);
     }
 
     /**

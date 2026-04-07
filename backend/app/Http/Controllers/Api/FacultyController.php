@@ -165,7 +165,7 @@ class FacultyController extends Controller
             'contact_number' => 'nullable|string|max:30',
             'email'          => 'nullable|email',
             'enrollment_date'=> 'nullable|date',
-            'status'         => 'nullable|in:active,inactive,graduated,dropped',
+            'status'         => 'nullable|in:active,inactive,graduated,dropped,loa',
         ]);
         $updated = $faculty->updateStudentRecord($student, $data);
         return response()->json($updated);

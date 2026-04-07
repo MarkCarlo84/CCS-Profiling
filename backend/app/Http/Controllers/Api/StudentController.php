@@ -57,7 +57,7 @@ class StudentController extends Controller
             'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email'          => 'required|email|unique:users,email',
             'enrollment_date'=> 'nullable|date',
-            'status'         => 'in:active,inactive,graduated,dropped',
+            'status'         => 'in:active,inactive,graduated,dropped,loa',
         ]);
 
         $student = Student::create($data);
@@ -118,7 +118,7 @@ class StudentController extends Controller
             'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'email'          => 'nullable|email',
             'enrollment_date'=> 'nullable|date',
-            'status'         => 'in:active,inactive,graduated,dropped',
+            'status'         => 'in:active,inactive,graduated,dropped,loa',
         ]);
         $student->update($data);
         return response()->json($student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']));

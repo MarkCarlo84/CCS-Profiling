@@ -60,24 +60,39 @@ class AcademicRecordController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'student_id_number' => 'required|string|exists:students,student_id',
-            'school_year'       => 'required|string|max:20',
-            'semester'          => 'required|in:1st,2nd,Summer',
-            'year_level'        => 'required|integer|min:1|max:6',
-            'gpa'               => 'nullable|numeric',
+            'student_id_number'          => 'required|string|exists:students,student_id',
+            'school_year'                => 'required|string|max:20',
+            'semester'                   => 'required|in:1st,2nd,Summer',
+            'year_level'                 => 'required|integer|min:1|max:6',
+            'gpa'                        => 'nullable|numeric',
+            'is_irregular'               => 'nullable|boolean',
+            'irregular_from_year'        => 'nullable|integer|min:1|max:6',
+            'irregular_from_semester'    => 'nullable|in:1st,2nd,Summer',
+            'irregular_subjects'         => 'nullable|array',
+            'irregular_subjects.*.year_level'  => 'required|integer',
+            'irregular_subjects.*.semester'    => 'required|string',
+            'irregular_subjects.*.subjects'    => 'nullable|array',
+            'irregular_subjects.*.subjects.*.subject_id'   => 'nullable|integer|exists:subjects,id',
+            'irregular_subjects.*.subjects.*.subject_name' => 'nullable|string|max:200',
         ]);
 
         $student = Student::where('student_id', $data['student_id_number'])->firstOrFail();
 
-        $isRegular = in_array(strtolower($student->status ?? ''), ['active', 'regular']);
+        $isIrregular     = !empty($data['is_irregular']);
+        $irregFromYear   = $data['irregular_from_year'] ?? $data['year_level'];
+        $irregFromSem    = $data['irregular_from_semester'] ?? $data['semester'];
+        $isRegular       = !$isIrregular;
 
-        // Map student department (IT/CS) to the full program name stored in subjects table
         $programLabel = $this->programLabel($student->department ?? '');
+        $periods      = $this->buildPeriodList($data['year_level'], $data['semester'], $data['school_year']);
 
-        // Build the full list of periods to create:
-        // If regular and year_level > 1 (or year_level == 1 but semester == 2nd),
-        // prepend all previous periods automatically.
-        $periods = $this->buildPeriodList($data['year_level'], $data['semester'], $data['school_year']);
+        // Build a lookup: [year_level][semester] => [subjects array] for irregular periods
+        $irregSubjectMap = [];
+        if ($isIrregular && !empty($data['irregular_subjects'])) {
+            foreach ($data['irregular_subjects'] as $entry) {
+                $irregSubjectMap[$entry['year_level']][$entry['semester']] = $entry['subjects'] ?? [];
+            }
+        }
 
         $created = [];
         $skipped = [];
@@ -101,16 +116,18 @@ class AcademicRecordController extends Controller
                 'gpa'         => null,
             ]);
 
-            // Is this the target (current) semester the admin selected?
             $isLastPeriod = (
                 $period['year_level'] === $data['year_level'] &&
                 $period['semester']   === $data['semester']
             );
 
-            // Auto-fill subjects for this period if student is regular
-            if ($isRegular) {
-                // Subjects are stored with year_level like "1st Year", "2nd Year"
-                // and semester like "1st Semester", "2nd Semester"
+            // Determine if this period is before the irregular point
+            $periodIndex      = $this->periodIndex($period['year_level'], $period['semester']);
+            $irregStartIndex  = $this->periodIndex($irregFromYear, $irregFromSem);
+            $isBeforeIrreg    = $periodIndex < $irregStartIndex;
+
+            if ($isRegular || $isBeforeIrreg) {
+                // Auto-fill from curriculum — Passed for previous, IP for current
                 $yearLabel = $this->yearLabel($period['year_level']);
                 $semLabel  = $this->semLabel($period['semester']);
 
@@ -119,8 +136,6 @@ class AcademicRecordController extends Controller
                     ->where('program', $programLabel)
                     ->get();
 
-                // Previous semesters → already done (score 1.00, passed)
-                // Current/target semester → still in progress (IP, no score)
                 $isPrevious = !$isLastPeriod;
 
                 foreach ($subjects as $subject) {
@@ -128,14 +143,34 @@ class AcademicRecordController extends Controller
                         'academic_record_id' => $record->id,
                         'subject_id'         => $subject->id,
                         'subject_name'       => $subject->subject_name,
-                        'score'              => $isPrevious ? 3.00 : null,
+                        'score'              => null,
                         'remarks'            => $isPrevious ? 'Passed' : 'IP',
                     ]);
                 }
-
-                // Auto-calculate GPA for completed semesters
-                if ($isPrevious) {
-                    $record->calculateGPA();
+            } else {
+                // Irregular period — use admin-provided subjects
+                $subs = $irregSubjectMap[$period['year_level']][$period['semester']] ?? [];
+                foreach ($subs as $sub) {
+                    $subjectId   = $sub['subject_id'] ?? null;
+                    $subjectName = $sub['subject_name'] ?? null;
+                    if ($subjectId) {
+                        $subject = \App\Models\Subject::find($subjectId);
+                        Grade::create([
+                            'academic_record_id' => $record->id,
+                            'subject_id'         => $subjectId,
+                            'subject_name'       => $subject?->subject_name ?? $subjectName,
+                            'score'              => null,
+                            'remarks'            => 'IP',
+                        ]);
+                    } elseif ($subjectName) {
+                        Grade::create([
+                            'academic_record_id' => $record->id,
+                            'subject_id'         => null,
+                            'subject_name'       => $subjectName,
+                            'score'              => null,
+                            'remarks'            => 'IP',
+                        ]);
+                    }
                 }
             }
 
@@ -143,11 +178,18 @@ class AcademicRecordController extends Controller
         }
 
         return response()->json([
-            'message'        => count($created) . ' academic record(s) created.',
+            'message'         => count($created) . ' academic record(s) created.',
             'records_created' => $created,
             'records_skipped' => $skipped,
-            'is_regular'     => $isRegular,
+            'is_regular'      => $isRegular,
         ], 201);
+    }
+
+    /** Convert year_level + semester into a sortable integer index */
+    private function periodIndex(int $year, string $sem): int
+    {
+        $semIdx = match ($sem) { '1st' => 0, '2nd' => 1, default => 2 };
+        return ($year - 1) * 3 + $semIdx;
     }
 
     /** Convert integer year level to the stored label e.g. 1 → "1st Year" */
