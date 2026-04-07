@@ -207,8 +207,26 @@ function StudentDetailModal({ student: s, onClose }) {
 const emptyStudent = {
     student_id: '', department: '', first_name: '', middle_name: '', last_name: '',
     age: '', gender: 'Male', guardian_name: '', date_of_birth: '',
-    address: '', contact_number: '09', email: '', enrollment_date: '', status: 'active'
+    address: '', addr_house: '', addr_barangay: '', addr_city: '', addr_province: '',
+    contact_number: '09', email: '', enrollment_date: '', status: 'active'
 };
+
+// Parse a stored address string back into PH sub-fields
+function parseAddress(addr = '') {
+    const parts = addr.split(',').map(p => p.trim());
+    return {
+        addr_house:    parts[0] || '',
+        addr_barangay: parts[1] || '',
+        addr_city:     parts[2] || '',
+        addr_province: parts[3] || '',
+    };
+}
+
+// Compose PH sub-fields into a single address string
+function composeAddress(f) {
+    return [f.addr_house, f.addr_barangay, f.addr_city, f.addr_province]
+        .map(p => p.trim()).filter(Boolean).join(', ');
+}
 
 export default function StudentDataMap() {
     const [students, setStudents] = useState([]);
@@ -251,6 +269,7 @@ export default function StudentDataMap() {
             guardian_name: s.guardian_name || '',
             date_of_birth: s.date_of_birth || '',
             address: s.address || '',
+            ...parseAddress(s.address || ''),
             contact_number: s.contact_number || '09',
             email: s.email || '',
             enrollment_date: s.enrollment_date || '',
@@ -264,10 +283,11 @@ export default function StudentDataMap() {
         setSaving(true);
         setSaveError('');
         try {
+            const payload = { ...form, address: composeAddress(form) };
             if (modal === 'add') {
-                await createStudent(form);
+                await createStudent(payload);
             } else {
-                await updateStudent(modal.edit.id, form);
+                await updateStudent(modal.edit.id, payload);
             }
             setModal(null);
             loadData();
@@ -625,7 +645,14 @@ export default function StudentDataMap() {
 
                         <div>
                             <label style={lStyle}>Address</label>
-                            <textarea style={{ ...iStyle, height: 60, resize: 'none' }} value={form.address} onChange={e => setForm({ ...form, address: e.target.value })} />
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1.5px solid #e7e5e4', borderRadius: 8, background: '#fafaf9' }}>
+                                <input style={iStyle} value={form.addr_house} onChange={e => setForm({ ...form, addr_house: e.target.value })} placeholder="House No. / Street / Subdivision" />
+                                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                    <input style={iStyle} value={form.addr_barangay} onChange={e => setForm({ ...form, addr_barangay: e.target.value })} placeholder="Barangay" />
+                                    <input style={iStyle} value={form.addr_city} onChange={e => setForm({ ...form, addr_city: e.target.value })} placeholder="City / Municipality" />
+                                    <input style={{ ...iStyle, gridColumn: '1 / -1' }} value={form.addr_province} onChange={e => setForm({ ...form, addr_province: e.target.value })} placeholder="Province" />
+                                </div>
+                            </div>
                         </div>
 
                         {saveError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{saveError}</p>}

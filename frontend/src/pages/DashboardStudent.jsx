@@ -10,6 +10,22 @@ import {
     PartyPopper, CalendarRange, MapPin, CalendarClock,
 } from 'lucide-react';
 
+// Parse stored address string into PH sub-fields
+function parseAddress(addr = '') {
+    const parts = addr.split(',').map(p => p.trim());
+    return {
+        addr_house:    parts[0] || '',
+        addr_barangay: parts[1] || '',
+        addr_city:     parts[2] || '',
+        addr_province: parts[3] || '',
+    };
+}
+
+function composeAddress(f) {
+    return [f.addr_house, f.addr_barangay, f.addr_city, f.addr_province]
+        .map(p => p.trim()).filter(Boolean).join(', ');
+}
+
 const fmtDate = d => d ? new Date(d).toLocaleDateString('en-PH', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 const statusCfg = {
     upcoming:  { bg: '#fff7ed', fg: '#c2410c', border: '#fed7aa' },
@@ -69,6 +85,7 @@ export default function DashboardStudent() {
         setEditForm({
             guardian_name:  profile.guardian_name  ?? '',
             address:        profile.address         ?? '',
+            ...parseAddress(profile.address ?? ''),
             contact_number: profile.contact_number  ?? '',
             email:          profile.email           ?? '',
         });
@@ -81,7 +98,8 @@ export default function DashboardStudent() {
         setSaving(true);
         setSaveError('');
         try {
-            const res = await api.patch('/student/profile', editForm);
+            const payload = { ...editForm, address: composeAddress(editForm) };
+            const res = await api.patch('/student/profile', payload);
             setProfile(p => ({ ...p, ...res.data }));
             setEditing(false);
         } catch (err) {
@@ -496,12 +514,19 @@ export default function DashboardStudent() {
                             ))}
                             <div>
                                 <label style={{ display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#44403c', marginBottom: 5 }}>Address</label>
-                                <textarea
-                                    value={editForm.address}
-                                    onChange={e => setEditForm(f => ({ ...f, address: e.target.value }))}
-                                    rows={3}
-                                    style={{ width: '100%', padding: '9px 12px', borderRadius: 9, border: '1.5px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917', boxSizing: 'border-box', resize: 'none' }}
-                                />
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, padding: '10px 12px', border: '1.5px solid #e7e5e4', borderRadius: 9, background: '#fafaf9' }}>
+                                    <input
+                                        value={editForm.addr_house}
+                                        onChange={e => setEditForm(f => ({ ...f, addr_house: e.target.value }))}
+                                        placeholder="House No. / Street / Subdivision"
+                                        style={{ width: '100%', padding: '7px 10px', borderRadius: 7, border: '1px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917', boxSizing: 'border-box' }}
+                                    />
+                                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6 }}>
+                                        <input value={editForm.addr_barangay} onChange={e => setEditForm(f => ({ ...f, addr_barangay: e.target.value }))} placeholder="Barangay" style={{ padding: '7px 10px', borderRadius: 7, border: '1px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917' }} />
+                                        <input value={editForm.addr_city} onChange={e => setEditForm(f => ({ ...f, addr_city: e.target.value }))} placeholder="City / Municipality" style={{ padding: '7px 10px', borderRadius: 7, border: '1px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917' }} />
+                                        <input value={editForm.addr_province} onChange={e => setEditForm(f => ({ ...f, addr_province: e.target.value }))} placeholder="Province" style={{ padding: '7px 10px', borderRadius: 7, border: '1px solid #e7e5e4', fontSize: '.875rem', color: '#1c1917', gridColumn: '1 / -1' }} />
+                                    </div>
+                                </div>
                             </div>
 
                             {saveError && <p style={{ color: '#dc2626', fontSize: '.82rem', margin: 0 }}>{saveError}</p>}
