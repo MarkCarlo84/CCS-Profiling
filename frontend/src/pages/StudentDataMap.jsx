@@ -569,7 +569,7 @@ export default function StudentDataMap() {
                 <div className="print-header">
                     <h1>CCS COMPREHENSIVE PROFILING SYSTEM</h1>
                     <p>Student Data Map — Generated {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p>Total Students: {visibleStudents.length}{filters.department ? ` — ${filters.department === 'IT' ? 'Information Technology' : 'Computer Science'}` : ''}</p>
+                    <p>Total Students: {students.length}{filters.department ? ` — ${filters.department === 'IT' ? 'Information Technology' : 'Computer Science'}` : ''}</p>
                     <hr style={{ margin: '6px 0' }} />
                 </div>
 
