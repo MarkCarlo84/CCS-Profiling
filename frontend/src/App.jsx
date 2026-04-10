@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { LoadingProvider, useLoading } from './LoadingContext';
 import LoadingScreen from './LoadingScreen';
 import Layout from './Layout';
+import KeepAliveRoutes from './KeepAliveRoutes';
 import LoginStudent from './pages/LoginStudent';
 import LoginStaff from './pages/LoginStaff';
 
@@ -46,65 +47,61 @@ function PrivateRoute({ children }) {
   return user ? children : <Navigate to={portal} replace />;
 }
 
+const ROUTES_BY_ROLE = {
+  admin: [
+    { path: '/',                          element: <DashboardAdmin /> },
+    { path: '/faculty-map',               element: <FacultyDataMap /> },
+    { path: '/student-map',               element: <StudentDataMap /> },
+    { path: '/reports',                   element: <Reports /> },
+    { path: '/search',                    element: <Search /> },
+    { path: '/subjects',                  element: <SubjectsMap /> },
+    { path: '/violations',                element: <ViolationsMap /> },
+    { path: '/affiliations',              element: <AffiliationsMap /> },
+    { path: '/skills',                    element: <SkillsMap /> },
+    { path: '/academic-records',          element: <AcademicRecordsMap /> },
+    { path: '/non-academic-histories',    element: <NonAcademicHistoriesMap /> },
+    { path: '/eligibility-criteria',      element: <EligibilityCriteriaMap /> },
+    { path: '/faculty-reports',           element: <AdminFacultyReports /> },
+    { path: '/faculty-evaluations',       element: <AdminFacultyEvaluations /> },
+    { path: '/events',                    element: <AdminEvents /> },
+    { path: '/academic-period',           element: <AcademicPeriodSettings /> },
+    { path: '/faculty-subject-assignment',element: <FacultySubjectAssignment /> },
+  ],
+  teacher: [
+    { path: '/',                     element: <DashboardTeacher /> },
+    { path: '/eligibility-criteria', element: <EligibilityCriteriaMap /> },
+    { path: '/create-report',        element: <TeacherCreateReport /> },
+    { path: '/my-evaluations',       element: <TeacherMyEvaluations /> },
+    { path: '/my-subjects',          element: <TeacherMySubjects /> },
+    { path: '/events',               element: <Events /> },
+    { path: '/change-password',      element: <ChangePassword /> },
+  ],
+  student: [
+    { path: '/',                  element: <DashboardStudent /> },
+    { path: '/my-skills',         element: <StudentSkills /> },
+    { path: '/my-affiliations',   element: <StudentAffiliations /> },
+    { path: '/my-activities',     element: <StudentNonAcademicActivities /> },
+    { path: '/evaluate-faculty',  element: <StudentEvaluateFaculty /> },
+    { path: '/events',            element: <Events /> },
+    { path: '/change-password',   element: <ChangePassword /> },
+  ],
+};
+
 const AppRoutes = memo(function AppRoutes() {
   const { user, role } = useAuth();
+  const routes = ROUTES_BY_ROLE[role] ?? [];
 
   return (
     <Routes>
-      {/* Separate login portals */}
-      <Route path="/student"     element={user ? <Navigate to="/" replace /> : <LoginStudent />} />
+      {/* Login portals */}
+      <Route path="/student"      element={user ? <Navigate to="/" replace /> : <LoginStudent />} />
       <Route path="/facultyadmin" element={user ? <Navigate to="/" replace /> : <LoginStaff />} />
-      {/* Legacy /login → redirect to /student */}
-      <Route path="/login" element={<Navigate to="/student" replace />} />
+      <Route path="/login"        element={<Navigate to="/student" replace />} />
+
       <Route path="/*" element={
         <PrivateRoute>
           <Layout>
-            <Routes>
-              {/* ── Admin ── */}
-              {role === 'admin' && <>
-                <Route path="/" element={<DashboardAdmin />} />
-                <Route path="/faculty-map" element={<FacultyDataMap />} />
-                <Route path="/student-map" element={<StudentDataMap />} />
-                <Route path="/reports" element={<Reports />} />
-                <Route path="/search" element={<Search />} />
-                <Route path="/subjects" element={<SubjectsMap />} />
-                <Route path="/violations" element={<ViolationsMap />} />
-                <Route path="/affiliations" element={<AffiliationsMap />} />
-                <Route path="/skills" element={<SkillsMap />} />
-                <Route path="/academic-records" element={<AcademicRecordsMap />} />
-                <Route path="/non-academic-histories" element={<NonAcademicHistoriesMap />} />
-                <Route path="/eligibility-criteria" element={<EligibilityCriteriaMap />} />
-                <Route path="/faculty-reports" element={<AdminFacultyReports />} />
-                <Route path="/faculty-evaluations" element={<AdminFacultyEvaluations />} />
-                <Route path="/events" element={<AdminEvents />} />
-                <Route path="/academic-period" element={<AcademicPeriodSettings />} />
-                <Route path="/faculty-subject-assignment" element={<FacultySubjectAssignment />} />
-              </>}
-
-              {/* ── Teacher ── */}
-              {role === 'teacher' && <>
-                <Route path="/" element={<DashboardTeacher />} />
-                <Route path="/eligibility-criteria" element={<EligibilityCriteriaMap />} />
-                <Route path="/create-report" element={<TeacherCreateReport />} />
-                <Route path="/my-evaluations" element={<TeacherMyEvaluations />} />
-                <Route path="/my-subjects" element={<TeacherMySubjects />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/change-password" element={<ChangePassword />} />
-              </>}
-
-              {/* ── Student ── */}
-              {role === 'student' && <>
-                <Route path="/" element={<DashboardStudent />} />
-                <Route path="/my-skills" element={<StudentSkills />} />
-                <Route path="/my-affiliations" element={<StudentAffiliations />} />
-                <Route path="/my-activities" element={<StudentNonAcademicActivities />} />
-                <Route path="/evaluate-faculty" element={<StudentEvaluateFaculty />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/change-password" element={<ChangePassword />} />
-              </>}
-
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Routes>
+            <KeepAliveRoutes routes={routes} />
           </Layout>
         </PrivateRoute>
       } />

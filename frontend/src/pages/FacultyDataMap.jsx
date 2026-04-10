@@ -244,7 +244,7 @@ function FacultyDetailModal({ faculty: f, onClose }) {
 }
 
 export default function FacultyDataMap() {
-    const [faculties, setFaculties] = useState([]);
+    const [allFaculties, setAllFaculties] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ department: '', search: '' });
     const [modal, setModal] = useState(null);
@@ -264,16 +264,29 @@ export default function FacultyDataMap() {
         pageStyle: `@page { size: A4 landscape; margin: 15mm 12mm; } body { font-family: Arial, sans-serif; }`,
     });
 
+    // Load all faculty once — tab/search filtering is done client-side
     const loadData = () => {
         setLoading(true);
-        getFaculties(filters).then(r => setFaculties(r.data)).finally(() => setLoading(false));
+        getFaculties({}).then(r => setAllFaculties(r.data)).finally(() => setLoading(false));
     };
 
-    useEffect(loadData, [filters]);
+    useEffect(loadData, []);
     useEffect(() => setDeptPages({}), [filters]);
+
+    // Client-side filtering
+    const faculties = allFaculties.filter(f => {
+        const matchDept = !filters.department || f.department === filters.department;
+        const q = filters.search.toLowerCase();
+        const matchSearch = !q ||
+            (f.first_name || '').toLowerCase().includes(q) ||
+            (f.last_name || '').toLowerCase().includes(q) ||
+            (f.faculty_id || '').toLowerCase().includes(q);
+        return matchDept && matchSearch;
+    });
 
     const openAdd = () => { setForm(emptyFaculty); setModal('add'); };
     const openEdit = (f) => {
+
         setForm({
             faculty_id: f.faculty_id || '',
             first_name: f.first_name || '',

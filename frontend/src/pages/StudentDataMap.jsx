@@ -238,7 +238,7 @@ function composeAddress(f) {
 }
 
 export default function StudentDataMap() {
-    const [students, setStudents] = useState([]);
+    const [allStudents, setAllStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ status: 'active', search: '', gender: '', department: '' });
     const [modal, setModal] = useState(null);
@@ -257,13 +257,27 @@ export default function StudentDataMap() {
         pageStyle: `@page { size: A4 landscape; margin: 10mm 8mm; } body { font-family: Arial, sans-serif; font-size: 10px; } table { font-size: 9px; }`,
     });
 
+    // Load all students once — all filtering is done client-side
     const loadData = () => {
         setLoading(true);
-        getStudents(filters).then(r => setStudents(r.data)).finally(() => setLoading(false));
+        getStudents({}).then(r => setAllStudents(r.data)).finally(() => setLoading(false));
     };
 
-    useEffect(loadData, [filters]);
+    useEffect(loadData, []);
     useEffect(() => setDeptPages({}), [filters]);
+
+    // Client-side filtering
+    const students = allStudents.filter(s => {
+        const matchStatus = !filters.status || s.status === filters.status;
+        const matchGender = !filters.gender || s.gender === filters.gender;
+        const matchDept = !filters.department || s.department === filters.department;
+        const q = filters.search.toLowerCase();
+        const matchSearch = !q ||
+            (s.first_name || '').toLowerCase().includes(q) ||
+            (s.last_name || '').toLowerCase().includes(q) ||
+            (s.student_id || '').toLowerCase().includes(q);
+        return matchStatus && matchGender && matchDept && matchSearch;
+    });
 
     const openAdd = () => { setForm(emptyStudent); setModal('add'); };
     const openEdit = (s) => {
@@ -320,13 +334,9 @@ export default function StudentDataMap() {
         loadData();
     };
 
-    const visibleStudents = filters.department
-        ? students.filter(s => s.department === filters.department)
-        : students;
-
     // Group by department label
     const DEPT_LABELS = { IT: 'Information Technology', CS: 'Computer Science' };
-    const grouped = visibleStudents.reduce((acc, s) => {
+    const grouped = students.reduce((acc, s) => {
         const key = s.department || 'Unknown';
         if (!acc[key]) acc[key] = [];
         acc[key].push(s);
