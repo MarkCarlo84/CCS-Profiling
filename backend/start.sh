@@ -2,6 +2,7 @@
 set -e
 
 APP_PORT=${PORT:-80}
+export CACHE_STORE=array
 
 echo "==> Starting on port $APP_PORT"
 
@@ -29,13 +30,13 @@ server {
 }
 EOF
 
+echo "==> Running migrations..."
+php artisan migrate --force
+
 echo "==> Clearing config..."
 php artisan config:clear
 php artisan cache:clear
 php artisan route:clear
-
-echo "==> Running migrations..."
-php artisan migrate --force
 
 echo "==> Seeding database..."
 php artisan db:seed --force --class=DatabaseSeeder
