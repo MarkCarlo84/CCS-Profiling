@@ -27,6 +27,7 @@ const NAV_BY_ROLE = {
             items: [
                 { to: '/faculty-map', label: 'Faculty', Icon: Users },
                 { to: '/student-map', label: 'Students', Icon: GraduationCap },
+                { to: '/sections',    label: 'Sections', Icon: BookOpen },
             ],
         },
         {
@@ -83,6 +84,8 @@ const NAV_BY_ROLE = {
             label: 'My Profile',
             items: [
                 { to: '/', label: 'Dashboard', Icon: LayoutDashboard },
+                { to: '/my-profile', label: 'My Profile', Icon: UserCircle },
+                { to: '/my-academics', label: 'Academic Tracker', Icon: GraduationCap },
                 { to: '/my-skills', label: 'Skills', Icon: Zap },
                 { to: '/my-affiliations', label: 'Affiliations', Icon: Network },
                 { to: '/my-activities', label: 'Activities', Icon: Trophy },

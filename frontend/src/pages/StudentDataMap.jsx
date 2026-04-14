@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { getStudents, createStudent, updateStudent, deleteStudent } from '../api';
+import { getStudents, createStudent, updateStudent, deleteStudent, getSectionCapacity } from '../api';
 import { GraduationCap, Search, Printer, Building, Plus, Pencil, Trash2, X, Check, Users, BookOpen } from 'lucide-react';
 
 function Badge({ value }) {
@@ -115,7 +115,10 @@ function StudentDetailModal({ student: s, onClose }) {
                             <Row label="Contact"       value={s.contact_number} />
                             <Row label="Email"         value={s.email} />
                             <Row label="Guardian"      value={s.guardian_name} />
+                            <Row label="Emergency Contact" value={s.emergency_contact_name} />
+                            <Row label="Emergency No." value={s.emergency_contact_number} />
                             <Row label="Department"    value={deptLabel[s.department] || s.department} />
+                            <Row label="Section"       value={fmtSection(s)} />
                             <Row label="Year Level"    value={yearLabel(currentYear)} />
                             <Row label="Enrolled"      value={fmt(s.enrollment_date)} />
                             <div style={{ gridColumn: '1 / -1' }}>
@@ -213,11 +216,20 @@ function StudentDetailModal({ student: s, onClose }) {
     );
 }
 
+// Format section label: e.g. "4IT-B", "2CS-A"
+function fmtSection(student) {
+    if (!student?.section) return null;
+    const records = student.academic_records ?? [];
+    const yn = records.length ? Math.max(...records.map(r => r.year_level ?? 0)) : null;
+    const dept = student.department || '';
+    return yn ? `${yn}${dept}-${student.section}` : `${dept}-${student.section}`;
+}
+
 const emptyStudent = {
     student_id: '', department: '', first_name: '', middle_name: '', last_name: '',
-    age: '', gender: 'Male', guardian_name: '', date_of_birth: '',
-    address: '', addr_house: '', addr_barangay: '', addr_city: '', addr_province: '',
-    contact_number: '09', email: '', enrollment_date: '', status: 'active'
+    age: '', gender: 'Male', guardian_name: '', emergency_contact_name: '', emergency_contact_number: '',
+    date_of_birth: '', address: '', addr_house: '', addr_barangay: '', addr_city: '', addr_province: '',
+    contact_number: '09', email: '', enrollment_date: '', status: 'active', section: '', year_level: ''
 };
 
 // Parse a stored address string back into PH sub-fields
@@ -247,7 +259,9 @@ export default function StudentDataMap() {
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
     const [deptPages, setDeptPages] = useState({});
-    const PAGE_SIZE = 5;
+    const pageSize = 10;
+    const [sectionCapacity, setSectionCapacity] = useState(null); // { sections: {A,B,C,D}, suggested }
+    const [capacityLoading, setCapacityLoading] = useState(false);
 
     const printRef = useRef();
 
@@ -279,7 +293,20 @@ export default function StudentDataMap() {
         return matchStatus && matchGender && matchDept && matchSearch;
     });
 
-    const openAdd = () => { setForm(emptyStudent); setModal('add'); };
+    const openAdd = () => { setForm(emptyStudent); setModal('add'); setSectionCapacity(null); };
+
+    // Fetch section capacity whenever dept or year_level changes in the add form
+    const fetchCapacity = (department, year_level) => {
+        if (!department || !year_level) { setSectionCapacity(null); return; }
+        setCapacityLoading(true);
+        getSectionCapacity(department, year_level)
+            .then(r => {
+                setSectionCapacity(r.data);
+                // Auto-fill section only if not already set
+                setForm(f => ({ ...f, section: f.section || r.data.suggested || '' }));
+            })
+            .finally(() => setCapacityLoading(false));
+    };
     const openEdit = (s) => {
         setForm({
             student_id: s.student_id || '',
@@ -290,6 +317,9 @@ export default function StudentDataMap() {
             age: s.age || '',
             gender: s.gender || 'Male',
             guardian_name: s.guardian_name || '',
+            emergency_contact_name: s.emergency_contact_name || '',
+            emergency_contact_number: s.emergency_contact_number || '',
+            section: s.section || '',
             date_of_birth: s.date_of_birth || '',
             address: s.address || '',
             ...parseAddress(s.address || ''),
@@ -308,12 +338,16 @@ export default function StudentDataMap() {
         try {
             const payload = { ...form, address: composeAddress(form) };
             if (modal === 'add') {
-                await createStudent(payload);
+                const res = await createStudent(payload);
+                const newStudent = res.data?.student ?? res.data;
+                // Prepend directly — no full reload needed
+                setAllStudents(prev => [newStudent, ...prev]);
             } else {
-                await updateStudent(modal.edit.id, payload);
+                const res = await updateStudent(modal.edit.id, payload);
+                const updated = res.data?.student ?? res.data;
+                setAllStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
             }
             setModal(null);
-            loadData();
         } catch (err) {
             setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
         } finally {
@@ -331,7 +365,7 @@ export default function StudentDataMap() {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this student record?')) return;
         await deleteStudent(id);
-        loadData();
+        setAllStudents(prev => prev.filter(s => s.id !== id));
     };
 
     // Group by department label
@@ -348,8 +382,8 @@ export default function StudentDataMap() {
 
     const renderDeptTable = (dept, deptStudents) => {
         const label = DEPT_LABELS[dept] || dept;        const page = getDeptPage(dept);
-        const totalPages = Math.ceil(deptStudents.length / PAGE_SIZE);
-        const paginated = deptStudents.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+        const totalPages = Math.ceil(deptStudents.length / pageSize);
+        const paginated = deptStudents.slice((page - 1) * pageSize, page * pageSize);
 
         return (
             <div key={dept} className="card" style={{ marginBottom: 28 }}>
@@ -367,7 +401,7 @@ export default function StudentDataMap() {
                             <thead>
                                 <tr>
                                     <th>#</th><th>Student ID</th><th>Full Name</th>
-                                    <th>Age</th><th>Gender</th><th>Guardian</th>
+                                    <th>Age</th><th>Gender</th><th>Section</th><th>Guardian</th>
                                     <th>Affiliations</th><th>Skills</th>
                                     <th>Violations</th><th className="no-print">Actions</th>
                                 </tr>
@@ -375,11 +409,16 @@ export default function StudentDataMap() {
                             <tbody>
                                 {paginated.map((stu, idx) => (
                                     <tr key={stu.id}>
-                                        <td>{(page - 1) * PAGE_SIZE + idx + 1}</td>
+                                        <td>{(page - 1) * pageSize + idx + 1}</td>
                                         <td><strong style={{ color: '#f97316', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong></td>
                                         <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
                                         <td>{stu.age || '—'}</td>
                                         <td>{stu.gender || '—'}</td>
+                                        <td>
+                                            {stu.section
+                                                ? <span style={{ fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa', fontSize: '.78rem' }}>{fmtSection(stu)}</span>
+                                                : '—'}
+                                        </td>
                                         <td style={{ fontSize: '.75rem' }}>{stu.guardian_name || '—'}</td>
                                         <td style={{ minWidth: 140 }}>
                                             {stu.affiliations?.length > 0
@@ -477,20 +516,46 @@ export default function StudentDataMap() {
                     </div>
 
                 </div>
-                {totalPages > 1 && (
-                    <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
-                        <button onClick={() => setDeptPage(dept, Math.max(1, page - 1))} disabled={page === 1} style={{ ...pageBtn, opacity: page === 1 ? 0.4 : 1 }}>‹</button>
-                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                            <button key={p} onClick={() => setDeptPage(dept, p)}
-                                style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
-                            >{p}</button>
-                        ))}
-                        <button onClick={() => setDeptPage(dept, Math.min(totalPages, page + 1))} disabled={page === totalPages} style={{ ...pageBtn, opacity: page === totalPages ? 0.4 : 1 }}>›</button>
-                        <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 8 }}>
-                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, deptStudents.length)} of {deptStudents.length}
-                        </span>
-                    </div>
-                )}
+                {totalPages > 1 && (() => {
+                    const GROUP = 10;
+                    const groupIndex = Math.floor((page - 1) / GROUP);
+                    const groupStart = groupIndex * GROUP + 1;
+                    const groupEnd = Math.min(groupStart + GROUP - 1, totalPages);
+                    const pageNums = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+                    const hasPrevGroup = groupStart > 1;
+                    const hasNextGroup = groupEnd < totalPages;
+                    return (
+                        <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0', flexWrap: 'wrap' }}>
+                            <button onClick={() => setDeptPage(dept, groupStart - GROUP)} disabled={!hasPrevGroup} style={{ ...pageBtn, opacity: !hasPrevGroup ? 0.4 : 1 }}>‹</button>
+                            {pageNums.map(p => (
+                                <button key={p} onClick={() => setDeptPage(dept, p)}
+                                    style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
+                                >{p}</button>
+                            ))}
+                            <button onClick={() => setDeptPage(dept, groupEnd + 1)} disabled={!hasNextGroup} style={{ ...pageBtn, opacity: !hasNextGroup ? 0.4 : 1 }}>›</button>
+                            <select
+                                value={Math.floor((page - 1) / 10) * 10 + 10}
+                                onChange={e => {
+                                    const val = Number(e.target.value);
+                                    setDeptPage(dept, val - 9); // jump to first page of that group
+                                }}
+                                style={{ marginLeft: 8, padding: '4px 8px', borderRadius: 6, border: '1px solid #e7e5e4', fontSize: '.82rem', color: '#78716c', cursor: 'pointer', background: '#fff' }}
+                            >
+                                {Array.from({ length: Math.ceil(totalPages / 10) }, (_, i) => {
+                                    const groupEnd = Math.min((i + 1) * 10, totalPages);
+                                    const startRecord = i * 10 * pageSize + 1;
+                                    const endRecord = Math.min(groupEnd * pageSize, deptStudents.length);
+                                    return (
+                                        <option key={i} value={groupEnd}>{startRecord}–{endRecord}</option>
+                                    );
+                                })}
+                            </select>
+                            <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 4 }}>
+                                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, deptStudents.length)} of {deptStudents.length}
+                            </span>
+                        </div>
+                    );
+                })()}
             </div>
         );
     };
@@ -591,11 +656,42 @@ export default function StudentDataMap() {
                             </div>
                             <div>
                                 <label style={lStyle}>Department</label>
-                                <select style={iStyle} value={form.department} onChange={e => setForm({ ...form, department: e.target.value })}>
+                                <select style={iStyle} value={form.department} onChange={e => {
+                                    const dept = e.target.value;
+                                    setForm({ ...form, department: dept, section: '' });
+                                    if (modal === 'add') fetchCapacity(dept, form.year_level);
+                                }}>
                                     <option value="">— Select —</option>
                                     <option value="IT">Information Technology (IT)</option>
                                     <option value="CS">Computer Science (CS)</option>
                                 </select>
+                            </div>
+                            <div>
+                                <label style={lStyle}>
+                                    Section
+                                    {capacityLoading && <span style={{ color: '#94a3b8', fontWeight: 400, marginLeft: 6 }}>checking…</span>}
+                                    {sectionCapacity?.suggested && !capacityLoading && modal === 'add' && (
+                                        <span style={{ color: '#16a34a', fontWeight: 600, marginLeft: 6, fontSize: '.72rem' }}>auto-suggested: {sectionCapacity.suggested}</span>
+                                    )}
+                                </label>
+                                <select style={iStyle} value={form.section || ''} onChange={e => setForm({ ...form, section: e.target.value })}>
+                                    <option value="">— Auto Assign —</option>
+                                    {['A','B','C','D'].map(s => {
+                                        const cap = sectionCapacity?.sections?.[s];
+                                        const full = cap?.full;
+                                        const count = cap?.count ?? '?';
+                                        const isSuggested = sectionCapacity?.suggested === s;
+                                        return (
+                                            <option key={s} value={s} disabled={full}>
+                                                Section {s}{cap ? ` (${count}/30${full ? ' — FULL' : ''})` : ''}
+                                                {isSuggested ? ' ✓' : ''}
+                                            </option>
+                                        );
+                                    })}
+                                </select>
+                                {sectionCapacity && Object.values(sectionCapacity.sections).every(s => s.full) && (
+                                    <p style={{ color: '#dc2626', fontSize: '.75rem', marginTop: 4 }}>⚠ All sections are full (30/30). Student will be added without a section.</p>
+                                )}
                             </div>
                             <div>
                                 <label style={lStyle}>Status</label>
@@ -606,6 +702,22 @@ export default function StudentDataMap() {
                                     <option value="loa">LOA</option>
                                 </select>
                             </div>
+                            {modal === 'add' && (
+                                <div>
+                                    <label style={lStyle}>Year Level</label>
+                                    <select style={iStyle} value={form.year_level || ''} onChange={e => {
+                                        const yl = e.target.value;
+                                        setForm(f => ({ ...f, year_level: yl, section: '' }));
+                                        if (form.department) fetchCapacity(form.department, yl);
+                                    }}>
+                                        <option value="">— Select —</option>
+                                        <option value="1">1st Year</option>
+                                        <option value="2">2nd Year</option>
+                                        <option value="3">3rd Year</option>
+                                        <option value="4">4th Year</option>
+                                    </select>
+                                </div>
+                            )}
                             <div>
                                 <label style={lStyle}>Enrollment Date</label>
                                 <input style={iStyle} type="date" value={form.enrollment_date} max={new Date().toISOString().split('T')[0]} onChange={e => setForm({ ...form, enrollment_date: e.target.value })} />
@@ -649,6 +761,17 @@ export default function StudentDataMap() {
                         <div>
                             <label style={lStyle}>Guardian Name</label>
                             <input style={iStyle} value={form.guardian_name} onChange={e => setForm({ ...form, guardian_name: e.target.value })} />
+                        </div>
+
+                        <div className="modal-grid-2col">
+                            <div>
+                                <label style={lStyle}>Emergency Contact Person</label>
+                                <input style={iStyle} value={form.emergency_contact_name} onChange={e => setForm({ ...form, emergency_contact_name: e.target.value })} placeholder="Full name" />
+                            </div>
+                            <div>
+                                <label style={lStyle}>Emergency Contact No.</label>
+                                <input style={iStyle} value={form.emergency_contact_number} onChange={e => setForm({ ...form, emergency_contact_number: e.target.value })} placeholder="09XXXXXXXXX" maxLength={11} />
+                            </div>
                         </div>
 
                         <div className="modal-grid-2col">

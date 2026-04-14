@@ -44,21 +44,33 @@ class StudentController extends Controller
     public function store(Request $request): JsonResponse
     {
         $data = $request->validate([
-            'student_id'     => 'nullable|digits_between:7,10',
-            'department'     => 'nullable|in:IT,CS',
-            'first_name'     => 'required|string|max:100',
-            'middle_name'    => 'nullable|string|max:100',
-            'last_name'      => 'required|string|max:100',
-            'age'            => 'nullable|integer|min:0|max:150',
-            'guardian_name'  => 'nullable|string|max:100',
-            'date_of_birth'  => 'nullable|date',
-            'gender'         => 'nullable|in:Male,Female,Other',
-            'address'        => 'nullable|string',
-            'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
-            'email'          => 'required|email|unique:users,email',
-            'enrollment_date'=> 'nullable|date',
-            'status'         => 'in:active,inactive,graduated,dropped,loa',
+            'student_id'               => 'nullable|digits_between:7,10',
+            'department'               => 'nullable|in:IT,CS',
+            'section'                  => 'nullable|in:A,B,C,D',
+            'first_name'               => 'required|string|max:100',
+            'middle_name'              => 'nullable|string|max:100',
+            'last_name'                => 'required|string|max:100',
+            'age'                      => 'nullable|integer|min:0|max:150',
+            'guardian_name'            => 'nullable|string|max:100',
+            'emergency_contact_name'   => 'nullable|string|max:100',
+            'emergency_contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
+            'date_of_birth'            => 'nullable|date',
+            'gender'                   => 'nullable|in:Male,Female,Other',
+            'address'                  => 'nullable|string',
+            'contact_number'           => ['nullable', 'regex:/^09\d{9}$/'],
+            'email'                    => 'required|email|unique:users,email',
+            'enrollment_date'          => 'nullable|date',
+            'status'                   => 'in:active,inactive,graduated,dropped,loa',
+            'year_level'               => 'nullable|integer|min:1|max:4',
         ]);
+
+        // Auto-assign section if not provided and dept+year_level given
+        if (empty($data['section']) && !empty($data['department']) && !empty($data['year_level'])) {
+            $data['section'] = $this->autoAssignSection($data['department'], $data['year_level']);
+        }
+
+        // Remove year_level from student data (not a student column)
+        unset($data['year_level']);
 
         $student = Student::create($data);
 
@@ -107,11 +119,14 @@ class StudentController extends Controller
         $data = $request->validate([
             'student_id'     => 'nullable|digits_between:7,10',
             'department'     => 'nullable|in:IT,CS',
+            'section'        => 'nullable|in:A,B,C,D',
             'first_name'     => 'sometimes|string|max:100',
             'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'sometimes|string|max:100',
             'age'            => 'nullable|integer|min:0|max:150',
             'guardian_name'  => 'nullable|string|max:100',
+            'emergency_contact_name'   => 'nullable|string|max:100',
+            'emergency_contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
             'date_of_birth'  => 'nullable|date',
             'gender'         => 'nullable|in:Male,Female,Other',
             'address'        => 'nullable|string',
@@ -189,5 +204,56 @@ class StudentController extends Controller
             'gpa'         => 'nullable|numeric|min:0|max:5',
         ]);
         return response()->json($student->addAcademicRecord($data), 201);
+    }
+
+    /**
+     * GET /api/students/section-capacity?department=IT&year_level=1
+     * Returns count per section and auto-suggested section.
+     */
+    public function sectionCapacity(Request $request): JsonResponse
+    {
+        $dept      = $request->input('department');
+        $yearLevel = (int) $request->input('year_level');
+
+        if (!$dept || !$yearLevel) {
+            return response()->json(['sections' => [], 'suggested' => null]);
+        }
+
+        // Count active students per section for this dept+year
+        $counts = Student::where('department', $dept)
+            ->whereHas('academicRecords', fn($q) => $q->where('year_level', $yearLevel))
+            ->whereNotNull('section')
+            ->selectRaw('section, COUNT(*) as count')
+            ->groupBy('section')
+            ->pluck('count', 'section')
+            ->toArray();
+
+        $sections = [];
+        $suggested = null;
+        foreach (['A', 'B', 'C', 'D'] as $s) {
+            $count = $counts[$s] ?? 0;
+            $full  = $count >= 30;
+            $sections[$s] = ['count' => $count, 'full' => $full];
+            if (!$suggested && !$full) $suggested = $s;
+        }
+
+        return response()->json(['sections' => $sections, 'suggested' => $suggested]);
+    }
+
+    /** Auto-assign the section with fewest students (max 30) */
+    private function autoAssignSection(string $dept, int $yearLevel): ?string
+    {
+        $counts = Student::where('department', $dept)
+            ->whereHas('academicRecords', fn($q) => $q->where('year_level', $yearLevel))
+            ->whereNotNull('section')
+            ->selectRaw('section, COUNT(*) as count')
+            ->groupBy('section')
+            ->pluck('count', 'section')
+            ->toArray();
+
+        foreach (['A', 'B', 'C', 'D'] as $s) {
+            if (($counts[$s] ?? 0) < 30) return $s;
+        }
+        return null; // all full
     }
 }

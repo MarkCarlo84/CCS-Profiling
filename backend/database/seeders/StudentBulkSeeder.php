@@ -74,6 +74,36 @@ class StudentBulkSeeder extends Seeder
         'Angono','Binangonan','Cardona','Morong','Baras','Tanay','Pililla','Jala-Jala',
     ];
 
+    private array $barangays = [
+        'Brgy. Bagong Silang','Brgy. Commonwealth','Brgy. Batasan Hills','Brgy. Holy Spirit',
+        'Brgy. Payatas','Brgy. Fairview','Brgy. Novaliches','Brgy. Tandang Sora',
+        'Brgy. San Isidro','Brgy. Sta. Cruz','Brgy. Poblacion','Brgy. San Antonio',
+        'Brgy. Marikina Heights','Brgy. Concepcion','Brgy. Nangka','Brgy. Parang',
+        'Brgy. Kapitolyo','Brgy. Ugong','Brgy. Manggahan','Brgy. Rosario',
+        'Brgy. Hagonoy','Brgy. Palatiw','Brgy. Pinagbuhatan','Brgy. Maybunga',
+        'Brgy. Western Bicutan','Brgy. Signal Village','Brgy. Ususan','Brgy. Pinagsama',
+        'Brgy. BF Homes','Brgy. Moonwalk','Brgy. Manuyo','Brgy. Talon',
+        'Brgy. Alabang','Brgy. Cupang','Brgy. Tunasan','Brgy. Putatan',
+        'Brgy. Malinta','Brgy. Karuhatan','Brgy. Ugong Norte','Brgy. Lawang Bato',
+    ];
+
+    private array $guardianFirstNames = [
+        'Roberto','Maricel','Eduardo','Lourdes','Antonio','Rosario','Fernando','Gloria',
+        'Ricardo','Teresita','Alfredo','Corazon','Bernardo','Milagros','Ernesto','Felicidad',
+        'Domingo','Natividad','Rodrigo','Carmelita','Renato','Remedios','Virgilio','Adoracion',
+        'Danilo','Zenaida','Rolando','Leonora','Armando','Florencia','Nestor','Perpetua',
+    ];
+
+    private array $guardianRelations = [
+        'Father','Mother','Uncle','Aunt','Grandfather','Grandmother','Elder Brother','Elder Sister',
+    ];
+
+    private array $emergencyFirstNames = [
+        'Josefina','Ernesto','Carmelita','Rodrigo','Felicitas','Domingo','Natividad','Alfredo',
+        'Marilou','Renato','Cynthia','Arnel','Divina','Rogelio','Estrella','Wilfredo',
+        'Perla','Danilo','Herminia','Rolando','Pacita','Armando','Florencia','Nestor',
+    ];
+
     private array $affiliationPool = [
         ['CCS Student Council','Academic'],['Google Developer Student Club','Academic'],
         ['AWS Cloud Club','Academic'],['ACM Student Chapter','Academic'],
@@ -137,13 +167,13 @@ class StudentBulkSeeder extends Seeder
         $this->now = Carbon::now()->toDateTimeString();
 
         DB::transaction(function () {
-            $this->seedBulkStudents(1000);
+            $this->seedBulkStudents();
         });
 
-        $this->command->info('✓ StudentBulkSeeder complete — 1000+ students seeded');
+        $this->command->info('✓ StudentBulkSeeder complete — 960 students seeded (4 sections × 30 × 8 groups)');
     }
 
-    private function seedBulkStudents(int $count): void
+    private function seedBulkStudents(): void
     {
         $subjects = DB::table('subjects')->get()
             ->groupBy(fn($s) => $s->program . '|' . $s->year_level . '|' . $s->semester);
@@ -167,26 +197,27 @@ class StudentBulkSeeder extends Seeder
         $generated = 0;
         $batchSize = 50;
 
-        // Distribute evenly: 250 per year level, split 50/50 IT/CS
+        // 4 sections × 30 students = 120 per dept+year bucket, 8 buckets = 960 total
+        $BUCKET_SIZE = 120; // exactly 4 sections × 30
         $distribution = [];
         foreach ($yearLevels as $yl) {
             foreach ($departments as $dept) {
-                $distribution[] = ['yearLevel' => $yl, 'dept' => $dept, 'count' => intdiv($count, 8)];
+                $distribution[] = ['yearLevel' => $yl, 'dept' => $dept, 'count' => $BUCKET_SIZE];
             }
         }
-        // Add remainder to first bucket
-        $distribution[0]['count'] += $count - (intdiv($count, 8) * 8);
 
         foreach ($distribution as $bucket) {
-            $yearLevel = $bucket['yearLevel'];
-            $dept      = $bucket['dept'];
+            $yearLevel   = $bucket['yearLevel'];
+            $dept        = $bucket['dept'];
             $bucketCount = $bucket['count'];
-            $yn        = $yearNum[$yearLevel];
-            $program   = $dept === 'IT' ? 'Information Technology' : 'Computer Science';
-            $prefix    = substr((string)(2026 - $yn), 2); // e.g. 25, 24, 23, 22
-            $deptCode  = $dept === 'IT' ? '1' : '2';
+            $yn          = $yearNum[$yearLevel];
+            $program     = $dept === 'IT' ? 'Information Technology' : 'Computer Science';
+            $prefix      = substr((string)(2026 - $yn), 2);
+            $deptCode    = $dept === 'IT' ? '1' : '2';
 
             for ($i = 0; $i < $bucketCount; $i++) {
+                // Strict 30-per-section: i 0-29 = A, 30-59 = B, 60-89 = C, 90-119 = D
+                $section = ['A','B','C','D'][intdiv($i, 30)];
                 // Generate unique student ID
                 $counter = 200 + $generated + $i;
                 $sid = $prefix . '0' . $deptCode . str_pad($counter, 3, '0', STR_PAD_LEFT);
@@ -215,23 +246,48 @@ class StudentBulkSeeder extends Seeder
                 }
                 $usedEmails[$email] = true;
 
+                // Guardian & emergency contact
+                $guardianFn       = $this->guardianFirstNames[array_rand($this->guardianFirstNames)];
+                $guardianRelation = $this->guardianRelations[array_rand($this->guardianRelations)];
+                $emergencyFn      = $this->emergencyFirstNames[array_rand($this->emergencyFirstNames)];
+                $emergencyRelations = ['Mother','Father','Aunt','Uncle','Elder Brother','Elder Sister','Cousin'];
+                $emergencyRelation  = $emergencyRelations[array_rand($emergencyRelations)];
+
+                // Realistic address with house number + barangay
+                $city     = $this->addresses[array_rand($this->addresses)];
+                $barangay = $this->barangays[array_rand($this->barangays)];
+                $houseNo  = rand(1, 999) . ' ' . ['Sampaguita','Rosal','Ilang-Ilang','Dahlia','Camia','Adelfa','Jasmine','Orchid'][array_rand(['Sampaguita','Rosal','Ilang-Ilang','Dahlia','Camia','Adelfa','Jasmine','Orchid'])] . ' St.';
+                $fullAddress = "$houseNo, $barangay, $city, Metro Manila";
+
+                // Contact number with varied prefixes
+                $prefixes = ['0917','0918','0919','0920','0921','0926','0927','0928','0929','0930','0935','0936','0939','0947','0948','0949','0956','0961','0966','0977','0995','0996','0997','0998','0999'];
+                $contactNo  = $prefixes[array_rand($prefixes)] . rand(1000000, 9999999);
+                $emergencyNo = $prefixes[array_rand($prefixes)] . rand(1000000, 9999999);
+
+                // Status — 90% active, 5% inactive, 3% loa, 2% dropped
+                $statusRoll = rand(1, 100);
+                $status = $statusRoll <= 90 ? 'active' : ($statusRoll <= 95 ? 'inactive' : ($statusRoll <= 98 ? 'loa' : 'dropped'));
+
                 $studentId = DB::table('students')->insertGetId([
-                    'student_id'      => $sid,
-                    'department'      => $dept,
-                    'first_name'      => $fn,
-                    'middle_name'     => $mn,
-                    'last_name'       => $ln,
-                    'age'             => $age,
-                    'gender'          => $gender,
-                    'address'         => $address . ', Metro Manila',
-                    'contact_number'  => '0917' . rand(1000000, 9999999),
-                    'email'           => $email,
-                    'enrollment_date' => $enrollDates[$yearLevel],
-                    'status'          => 'active',
-                    'date_of_birth'   => Carbon::now()->subYears($age)->subDays(rand(0, 364))->format('Y-m-d'),
-                    'guardian_name'   => 'Parent of ' . $fn . ' ' . $ln,
-                    'created_at'      => $this->now,
-                    'updated_at'      => $this->now,
+                    'student_id'               => $sid,
+                    'department'               => $dept,
+                    'section'                  => $section,
+                    'first_name'               => $fn,
+                    'middle_name'              => $mn,
+                    'last_name'                => $ln,
+                    'age'                      => $age,
+                    'gender'                   => $gender,
+                    'address'                  => $fullAddress,
+                    'contact_number'           => $contactNo,
+                    'email'                    => $email,
+                    'enrollment_date'          => $enrollDates[$yearLevel],
+                    'status'                   => $status,
+                    'date_of_birth'            => Carbon::now()->subYears($age)->subDays(rand(0, 364))->format('Y-m-d'),
+                    'guardian_name'            => "$guardianFn $ln ($guardianRelation)",
+                    'emergency_contact_name'   => "$emergencyFn $ln ($emergencyRelation)",
+                    'emergency_contact_number' => $emergencyNo,
+                    'created_at'               => $this->now,
+                    'updated_at'               => $this->now,
                 ]);
 
                 DB::table('users')->insert([

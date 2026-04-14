@@ -44,6 +44,7 @@ class FacultySubjectController extends Controller
             'subject_id'  => 'required|exists:subjects,id',
             'school_year' => 'required|string|max:20',
             'semester'    => 'required|in:1st,2nd',
+            'section'     => 'nullable|string|max:10',
         ]);
 
         $faculty = Faculty::findOrFail($data['faculty_id']);
@@ -53,15 +54,17 @@ class FacultySubjectController extends Controller
             ->wherePivot('subject_id', $data['subject_id'])
             ->wherePivot('school_year', $data['school_year'])
             ->wherePivot('semester', $data['semester'])
+            ->wherePivot('section', $data['section'] ?? null)
             ->exists();
 
         if ($exists) {
-            return response()->json(['message' => 'This subject is already assigned to this faculty for the selected period.'], 422);
+            return response()->json(['message' => 'This subject is already assigned to this faculty for the selected period and section.'], 422);
         }
 
         $faculty->subjects()->attach($data['subject_id'], [
             'school_year' => $data['school_year'],
             'semester'    => $data['semester'],
+            'section'     => $data['section'] ?? null,
         ]);
 
         $subject = Subject::find($data['subject_id']);

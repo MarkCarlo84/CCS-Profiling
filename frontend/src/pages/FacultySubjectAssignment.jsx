@@ -36,7 +36,7 @@ export default function FacultySubjectAssignment() {
 
     // Modal state
     const [modal, setModal] = useState(false);
-    const [form, setForm] = useState({ faculty_id: '', subject_id: '', school_year: '', semester: '' });
+    const [form, setForm] = useState({ faculty_id: '', subject_id: '', school_year: '', semester: '', section: '' });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
@@ -79,7 +79,7 @@ export default function FacultySubjectAssignment() {
     }, [schoolYear, semester]);
 
     const openModal = (facultyId = '') => {
-        setForm({ faculty_id: facultyId, subject_id: '', school_year: schoolYear, semester });
+        setForm({ faculty_id: facultyId, subject_id: '', school_year: schoolYear, semester, section: '' });
         setSubjectSearch('');
         setSubjectDropdown(false);
         setError('');
@@ -228,6 +228,7 @@ export default function FacultySubjectAssignment() {
                                                 <th style={th}>Units</th>
                                                 <th style={th}>Year Level</th>
                                                 <th style={th}>Program</th>
+                                                <th style={th}>Section</th>
                                                 <th style={{ ...th, textAlign: 'center' }}>Action</th>
                                             </tr>
                                         </thead>
@@ -241,6 +242,11 @@ export default function FacultySubjectAssignment() {
                                                     </td>
                                                     <td style={td}>{s.year_level ?? '—'}</td>
                                                     <td style={td}>{s.program ?? '—'}</td>
+                                                    <td style={td}>
+                                                        {s.pivot?.section
+                                                            ? <span style={{ fontWeight: 700, padding: '2px 9px', borderRadius: 999, background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa', fontSize: '.75rem' }}>{s.pivot.section}</span>
+                                                            : <span style={{ color: '#a8a29e', fontSize: '.78rem' }}>—</span>}
+                                                    </td>
                                                     <td style={{ ...td, textAlign: 'center' }}>
                                                         <button onClick={() => handleRemove(faculty, s)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#dc2626', display: 'flex', alignItems: 'center', gap: 4, margin: '0 auto', fontSize: '.78rem', fontWeight: 600 }}>
                                                             <Trash2 size={13} /> Remove
@@ -361,6 +367,16 @@ export default function FacultySubjectAssignment() {
                                         <option value="2nd">2nd Semester</option>
                                     </select>
                                 </div>
+                            </div>
+                            <div>
+                                <label style={{ display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#78716c', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '.05em' }}>Section <span style={{ color: '#a8a29e', fontWeight: 400, textTransform: 'none' }}>(optional)</span></label>
+                                <select style={inputStyle} value={form.section} onChange={e => setForm(p => ({ ...p, section: e.target.value }))}>
+                                    <option value="">— All Sections —</option>
+                                    <option value="A">Section A</option>
+                                    <option value="B">Section B</option>
+                                    <option value="C">Section C</option>
+                                    <option value="D">Section D</option>
+                                </select>
                             </div>
                             {error && <div style={{ color: '#dc2626', fontSize: '.82rem' }}>{error}</div>}
                             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>

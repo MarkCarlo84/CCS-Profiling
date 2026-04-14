@@ -39,6 +39,9 @@ import StudentNonAcademicActivities from './pages/StudentNonAcademicActivities';
 import TeacherCreateReport from './pages/TeacherCreateReport';
 import TeacherMyEvaluations from './pages/TeacherMyEvaluations';
 import TeacherMySubjects from './pages/TeacherMySubjects';
+import MyProfile from './pages/MyProfile';
+import AcademicTracker from './pages/AcademicTracker';
+import SectionsMap from './pages/SectionsMap';
 
 function PrivateRoute({ children }) {
   const { user, loading } = useAuth();
@@ -52,6 +55,7 @@ const ROUTES_BY_ROLE = {
     { path: '/',                          element: <DashboardAdmin /> },
     { path: '/faculty-map',               element: <FacultyDataMap /> },
     { path: '/student-map',               element: <StudentDataMap /> },
+    { path: '/sections',                  element: <SectionsMap /> },
     { path: '/reports',                   element: <Reports /> },
     { path: '/search',                    element: <Search /> },
     { path: '/subjects',                  element: <SubjectsMap /> },
@@ -78,6 +82,8 @@ const ROUTES_BY_ROLE = {
   ],
   student: [
     { path: '/',                  element: <DashboardStudent /> },
+    { path: '/my-profile',        element: <MyProfile /> },
+    { path: '/my-academics',      element: <AcademicTracker /> },
     { path: '/my-skills',         element: <StudentSkills /> },
     { path: '/my-affiliations',   element: <StudentAffiliations /> },
     { path: '/my-activities',     element: <StudentNonAcademicActivities /> },

@@ -37,6 +37,7 @@ export const facultyUpdateStudentRecord = (facultyId, studentId, data) => api.pa
 // ── Students ──────────────────────────────────────────────────────────────────
 export const getStudents = (params = {}) => api.get('/students', { params });
 export const getStudent = (id) => api.get(`/students/${id}`);
+export const getSectionCapacity = (department, year_level) => api.get('/students/section-capacity', { params: { department, year_level } });
 export const createStudent = (data) => api.post('/students', data);
 export const updateStudent = (id, data) => api.put(`/students/${id}`, data);
 export const deleteStudent = (id) => api.delete(`/students/${id}`);

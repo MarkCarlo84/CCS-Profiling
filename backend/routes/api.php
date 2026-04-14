@@ -74,8 +74,9 @@ Route::post('faculties/{faculty}/record-violation/{student}',             [Facul
 Route::patch('faculties/{faculty}/update-student/{student}',              [FacultyController::class, 'updateStudentRecord']);
 
 // ── Students ──────────────────────────────────────────────────────────────────
-Route::get('students',           [StudentController::class, 'index']);
-Route::get('students/{student}', [StudentController::class, 'show']);
+Route::get('students',                    [StudentController::class, 'index']);
+Route::get('students/section-capacity',   [StudentController::class, 'sectionCapacity']);
+Route::get('students/{student}',          [StudentController::class, 'show']);
 Route::put('students/{student}', [StudentController::class, 'update']);
 Route::patch('students/{student}', [StudentController::class, 'update']);
 Route::delete('students/{student}', [StudentController::class, 'destroy']);

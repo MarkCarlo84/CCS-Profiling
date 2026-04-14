@@ -219,20 +219,61 @@ class DemoSeeder extends Seeder
 
         $grades = [1.00, 1.25, 1.50, 2.00, 2.25, 2.50, 3.00];
 
+        $sectionCounter = [];
+
         foreach ($students as $s) {
             [$sid, $dept, $fn, $mn, $ln, $age, $gender, $yearLevel, $enrollDate, $status, $address] = $s;
             if (DB::table('students')->where('student_id', $sid)->exists()) continue;
 
-            $email = strtolower($fn . '.' . $ln . rand(10,99) . '@student.ccs.edu.ph');
+            // Assign section A-D, 30 per section per dept+year group
+            $groupKey = $dept . '|' . $yearLevel;
+            $sectionCounter[$groupKey] = ($sectionCounter[$groupKey] ?? 0);
+            $section = ['A','B','C','D'][intdiv($sectionCounter[$groupKey], 30) % 4];
+            $sectionCounter[$groupKey]++;
+
+            $barangays = ['Brgy. Bagong Silang','Brgy. Commonwealth','Brgy. Batasan Hills','Brgy. Holy Spirit','Brgy. Payatas','Brgy. Fairview','Brgy. Novaliches','Brgy. Tandang Sora','Brgy. San Isidro','Brgy. Sta. Cruz','Brgy. Poblacion','Brgy. San Antonio','Brgy. Marikina Heights','Brgy. Concepcion','Brgy. Nangka','Brgy. Parang'];
+            $streets   = ['Sampaguita St.','Rosal St.','Ilang-Ilang St.','Dahlia St.','Camia St.','Adelfa St.','Jasmine St.','Orchid St.','Rizal Ave.','Bonifacio St.','Mabini St.','Luna St.'];
+            $houseNo   = rand(1, 999) . ' ' . $streets[array_rand($streets)];
+            $barangay  = $barangays[array_rand($barangays)];
+            $fullAddress = "$houseNo, $barangay, $address, Metro Manila";
+
+            $prefixes  = ['0917','0918','0919','0920','0926','0927','0928','0935','0939','0947','0956','0961','0977','0995','0998','0999'];
+            $contactNo = $prefixes[array_rand($prefixes)] . rand(1000000, 9999999);
+            $emergencyNo = $prefixes[array_rand($prefixes)] . rand(1000000, 9999999);
+
+            $email = strtolower(preg_replace('/\s+/', '', $fn) . '.' . preg_replace('/\s+/', '', $ln) . rand(10,99) . '@student.ccs.edu.ph');
+
+            // Guardian relationship pool
+            $guardianRelations = ['Father', 'Mother', 'Uncle', 'Aunt', 'Grandfather', 'Grandmother', 'Elder Sibling'];
+            $guardianRelation  = $guardianRelations[array_rand($guardianRelations)];
+            $guardianFirstNames = ['Roberto','Maricel','Eduardo','Lourdes','Antonio','Rosario','Fernando','Gloria','Ricardo','Teresita'];
+            $guardianFn = $guardianFirstNames[array_rand($guardianFirstNames)];
+
+            $emergencyRelations = ['Mother', 'Father', 'Aunt', 'Uncle', 'Elder Brother', 'Elder Sister'];
+            $emergencyRelation  = $emergencyRelations[array_rand($emergencyRelations)];
+            $emergencyFirstNames = ['Josefina','Ernesto','Carmelita','Rodrigo','Felicitas','Domingo','Natividad','Alfredo'];
+            $emergencyFn = $emergencyFirstNames[array_rand($emergencyFirstNames)];
+
             $studentId = DB::table('students')->insertGetId([
-                'student_id' => $sid, 'department' => $dept,
-                'first_name' => $fn, 'middle_name' => $mn, 'last_name' => $ln,
-                'age' => $age, 'gender' => $gender, 'address' => $address . ', Metro Manila',
-                'contact_number' => '0917' . rand(1000000,9999999), 'email' => $email,
-                'enrollment_date' => $enrollDate, 'status' => $status,
-                'date_of_birth' => Carbon::now()->subYears($age)->subDays(rand(0,364))->format('Y-m-d'),
-                'guardian_name' => 'Parent of ' . $fn . ' ' . $ln,
-                'created_at' => $now, 'updated_at' => $now,
+                'student_id'               => $sid,
+                'department'               => $dept,
+                'section'                  => $section,
+                'first_name'               => $fn,
+                'middle_name'              => $mn,
+                'last_name'                => $ln,
+                'age'                      => $age,
+                'gender'                   => $gender,
+                'address'                  => $fullAddress,
+                'contact_number'           => $contactNo,
+                'email'                    => $email,
+                'enrollment_date'          => $enrollDate,
+                'status'                   => $status,
+                'date_of_birth'            => Carbon::now()->subYears($age)->subDays(rand(0, 364))->format('Y-m-d'),
+                'guardian_name'            => "$guardianFn $ln ($guardianRelation)",
+                'emergency_contact_name'   => "$emergencyFn $ln ($emergencyRelation)",
+                'emergency_contact_number' => $emergencyNo,
+                'created_at'               => $now,
+                'updated_at'               => $now,
             ]);
 
             if (!DB::table('users')->where('email', $email)->exists()) {
