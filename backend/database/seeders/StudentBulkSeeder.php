@@ -146,8 +146,6 @@ class StudentBulkSeeder extends Seeder
 
         // No wrapping transaction — process bucket by bucket to avoid long locks
         $this->seedBulkStudents();
-
-        $this->command->info('✓ StudentBulkSeeder complete — 960 students seeded');
     }
 
     private function seedBulkStudents(): void
