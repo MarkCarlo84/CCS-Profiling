@@ -31,12 +31,18 @@ EOF
 
 echo "==> Clearing config..."
 php artisan config:clear
+php artisan cache:clear
+php artisan route:clear
 
 echo "==> Running migrations..."
 php artisan migrate --force
 
 echo "==> Seeding database..."
 php artisan db:seed --force --class=DatabaseSeeder 2>/dev/null || true
+
+echo "==> Caching config..."
+php artisan config:cache
+php artisan route:cache
 
 echo "==> Starting php-fpm..."
 php-fpm -D
