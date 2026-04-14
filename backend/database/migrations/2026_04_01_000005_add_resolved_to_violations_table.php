@@ -9,8 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('violations', function (Blueprint $table) {
-            $table->boolean('is_resolved')->default(false)->after('action_taken');
-            $table->timestamp('resolved_at')->nullable()->after('is_resolved');
+            if (!Schema::hasColumn('violations', 'is_resolved')) {
+                $table->boolean('is_resolved')->default(false)->after('action_taken');
+            }
+            if (!Schema::hasColumn('violations', 'resolved_at')) {
+                $table->timestamp('resolved_at')->nullable()->after('is_resolved');
+            }
         });
     }
 

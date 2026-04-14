@@ -9,8 +9,12 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('subjects', function (Blueprint $table) {
-            $table->string('year_level', 50)->nullable()->after('units');
-            $table->string('semester', 50)->nullable()->after('year_level');
+            if (!Schema::hasColumn('subjects', 'year_level')) {
+                $table->string('year_level', 50)->nullable()->after('units');
+            }
+            if (!Schema::hasColumn('subjects', 'semester')) {
+                $table->string('semester', 50)->nullable()->after('year_level');
+            }
         });
     }
 

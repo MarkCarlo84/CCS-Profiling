@@ -9,7 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->boolean('must_verify_email')->default(false)->after('student_id');
+            if (!Schema::hasColumn('users', 'must_verify_email')) {
+                $table->boolean('must_verify_email')->default(false)->after('student_id');
+            }
         });
     }
 

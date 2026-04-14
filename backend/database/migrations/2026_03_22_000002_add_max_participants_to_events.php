@@ -9,9 +9,10 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Add max_participants column to events
         Schema::table('events', function (Blueprint $table) {
-            $table->unsignedInteger('max_participants')->nullable()->after('department_id');
+            if (!Schema::hasColumn('events', 'max_participants')) {
+                $table->unsignedInteger('max_participants')->nullable()->after('department_id');
+            }
         });
 
         // Seed CS and IT departments if they don't exist

@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('academic_records', function (Blueprint $table) {
-            $table->unsignedTinyInteger('year_level')->nullable()->after('semester');
-        });
+        if (!Schema::hasColumn('academic_records', 'year_level')) {
+            Schema::table('academic_records', function (Blueprint $table) {
+                $table->unsignedTinyInteger('year_level')->nullable()->after('semester');
+            });
+        }
     }
 
     public function down(): void

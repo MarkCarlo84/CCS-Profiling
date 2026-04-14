@@ -8,9 +8,11 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::table('students', function (Blueprint $table) {
-            $table->enum('section', ['A', 'B', 'C', 'D'])->nullable()->after('department');
-        });
+        if (!Schema::hasColumn('students', 'section')) {
+            Schema::table('students', function (Blueprint $table) {
+                $table->enum('section', ['A', 'B', 'C', 'D'])->nullable()->after('department');
+            });
+        }
     }
 
     public function down(): void
