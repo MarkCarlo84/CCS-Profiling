@@ -73,9 +73,8 @@ class StudentBulkSeeder extends Seeder
         'Domingo','Natividad','Rodrigo','Carmelita','Renato','Remedios','Virgilio','Adoracion',
     ];
 
-    private array $guardianRelations = ['Father','Mother','Uncle','Aunt','Grandfather','Grandmother','Elder Brother','Elder Sister'];
-    private array $emergencyRelations = ['Mother','Father','Aunt','Uncle','Elder Brother','Elder Sister','Cousin'];
-
+    private array $guardianRelations   = ['Father','Mother','Uncle','Aunt','Grandfather','Grandmother','Elder Brother','Elder Sister'];
+    private array $emergencyRelations  = ['Mother','Father','Aunt','Uncle','Elder Brother','Elder Sister','Cousin'];
     private array $emergencyFirstNames = [
         'Josefina','Ernesto','Carmelita','Rodrigo','Felicitas','Domingo','Natividad','Alfredo',
         'Marilou','Renato','Cynthia','Arnel','Divina','Rogelio','Estrella','Wilfredo',
@@ -145,9 +144,8 @@ class StudentBulkSeeder extends Seeder
         $this->studentHash = Hash::make('Student1234');
         $this->now = Carbon::now()->toDateTimeString();
 
-        DB::transaction(function () {
-            $this->seedBulkStudents();
-        });
+        // No wrapping transaction — process bucket by bucket to avoid long locks
+        $this->seedBulkStudents();
 
         $this->command->info('✓ StudentBulkSeeder complete — 960 students seeded');
     }
@@ -164,34 +162,25 @@ class StudentBulkSeeder extends Seeder
         $enrollDates = ['1st Year' => '2025-01-10', '2nd Year' => '2024-06-10', '3rd Year' => '2023-06-10', '4th Year' => '2022-06-10'];
         $syMap       = [1 => '2025-2026', 2 => '2024-2025', 3 => '2023-2024', 4 => '2022-2023'];
 
-        // Pre-load existing IDs/emails to avoid duplicates
         $usedIds    = DB::table('students')->pluck('student_id')->flip()->toArray();
         $usedEmails = DB::table('users')->pluck('email')->flip()->toArray();
-
-        $affiliationRows = [];
-        $skillRows       = [];
-        $historyRows     = [];
-        $gradeRows       = [];
-        $violationRows   = [];
-        $gpaUpdates      = []; // [record_id => gpa]
 
         $generated = 0;
 
         foreach ($yearLevels as $yearLevel) {
             foreach ($departments as $dept) {
-                $yn      = $yearNum[$yearLevel];
-                $program = $dept === 'IT' ? 'Information Technology' : 'Computer Science';
-                $prefix  = substr((string)(2026 - $yn), 2);
+                $yn       = $yearNum[$yearLevel];
+                $program  = $dept === 'IT' ? 'Information Technology' : 'Computer Science';
+                $prefix   = substr((string)(2026 - $yn), 2);
                 $deptCode = $dept === 'IT' ? '1' : '2';
 
-                // Build 120 student rows + user rows for bulk insert
-                $studentRows = [];
-                $userPayloads = []; // store data needed to build user rows after student insert
+                $studentRows  = [];
+                $userPayloads = [];
 
+                // ── 1. Build student rows ─────────────────────────────────────
                 for ($i = 0; $i < 120; $i++) {
                     $section = ['A','B','C','D'][intdiv($i, 30)];
 
-                    // Unique student ID
                     $counter = 200 + $generated + $i;
                     $sid = $prefix . '0' . $deptCode . str_pad($counter, 3, '0', STR_PAD_LEFT);
                     while (isset($usedIds[$sid])) {
@@ -201,20 +190,16 @@ class StudentBulkSeeder extends Seeder
                     $usedIds[$sid] = true;
 
                     $gender = ($i % 2 === 0) ? 'Male' : 'Female';
-                    $fn = $gender === 'Male'
+                    $fn  = $gender === 'Male'
                         ? $this->firstNamesMale[array_rand($this->firstNamesMale)]
                         : $this->firstNamesFemale[array_rand($this->firstNamesFemale)];
-                    $mn = $this->middleNames[array_rand($this->middleNames)];
-                    $ln = $this->lastNames[array_rand($this->lastNames)];
-                    $age = $yn === 1 ? rand(17, 19) : ($yn === 2 ? rand(19, 21) : ($yn === 3 ? rand(20, 22) : rand(21, 24)));
+                    $mn  = $this->middleNames[array_rand($this->middleNames)];
+                    $ln  = $this->lastNames[array_rand($this->lastNames)];
+                    $age = $yn === 1 ? rand(17,19) : ($yn === 2 ? rand(19,21) : ($yn === 3 ? rand(20,22) : rand(21,24)));
 
                     $city     = $this->cities[array_rand($this->cities)];
                     $barangay = $this->barangays[array_rand($this->barangays)];
                     $street   = $this->streets[array_rand($this->streets)];
-                    $fullAddress = rand(1, 999) . " $street St., $barangay, $city, Metro Manila";
-
-                    $contactNo   = $this->contactPrefixes[array_rand($this->contactPrefixes)] . rand(1000000, 9999999);
-                    $emergencyNo = $this->contactPrefixes[array_rand($this->contactPrefixes)] . rand(1000000, 9999999);
 
                     $emailBase = strtolower(preg_replace('/\s+/', '', $fn) . '.' . preg_replace('/\s+/', '', $ln));
                     $email = $emailBase . rand(100, 999) . '@student.ccs.edu.ph';
@@ -222,11 +207,6 @@ class StudentBulkSeeder extends Seeder
                         $email = $emailBase . rand(100, 9999) . '@student.ccs.edu.ph';
                     }
                     $usedEmails[$email] = true;
-
-                    $guardianFn       = $this->guardianFirstNames[array_rand($this->guardianFirstNames)];
-                    $guardianRelation = $this->guardianRelations[array_rand($this->guardianRelations)];
-                    $emergencyFn      = $this->emergencyFirstNames[array_rand($this->emergencyFirstNames)];
-                    $emergencyRelation = $this->emergencyRelations[array_rand($this->emergencyRelations)];
 
                     $statusRoll = rand(1, 100);
                     $status = $statusRoll <= 90 ? 'active' : ($statusRoll <= 95 ? 'inactive' : ($statusRoll <= 98 ? 'loa' : 'dropped'));
@@ -240,46 +220,45 @@ class StudentBulkSeeder extends Seeder
                         'last_name'                => $ln,
                         'age'                      => $age,
                         'gender'                   => $gender,
-                        'address'                  => $fullAddress,
-                        'contact_number'           => $contactNo,
+                        'address'                  => rand(1,999) . " $street St., $barangay, $city, Metro Manila",
+                        'contact_number'           => $this->contactPrefixes[array_rand($this->contactPrefixes)] . rand(1000000, 9999999),
                         'email'                    => $email,
                         'enrollment_date'          => $enrollDates[$yearLevel],
                         'status'                   => $status,
                         'date_of_birth'            => Carbon::now()->subYears($age)->subDays(rand(0, 364))->format('Y-m-d'),
-                        'guardian_name'            => "$guardianFn $ln ($guardianRelation)",
-                        'emergency_contact_name'   => "$emergencyFn $ln ($emergencyRelation)",
-                        'emergency_contact_number' => $emergencyNo,
+                        'guardian_name'            => $this->guardianFirstNames[array_rand($this->guardianFirstNames)] . " $ln (" . $this->guardianRelations[array_rand($this->guardianRelations)] . ')',
+                        'emergency_contact_name'   => $this->emergencyFirstNames[array_rand($this->emergencyFirstNames)] . " $ln (" . $this->emergencyRelations[array_rand($this->emergencyRelations)] . ')',
+                        'emergency_contact_number' => $this->contactPrefixes[array_rand($this->contactPrefixes)] . rand(1000000, 9999999),
                         'created_at'               => $this->now,
                         'updated_at'               => $this->now,
                     ];
 
-                    // Store metadata for user + related rows (keyed by student_id string for lookup after bulk insert)
-                    $userPayloads[$sid] = [
-                        'name'    => "$fn $ln",
-                        'email'   => $email,
-                        'dept'    => $dept,
-                        'yn'      => $yn,
-                        'program' => $program,
-                    ];
+                    $userPayloads[$sid] = ['name' => "$fn $ln", 'email' => $email, 'dept' => $dept, 'yn' => $yn, 'program' => $program];
                 }
 
-                // Bulk insert students, then fetch their auto-increment IDs
+                // ── 2. Bulk insert students ───────────────────────────────────
                 foreach (array_chunk($studentRows, 50) as $chunk) {
                     DB::table('students')->insert($chunk);
                 }
 
-                // Fetch inserted student IDs by student_id codes
+                // Fetch real DB IDs keyed by student_id code
                 $sids = array_column($studentRows, 'student_id');
-                $insertedStudents = DB::table('students')
-                    ->whereIn('student_id', $sids)
-                    ->pluck('id', 'student_id');
+                $insertedStudents = DB::table('students')->whereIn('student_id', $sids)->pluck('id', 'student_id');
 
-                // Build user rows + related data now that we have real IDs
-                $userRows = [];
+                // ── 3. Build all related rows in memory ───────────────────────
+                $userRows        = [];
+                $affiliationRows = [];
+                $skillRows       = [];
+                $historyRows     = [];
+                $violationRows   = [];
+                $recordRows      = []; // [composite_key => row]  composite = student_db_id|sy|sem
+                $gradePayloads   = []; // [composite_key => [grades]]
+                $recordGpaSums   = []; // [composite_key => [total, count]]
+
                 foreach ($studentRows as $sr) {
-                    $sid      = $sr['student_id'];
-                    $dbId     = $insertedStudents[$sid];
-                    $meta     = $userPayloads[$sid];
+                    $sid  = $sr['student_id'];
+                    $dbId = $insertedStudents[$sid];
+                    $meta = $userPayloads[$sid];
 
                     $userRows[] = [
                         'name'       => $meta['name'],
@@ -292,155 +271,153 @@ class StudentBulkSeeder extends Seeder
                     ];
 
                     // Affiliations
-                    $affPicks = collect($this->affiliationPool)->shuffle()->take(rand(1, 3));
-                    foreach ($affPicks as [$aname, $atype]) {
+                    foreach (collect($this->affiliationPool)->shuffle()->take(rand(1,3)) as [$aname, $atype]) {
                         $affiliationRows[] = [
-                            'student_id'  => $dbId,
-                            'name'        => $aname,
-                            'type'        => $atype,
+                            'student_id'  => $dbId, 'name' => $aname, 'type' => $atype,
                             'role'        => 'Member',
-                            'date_joined' => Carbon::now()->subMonths(rand(3, 36))->format('Y-m-d'),
-                            'created_at'  => $this->now,
-                            'updated_at'  => $this->now,
+                            'date_joined' => Carbon::now()->subMonths(rand(3,36))->format('Y-m-d'),
+                            'created_at'  => $this->now, 'updated_at' => $this->now,
                         ];
                     }
 
                     // Skills
-                    $skillPool  = $meta['dept'] === 'IT' ? $this->itSkillPool : $this->csSkillPool;
-                    foreach (collect($skillPool)->shuffle()->take(rand(2, 4)) as [$sname, $level, $cert]) {
+                    $skillPool = $meta['dept'] === 'IT' ? $this->itSkillPool : $this->csSkillPool;
+                    foreach (collect($skillPool)->shuffle()->take(rand(2,4)) as [$sname, $level, $cert]) {
                         $skillRows[] = [
-                            'student_id'    => $dbId,
-                            'skill_name'    => $sname,
-                            'skill_level'   => $level,
-                            'certification' => $cert,
-                            'created_at'    => $this->now,
-                            'updated_at'    => $this->now,
+                            'student_id'    => $dbId, 'skill_name' => $sname,
+                            'skill_level'   => $level, 'certification' => $cert,
+                            'created_at'    => $this->now, 'updated_at' => $this->now,
                         ];
                     }
 
                     // Non-academic history
-                    foreach (collect($this->activityPool)->shuffle()->take(rand(1, 2)) as [$title, $cat, $desc, $role, $org, $result]) {
-                        $start = Carbon::now()->subMonths(rand(6, 30));
+                    foreach (collect($this->activityPool)->shuffle()->take(rand(1,2)) as [$title, $cat, $desc, $role, $org, $result]) {
+                        $start = Carbon::now()->subMonths(rand(6,30));
                         $historyRows[] = [
-                            'student_id'     => $dbId,
-                            'activity_title' => $title,
-                            'category'       => $cat,
-                            'description'    => $desc,
+                            'student_id'     => $dbId, 'activity_title' => $title,
+                            'category'       => $cat, 'description' => $desc,
                             'date_started'   => $start->format('Y-m-d'),
-                            'date_ended'     => (clone $start)->addDays(rand(1, 5))->format('Y-m-d'),
-                            'role'           => $role,
-                            'organizer'      => $org,
-                            'game_result'    => $result,
-                            'created_at'     => $this->now,
-                            'updated_at'     => $this->now,
+                            'date_ended'     => (clone $start)->addDays(rand(1,5))->format('Y-m-d'),
+                            'role'           => $role, 'organizer' => $org, 'game_result' => $result,
+                            'created_at'     => $this->now, 'updated_at' => $this->now,
                         ];
                     }
 
-                    // Academic records + grades
+                    // Academic records — collect rows, resolve IDs after bulk insert
                     $yn = $meta['yn'];
                     for ($y = 1; $y <= $yn; $y++) {
                         $sems      = ($y === $yn) ? ['1st'] : ['1st', '2nd'];
                         $sy        = $syMap[$y];
-                        $yearLabel = match($y) { 1 => '1st Year', 2 => '2nd Year', 3 => '3rd Year', 4 => '4th Year' };
+                        $yearLabel = match($y) { 1=>'1st Year', 2=>'2nd Year', 3=>'3rd Year', 4=>'4th Year' };
 
                         foreach ($sems as $sem) {
-                            $semLabel = $sem === '1st' ? '1st Semester' : '2nd Semester';
-                            $recordId = DB::table('academic_records')->insertGetId([
-                                'student_id'  => $dbId,
-                                'school_year' => $sy,
-                                'semester'    => $sem,
-                                'year_level'  => $y,
+                            $key = "{$dbId}|{$sy}|{$sem}";
+                            $recordRows[$key] = [
+                                'student_id'  => $dbId, 'school_year' => $sy,
+                                'semester'    => $sem,  'year_level'  => $y,
                                 'gpa'         => null,
-                                'created_at'  => $this->now,
-                                'updated_at'  => $this->now,
-                            ]);
+                                'created_at'  => $this->now, 'updated_at' => $this->now,
+                            ];
 
+                            $semLabel = $sem === '1st' ? '1st Semester' : '2nd Semester';
                             $subs     = $subjects->get($meta['program'] . '|' . $yearLabel . '|' . $semLabel, collect());
-                            $total    = 0;
-                            $subCount = 0;
+                            $total    = 0; $subCount = 0;
 
                             foreach ($subs as $sub) {
                                 $score = $this->gradeValues[array_rand($this->gradeValues)];
-                                $gradeRows[] = [
-                                    'academic_record_id' => $recordId,
-                                    'subject_id'         => $sub->id,
-                                    'subject_name'       => $sub->subject_name,
-                                    'score'              => $score,
-                                    'remarks'            => 'Passed',
-                                    'created_at'         => $this->now,
-                                    'updated_at'         => $this->now,
+                                $gradePayloads[$key][] = [
+                                    'subject_id'   => $sub->id,
+                                    'subject_name' => $sub->subject_name,
+                                    'score'        => $score,
+                                    'remarks'      => 'Passed',
+                                    'created_at'   => $this->now,
+                                    'updated_at'   => $this->now,
                                 ];
-                                $total += $score;
-                                $subCount++;
+                                $total += $score; $subCount++;
                             }
 
                             if ($subCount > 0) {
-                                $gpaUpdates[$recordId] = round($total / $subCount, 2);
+                                $recordGpaSums[$key] = round($total / $subCount, 2);
                             }
                         }
                     }
 
                     // Violations (~40%)
-                    if (rand(1, 10) <= 4) {
+                    if (rand(1,10) <= 4) {
                         [$vtype, $vdesc, $vsev, $vaction] = $this->violationPool[array_rand($this->violationPool)];
-                        $committed = Carbon::now()->subMonths(rand(1, 18));
-                        $resolved  = $vsev === 'minor' && rand(0, 1);
+                        $committed = Carbon::now()->subMonths(rand(1,18));
+                        $resolved  = $vsev === 'minor' && rand(0,1);
                         $violationRows[] = [
-                            'student_id'     => $dbId,
-                            'violation_type' => $vtype,
+                            'student_id'     => $dbId, 'violation_type' => $vtype,
                             'description'    => $vdesc,
                             'date_committed' => $committed->format('Y-m-d'),
-                            'severity_level' => $vsev,
-                            'action_taken'   => $vaction,
+                            'severity_level' => $vsev, 'action_taken' => $vaction,
                             'is_resolved'    => (int) $resolved,
-                            'resolved_at'    => $resolved ? (clone $committed)->addDays(rand(3, 14))->toDateTimeString() : null,
-                            'created_at'     => $this->now,
-                            'updated_at'     => $this->now,
+                            'resolved_at'    => $resolved ? (clone $committed)->addDays(rand(3,14))->toDateTimeString() : null,
+                            'created_at'     => $this->now, 'updated_at' => $this->now,
                         ];
                     }
                 }
 
-                // Bulk insert users for this bucket
+                // ── 4. Bulk insert users ──────────────────────────────────────
                 foreach (array_chunk($userRows, 50) as $chunk) {
                     DB::table('users')->insert($chunk);
                 }
 
+                // ── 5. Bulk insert academic_records, then resolve IDs ─────────
+                $recordChunks = array_chunk(array_values($recordRows), 100);
+                foreach ($recordChunks as $chunk) {
+                    DB::table('academic_records')->insert($chunk);
+                }
+
+                // Fetch inserted record IDs via composite key (student_id + school_year + semester)
+                $studentDbIds = $insertedStudents->values()->toArray();
+                $insertedRecords = DB::table('academic_records')
+                    ->whereIn('student_id', $studentDbIds)
+                    ->get(['id', 'student_id', 'school_year', 'semester'])
+                    ->keyBy(fn($r) => "{$r->student_id}|{$r->school_year}|{$r->semester}");
+
+                // ── 6. Build grade rows with real record IDs ──────────────────
+                $gradeRows = [];
+                $gpaUpdates = [];
+                foreach ($gradePayloads as $key => $grades) {
+                    $record = $insertedRecords[$key] ?? null;
+                    if (!$record) continue;
+                    foreach ($grades as $g) {
+                        $gradeRows[] = array_merge(['academic_record_id' => $record->id], $g);
+                    }
+                    if (isset($recordGpaSums[$key])) {
+                        $gpaUpdates[$record->id] = $recordGpaSums[$key];
+                    }
+                }
+
+                // ── 7. Flush everything ───────────────────────────────────────
+                foreach (array_chunk($affiliationRows, 200) as $chunk) DB::table('affiliations')->insert($chunk);
+                foreach (array_chunk($skillRows, 200) as $chunk)       DB::table('skills')->insert($chunk);
+                foreach (array_chunk($historyRows, 200) as $chunk)     DB::table('non_academic_histories')->insert($chunk);
+                foreach (array_chunk($gradeRows, 200) as $chunk)       DB::table('grades')->insert($chunk);
+                foreach (array_chunk($violationRows, 200) as $chunk)   DB::table('violations')->insert($chunk);
+
+                $this->bulkUpdateGpa($gpaUpdates);
+
                 $generated += 120;
                 $this->command->info("  → $yearLevel $dept: 120 students done");
-
-                // Flush related rows every bucket to keep memory low
-                $this->flushBulk($affiliationRows, $skillRows, $historyRows, $gradeRows, $violationRows);
-                $affiliationRows = $skillRows = $historyRows = $gradeRows = $violationRows = [];
             }
         }
 
-        // Bulk update GPAs using a single CASE statement per batch
-        $this->bulkUpdateGpa($gpaUpdates);
-
         $this->command->info("✓ Total generated: {$generated} students");
-    }
-
-    private function flushBulk(array $aff, array $skills, array $history, array $grades, array $violations): void
-    {
-        foreach (array_chunk($aff, 100) as $chunk)        DB::table('affiliations')->insert($chunk);
-        foreach (array_chunk($skills, 100) as $chunk)     DB::table('skills')->insert($chunk);
-        foreach (array_chunk($history, 100) as $chunk)    DB::table('non_academic_histories')->insert($chunk);
-        foreach (array_chunk($grades, 100) as $chunk)     DB::table('grades')->insert($chunk);
-        foreach (array_chunk($violations, 100) as $chunk) DB::table('violations')->insert($chunk);
     }
 
     private function bulkUpdateGpa(array $gpaUpdates): void
     {
         if (empty($gpaUpdates)) return;
 
-        // Batch CASE updates — much faster than N individual UPDATEs
         foreach (array_chunk($gpaUpdates, 500, true) as $batch) {
-            $ids   = array_keys($batch);
-            $cases = '';
+            $cases  = '';
             foreach ($batch as $id => $gpa) {
                 $cases .= "WHEN $id THEN $gpa ";
             }
-            $inList = implode(',', $ids);
+            $inList = implode(',', array_keys($batch));
             DB::statement("UPDATE academic_records SET gpa = CASE id {$cases}END WHERE id IN ($inList)");
         }
     }
