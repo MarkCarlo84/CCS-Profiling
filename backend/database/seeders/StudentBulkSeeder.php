@@ -152,6 +152,12 @@ class StudentBulkSeeder extends Seeder
 
     private function seedBulkStudents(): void
     {
+        // Skip if already seeded to prevent duplicate key errors on re-runs
+        if (DB::table('students')->count() > 0) {
+            $this->command->warn('  ⚠ Students table already has data — skipping StudentBulkSeeder.');
+            return;
+        }
+
         // Pre-load subjects grouped for fast lookup
         $subjects = DB::table('subjects')->get()
             ->groupBy(fn($s) => $s->program . '|' . $s->year_level . '|' . $s->semester);
@@ -238,7 +244,7 @@ class StudentBulkSeeder extends Seeder
 
                 // ── 2. Bulk insert students ───────────────────────────────────
                 foreach (array_chunk($studentRows, 50) as $chunk) {
-                    DB::table('students')->insert($chunk);
+                    DB::table('students')->insertOrIgnore($chunk);
                 }
 
                 // Fetch real DB IDs keyed by student_id code
