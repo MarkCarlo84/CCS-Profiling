@@ -38,7 +38,7 @@ echo "==> Running migrations..."
 php artisan migrate --force
 
 echo "==> Seeding database..."
-php artisan db:seed --force --class=DatabaseSeeder 2>/dev/null || true
+php artisan db:seed --force --class=DatabaseSeeder
 
 echo "==> Caching config..."
 php artisan config:cache
