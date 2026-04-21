@@ -464,7 +464,7 @@ export default function StudentDataMap() {
 
                     {/* Mobile: card list */}
                     <div className="subjects-card-list">
-                        {paginated.map((stu, idx) => (
+                        {deptStudents.map((stu, idx) => (
                             <div key={stu.id} style={{
                                 padding: '12px 14px',
                                 borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
