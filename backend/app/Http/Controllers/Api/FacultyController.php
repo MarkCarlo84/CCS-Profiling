@@ -11,7 +11,6 @@ use App\Services\BrevoMailService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Cache;
 
 class FacultyController extends Controller
 {
@@ -31,12 +30,7 @@ class FacultyController extends Controller
             });
         }
 
-        if ($request->boolean('paginate') === false || $request->input('paginate') === 'false') {
-            return response()->json($query->orderBy('last_name')->get());
-        }
-
-        $perPage = min((int) $request->input('per_page', 50), 100);
-        return response()->json($query->orderBy('last_name')->paginate($perPage));
+        return response()->json($query->orderBy('last_name')->get());
     }
 
     public function store(Request $request): JsonResponse
@@ -52,9 +46,6 @@ class FacultyController extends Controller
         ]);
 
         $faculty = Faculty::create($data);
-
-        // Bust summary cache
-        Cache::forget('report_summary');
 
         // Auto-create user account with default password
         $defaultPassword = 'Faculty1234';
@@ -108,14 +99,12 @@ class FacultyController extends Controller
             'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
         ]);
         $faculty->update($data);
-        Cache::forget('report_summary');
         return response()->json($faculty);
     }
 
     public function destroy(Faculty $faculty): JsonResponse
     {
         $faculty->delete();
-        Cache::forget('report_summary');
         return response()->json(['message' => 'Faculty deleted.']);
     }
 

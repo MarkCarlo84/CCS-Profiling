@@ -1,5 +1,4 @@
 import axios from 'axios';
-import { cached, invalidate, invalidatePrefix, clearCache } from './cache';
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
@@ -23,14 +22,11 @@ export const changePassword  = (current_password, new_password, new_password_con
     api.post('/auth/change-password', { current_password, new_password, new_password_confirmation });
 
 // ── Faculty ──────────────────────────────────────────────────────────────────
-export const getFaculties = (params = {}) => {
-    const key = `faculties?${new URLSearchParams(params).toString()}`;
-    return cached(key, () => api.get('/faculties', { params }), 120);
-};
+export const getFaculties = (params = {}) => api.get('/faculties', { params });
 export const getFaculty = (id) => api.get(`/faculties/${id}`);
-export const createFaculty = (data) => api.post('/faculties', data).then(r => { invalidatePrefix('faculties'); invalidate('reports/summary'); return r; });
-export const updateFaculty = (id, data) => api.put(`/faculties/${id}`, data).then(r => { invalidatePrefix('faculties'); invalidate('reports/summary'); return r; });
-export const deleteFaculty = (id) => api.delete(`/faculties/${id}`).then(r => { invalidatePrefix('faculties'); invalidate('reports/summary'); return r; });
+export const createFaculty = (data) => api.post('/faculties', data);
+export const updateFaculty = (id, data) => api.put(`/faculties/${id}`, data);
+export const deleteFaculty = (id) => api.delete(`/faculties/${id}`);
 
 // Faculty class diagram operations
 export const facultyCreateReport = (facultyId, criteriaId) => api.post(`/faculties/${facultyId}/create-report/${criteriaId}`);
@@ -39,15 +35,12 @@ export const facultyRecordViolation = (facultyId, studentId, data) => api.post(`
 export const facultyUpdateStudentRecord = (facultyId, studentId, data) => api.patch(`/faculties/${facultyId}/update-student/${studentId}`, data);
 
 // ── Students ──────────────────────────────────────────────────────────────────
-export const getStudents = (params = {}) => {
-    const key = `students?${new URLSearchParams(params).toString()}`;
-    return cached(key, () => api.get('/students', { params }), 120);
-};
+export const getStudents = (params = {}) => api.get('/students', { params });
 export const getStudent = (id) => api.get(`/students/${id}`);
 export const getSectionCapacity = (department, year_level) => api.get('/students/section-capacity', { params: { department, year_level } });
-export const createStudent = (data) => api.post('/students', data).then(r => { invalidatePrefix('students'); invalidate('reports/summary'); return r; });
-export const updateStudent = (id, data) => api.put(`/students/${id}`, data).then(r => { invalidatePrefix('students'); return r; });
-export const deleteStudent = (id) => api.delete(`/students/${id}`).then(r => { invalidatePrefix('students'); invalidate('reports/summary'); return r; });
+export const createStudent = (data) => api.post('/students', data);
+export const updateStudent = (id, data) => api.put(`/students/${id}`, data);
+export const deleteStudent = (id) => api.delete(`/students/${id}`);
 
 // Student class diagram operations
 export const studentUpdateProfile = (id, data) => api.patch(`/students/${id}/update-profile`, data);
@@ -57,14 +50,11 @@ export const studentAddSkill = (id, data) => api.post(`/students/${id}/skills`, 
 export const studentAddAcademicRecord = (id, data) => api.post(`/students/${id}/academic-records`, data);
 
 // ── Subjects ──────────────────────────────────────────────────────────────────
-export const getSubjects = (params = {}) => {
-    const key = `subjects?${new URLSearchParams(params).toString()}`;
-    return cached(key, () => api.get('/subjects', { params }), 300);
-};
+export const getSubjects = (params = {}) => api.get('/subjects', { params });
 export const getSubject = (id) => api.get(`/subjects/${id}`);
-export const createSubject = (data) => api.post('/subjects', data).then(r => { invalidatePrefix('subjects'); return r; });
-export const updateSubject = (id, data) => api.put(`/subjects/${id}`, data).then(r => { invalidatePrefix('subjects'); return r; });
-export const deleteSubject = (id) => api.delete(`/subjects/${id}`).then(r => { invalidatePrefix('subjects'); return r; });
+export const createSubject = (data) => api.post('/subjects', data);
+export const updateSubject = (id, data) => api.put(`/subjects/${id}`, data);
+export const deleteSubject = (id) => api.delete(`/subjects/${id}`);
 export const getSubjectInfo = (id) => api.get(`/subjects/${id}/info`);
 
 // ── Grades ────────────────────────────────────────────────────────────────────
@@ -85,28 +75,22 @@ export const deleteEligibilityCriteria = (id) => api.delete(`/eligibility-criter
 export const evaluateStudentForCriteria = (criteriaId, studentId) => api.get(`/eligibility-criteria/${criteriaId}/evaluate/${studentId}`);
 
 // ── Affiliations ──────────────────────────────────────────────────────────────
-export const getAffiliations = (params = {}) => {
-    const key = `affiliations?${new URLSearchParams(params).toString()}`;
-    return cached(key, () => api.get('/affiliations', { params }), 120);
-};
+export const getAffiliations = (params = {}) => api.get('/affiliations', { params });
 export const getAffiliation = (id) => api.get(`/affiliations/${id}`);
-export const createAffiliation = (data) => api.post('/affiliations', data).then(r => { invalidatePrefix('affiliations'); return r; });
-export const updateAffiliation = (id, data) => api.put(`/affiliations/${id}`, data).then(r => { invalidatePrefix('affiliations'); return r; });
-export const deleteAffiliation = (id) => api.delete(`/affiliations/${id}`).then(r => { invalidatePrefix('affiliations'); return r; });
+export const createAffiliation = (data) => api.post('/affiliations', data);
+export const updateAffiliation = (id, data) => api.put(`/affiliations/${id}`, data);
+export const deleteAffiliation = (id) => api.delete(`/affiliations/${id}`);
 export const getAffiliationDetails = (id) => api.get(`/affiliations/${id}/details`);
 
 // ── Violations ────────────────────────────────────────────────────────────────
-export const getViolations = (params = {}) => {
-    const key = `violations?${new URLSearchParams(params).toString()}`;
-    return cached(key, () => api.get('/violations', { params }), 120);
-};
+export const getViolations = (params = {}) => api.get('/violations', { params });
 export const getViolation = (id) => api.get(`/violations/${id}`);
-export const createViolation = (data) => api.post('/violations', data).then(r => { invalidatePrefix('violations'); invalidatePrefix('students'); return r; });
-export const updateViolation = (id, data) => api.put(`/violations/${id}`, data).then(r => { invalidatePrefix('violations'); return r; });
-export const deleteViolation = (id) => api.delete(`/violations/${id}`).then(r => { invalidatePrefix('violations'); return r; });
+export const createViolation = (data) => api.post('/violations', data);
+export const updateViolation = (id, data) => api.put(`/violations/${id}`, data);
+export const deleteViolation = (id) => api.delete(`/violations/${id}`);
 export const getViolationDetails = (id) => api.get(`/violations/${id}/details`);
-export const updateViolationAction = (id, action) => api.patch(`/violations/${id}/update-action`, { action_taken: action }).then(r => { invalidatePrefix('violations'); return r; });
-export const resolveViolation = (id) => api.patch(`/violations/${id}/resolve`).then(r => { invalidatePrefix('violations'); return r; });
+export const updateViolationAction = (id, action) => api.patch(`/violations/${id}/update-action`, { action_taken: action });
+export const resolveViolation = (id) => api.patch(`/violations/${id}/resolve`);
 
 // ── Academic Records ──────────────────────────────────────────────────────────
 export const getAcademicRecords = (params = {}) => api.get('/academic-records', { params });
@@ -125,37 +109,31 @@ export const adminUpdateGrade = (id, data) => api.patch(`/admin/grades/${id}`, d
 export const adminDeleteGrade = (id) => api.delete(`/admin/grades/${id}`);
 
 // ── Skills ────────────────────────────────────────────────────────────────────
-export const getSkills = (params = {}) => {
-    const key = `skills?${new URLSearchParams(params).toString()}`;
-    return cached(key, () => api.get('/skills', { params }), 120);
-};
+export const getSkills = (params = {}) => api.get('/skills', { params });
 export const getSkill = (id) => api.get(`/skills/${id}`);
-export const createSkill = (data) => api.post('/skills', data).then(r => { invalidatePrefix('skills'); invalidate('reports/presets'); return r; });
-export const updateSkill = (id, data) => api.put(`/skills/${id}`, data).then(r => { invalidatePrefix('skills'); return r; });
-export const deleteSkill = (id) => api.delete(`/skills/${id}`).then(r => { invalidatePrefix('skills'); invalidate('reports/presets'); return r; });
+export const createSkill = (data) => api.post('/skills', data);
+export const updateSkill = (id, data) => api.put(`/skills/${id}`, data);
+export const deleteSkill = (id) => api.delete(`/skills/${id}`);
 export const getSkillLevel = (id) => api.get(`/skills/${id}/level`);
-export const updateSkillLevel = (id, level) => api.patch(`/skills/${id}/level`, { skill_level: level }).then(r => { invalidatePrefix('skills'); return r; });
+export const updateSkillLevel = (id, level) => api.patch(`/skills/${id}/level`, { skill_level: level });
 
 // ── Non-Academic Histories ────────────────────────────────────────────────────
-export const getNonAcademicHistories = (params = {}) => {
-    const key = `non-academic-histories?${new URLSearchParams(params).toString()}`;
-    return cached(key, () => api.get('/non-academic-histories', { params }), 120);
-};
+export const getNonAcademicHistories = (params = {}) => api.get('/non-academic-histories', { params });
 export const getNonAcademicHistory = (id) => api.get(`/non-academic-histories/${id}`);
-export const createNonAcademicHistory = (data) => api.post('/non-academic-histories', data).then(r => { invalidatePrefix('non-academic-histories'); return r; });
-export const updateNonAcademicHistory = (id, data) => api.put(`/non-academic-histories/${id}`, data).then(r => { invalidatePrefix('non-academic-histories'); return r; });
-export const deleteNonAcademicHistory = (id) => api.delete(`/non-academic-histories/${id}`).then(r => { invalidatePrefix('non-academic-histories'); return r; });
+export const createNonAcademicHistory = (data) => api.post('/non-academic-histories', data);
+export const updateNonAcademicHistory = (id, data) => api.put(`/non-academic-histories/${id}`, data);
+export const deleteNonAcademicHistory = (id) => api.delete(`/non-academic-histories/${id}`);
 export const getNonAcademicDetails = (id) => api.get(`/non-academic-histories/${id}/details`);
-export const updateNonAcademicActivity = (id, description) => api.patch(`/non-academic-histories/${id}/update-activity`, { description }).then(r => { invalidatePrefix('non-academic-histories'); return r; });
+export const updateNonAcademicActivity = (id, description) => api.patch(`/non-academic-histories/${id}/update-activity`, { description });
 
 // ── Departments ───────────────────────────────────────────────────────────────
-export const getDepartments = () => cached('departments', () => api.get('/departments'), 600);
+export const getDepartments = () => api.get('/departments');
 
 // ── Reports ───────────────────────────────────────────────────────────────────
 export const getReportStudents = (params = {}) => api.get('/reports/students', { params });
 export const getReportFaculties = (params = {}) => api.get('/reports/faculties', { params });
-export const getSummary = () => cached('reports/summary', () => api.get('/reports/summary'), 300);
-export const getReportPresets = () => cached('reports/presets', () => api.get('/reports/presets'), 600);
+export const getSummary = () => api.get('/reports/summary');
+export const getReportPresets = () => api.get('/reports/presets');
 
 // ── Teacher Profile ───────────────────────────────────────────────────────────
 export const getTeacherProfile   = () => api.get('/teacher/profile');

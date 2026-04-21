@@ -25,8 +25,8 @@ export default function TeacherRecordViolation() {
     const [success, setSuccess] = useState('');
 
     useEffect(() => {
-        getStudents({ status: 'active', paginate: 'false' })
-            .then(r => setStudents(Array.isArray(r.data) ? r.data : (r.data.data ?? [])))
+        getStudents({ status: 'active' })
+            .then(r => setStudents(r.data))
             .finally(() => setLoading(false));
     }, []);
 

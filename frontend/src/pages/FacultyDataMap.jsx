@@ -267,7 +267,7 @@ export default function FacultyDataMap() {
     // Load all faculty once — tab/search filtering is done client-side
     const loadData = () => {
         setLoading(true);
-        getFaculties({ paginate: 'false' }).then(r => setAllFaculties(Array.isArray(r.data) ? r.data : (r.data.data ?? []))).finally(() => setLoading(false));
+        getFaculties({}).then(r => setAllFaculties(r.data)).finally(() => setLoading(false));
     };
 
     useEffect(loadData, []);

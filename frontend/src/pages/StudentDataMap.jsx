@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect, useCallback } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { getStudents, createStudent, updateStudent, deleteStudent, getSectionCapacity } from '../api';
 import { GraduationCap, Search, Printer, Building, Plus, Pencil, Trash2, X, Check, Users, BookOpen } from 'lucide-react';
@@ -250,20 +250,18 @@ function composeAddress(f) {
 }
 
 export default function StudentDataMap() {
-    const [students, setStudents] = useState([]);
-    const [pagination, setPagination] = useState({ current_page: 1, last_page: 1, total: 0, per_page: 50 });
+    const [allStudents, setAllStudents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ status: 'active', search: '', gender: '', department: '' });
-    const [searchInput, setSearchInput] = useState('');
     const [modal, setModal] = useState(null);
     const [viewing, setViewing] = useState(null);
     const [form, setForm] = useState(emptyStudent);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
-    const [currentPage, setCurrentPage] = useState(1);
+    const [deptPages, setDeptPages] = useState({});
+    const pageSize = 10;
     const [sectionCapacity, setSectionCapacity] = useState(null); // { sections: {A,B,C,D}, suggested }
     const [capacityLoading, setCapacityLoading] = useState(false);
-    const searchTimerRef = useRef(null);
 
     const printRef = useRef();
 
@@ -273,41 +271,27 @@ export default function StudentDataMap() {
         pageStyle: `@page { size: A4 landscape; margin: 10mm 8mm; } body { font-family: Arial, sans-serif; font-size: 10px; } table { font-size: 9px; }`,
     });
 
-    // Server-side data loading with filters
-    const loadData = useCallback((page = 1, activeFilters = filters) => {
+    // Load all students once — all filtering is done client-side
+    const loadData = () => {
         setLoading(true);
-        const params = { page, per_page: 50, ...activeFilters };
-        Object.keys(params).forEach(k => { if (params[k] === '') delete params[k]; });
-        getStudents(params)
-            .then(r => {
-                if (r.data?.data) {
-                    setStudents(r.data.data);
-                    setPagination({ current_page: r.data.current_page, last_page: r.data.last_page, total: r.data.total, per_page: r.data.per_page });
-                } else {
-                    // fallback for non-paginated response
-                    setStudents(Array.isArray(r.data) ? r.data : []);
-                    setPagination({ current_page: 1, last_page: 1, total: Array.isArray(r.data) ? r.data.length : 0, per_page: 50 });
-                }
-            })
-            .finally(() => setLoading(false));
-    }, []);
-
-    useEffect(() => { loadData(1, filters); setCurrentPage(1); }, [filters]);
-
-    // Debounced search — waits 400ms after user stops typing
-    const handleSearchChange = (e) => {
-        const val = e.target.value;
-        setSearchInput(val);
-        clearTimeout(searchTimerRef.current);
-        searchTimerRef.current = setTimeout(() => {
-            setFilters(f => ({ ...f, search: val }));
-        }, 400);
+        getStudents({}).then(r => setAllStudents(r.data)).finally(() => setLoading(false));
     };
 
-    const handlePageChange = (page) => {
-        setCurrentPage(page);
-        loadData(page, filters);
-    };
+    useEffect(loadData, []);
+    useEffect(() => setDeptPages({}), [filters]);
+
+    // Client-side filtering
+    const students = allStudents.filter(s => {
+        const matchStatus = !filters.status || s.status === filters.status;
+        const matchGender = !filters.gender || s.gender === filters.gender;
+        const matchDept = !filters.department || s.department === filters.department;
+        const q = filters.search.toLowerCase();
+        const matchSearch = !q ||
+            (s.first_name || '').toLowerCase().includes(q) ||
+            (s.last_name || '').toLowerCase().includes(q) ||
+            (s.student_id || '').toLowerCase().includes(q);
+        return matchStatus && matchGender && matchDept && matchSearch;
+    });
 
     const openAdd = () => { setForm(emptyStudent); setModal('add'); setSectionCapacity(null); };
 
@@ -354,12 +338,16 @@ export default function StudentDataMap() {
         try {
             const payload = { ...form, address: composeAddress(form) };
             if (modal === 'add') {
-                await createStudent(payload);
+                const res = await createStudent(payload);
+                const newStudent = res.data?.student ?? res.data;
+                // Prepend directly — no full reload needed
+                setAllStudents(prev => [newStudent, ...prev]);
             } else {
-                await updateStudent(modal.edit.id, payload);
+                const res = await updateStudent(modal.edit.id, payload);
+                const updated = res.data?.student ?? res.data;
+                setAllStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
             }
             setModal(null);
-            loadData(currentPage, filters);
         } catch (err) {
             setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
         } finally {
@@ -377,7 +365,7 @@ export default function StudentDataMap() {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this student record?')) return;
         await deleteStudent(id);
-        loadData(currentPage, filters);
+        setAllStudents(prev => prev.filter(s => s.id !== id));
     };
 
     // Group by department label
@@ -389,8 +377,13 @@ export default function StudentDataMap() {
         return acc;
     }, {});
 
+    const getDeptPage = (dept) => deptPages[dept] || 1;
+    const setDeptPage = (dept, p) => setDeptPages(prev => ({ ...prev, [dept]: p }));
+
     const renderDeptTable = (dept, deptStudents) => {
-        const label = DEPT_LABELS[dept] || dept;
+        const label = DEPT_LABELS[dept] || dept;        const page = getDeptPage(dept);
+        const totalPages = Math.ceil(deptStudents.length / pageSize);
+        const paginated = deptStudents.slice((page - 1) * pageSize, page * pageSize);
 
         return (
             <div key={dept} className="card" style={{ marginBottom: 28 }}>
@@ -414,9 +407,9 @@ export default function StudentDataMap() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {deptStudents.map((stu, idx) => (
+                                {paginated.map((stu, idx) => (
                                     <tr key={stu.id}>
-                                        <td>{(pagination.current_page - 1) * pagination.per_page + idx + 1}</td>
+                                        <td>{(page - 1) * pageSize + idx + 1}</td>
                                         <td><strong style={{ color: '#f97316', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong></td>
                                         <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
                                         <td>{stu.age || '—'}</td>
@@ -464,7 +457,7 @@ export default function StudentDataMap() {
 
                     {/* Mobile: card list */}
                     <div className="subjects-card-list">
-                        {deptStudents.map((stu, idx) => (
+                        {paginated.map((stu, idx) => (
                             <div key={stu.id} style={{
                                 padding: '12px 14px',
                                 borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
@@ -523,6 +516,46 @@ export default function StudentDataMap() {
                     </div>
 
                 </div>
+                {totalPages > 1 && (() => {
+                    const GROUP = 10;
+                    const groupIndex = Math.floor((page - 1) / GROUP);
+                    const groupStart = groupIndex * GROUP + 1;
+                    const groupEnd = Math.min(groupStart + GROUP - 1, totalPages);
+                    const pageNums = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+                    const hasPrevGroup = groupStart > 1;
+                    const hasNextGroup = groupEnd < totalPages;
+                    return (
+                        <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0', flexWrap: 'wrap' }}>
+                            <button onClick={() => setDeptPage(dept, groupStart - GROUP)} disabled={!hasPrevGroup} style={{ ...pageBtn, opacity: !hasPrevGroup ? 0.4 : 1 }}>‹</button>
+                            {pageNums.map(p => (
+                                <button key={p} onClick={() => setDeptPage(dept, p)}
+                                    style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
+                                >{p}</button>
+                            ))}
+                            <button onClick={() => setDeptPage(dept, groupEnd + 1)} disabled={!hasNextGroup} style={{ ...pageBtn, opacity: !hasNextGroup ? 0.4 : 1 }}>›</button>
+                            <select
+                                value={Math.floor((page - 1) / 10) * 10 + 10}
+                                onChange={e => {
+                                    const val = Number(e.target.value);
+                                    setDeptPage(dept, val - 9); // jump to first page of that group
+                                }}
+                                style={{ marginLeft: 8, padding: '4px 8px', borderRadius: 6, border: '1px solid #e7e5e4', fontSize: '.82rem', color: '#78716c', cursor: 'pointer', background: '#fff' }}
+                            >
+                                {Array.from({ length: Math.ceil(totalPages / 10) }, (_, i) => {
+                                    const groupEnd = Math.min((i + 1) * 10, totalPages);
+                                    const startRecord = i * 10 * pageSize + 1;
+                                    const endRecord = Math.min(groupEnd * pageSize, deptStudents.length);
+                                    return (
+                                        <option key={i} value={groupEnd}>{startRecord}–{endRecord}</option>
+                                    );
+                                })}
+                            </select>
+                            <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 4 }}>
+                                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, deptStudents.length)} of {deptStudents.length}
+                            </span>
+                        </div>
+                    );
+                })()}
             </div>
         );
     };
@@ -572,8 +605,8 @@ export default function StudentDataMap() {
                     <Search size={15} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                     <input
                         type="text" placeholder="Search name or student ID…"
-                        value={searchInput}
-                        onChange={handleSearchChange}
+                        value={filters.search}
+                        onChange={e => setFilters(f => ({ ...f, search: e.target.value }))}
                         style={{ paddingLeft: 36 }}
                     />
                 </div>
@@ -601,7 +634,7 @@ export default function StudentDataMap() {
                 <div className="print-header">
                     <h1>CCS COMPREHENSIVE PROFILING SYSTEM</h1>
                     <p>Student Data Map — Generated {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p>Total Students: {pagination.total}{filters.department ? ` — ${filters.department === 'IT' ? 'Information Technology' : 'Computer Science'}` : ''}</p>
+                    <p>Total Students: {students.length}{filters.department ? ` — ${filters.department === 'IT' ? 'Information Technology' : 'Computer Science'}` : ''}</p>
                     <hr style={{ margin: '6px 0' }} />
                 </div>
 
@@ -610,34 +643,8 @@ export default function StudentDataMap() {
                 ) : students.length === 0 ? (
                     <div className="empty"><GraduationCap size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No student records found.</p></div>
                 ) : (
-                    Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))
-                )}
+                    Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))                )}
             </div>
-
-            {/* Global server-side pagination */}
-            {pagination.last_page > 1 && (
-                <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '16px 0', flexWrap: 'wrap' }}>
-                    <button onClick={() => handlePageChange(currentPage - 1)} disabled={currentPage === 1} style={{ ...pageBtn, opacity: currentPage === 1 ? 0.4 : 1 }}>‹ Prev</button>
-                    {Array.from({ length: pagination.last_page }, (_, i) => i + 1)
-                        .filter(p => p === 1 || p === pagination.last_page || Math.abs(p - currentPage) <= 2)
-                        .reduce((acc, p, i, arr) => {
-                            if (i > 0 && p - arr[i - 1] > 1) acc.push('...');
-                            acc.push(p);
-                            return acc;
-                        }, [])
-                        .map((p, i) => p === '...'
-                            ? <span key={`ellipsis-${i}`} style={{ color: '#78716c', padding: '0 4px' }}>…</span>
-                            : <button key={p} onClick={() => handlePageChange(p)}
-                                style={{ ...pageBtn, background: p === currentPage ? '#f97316' : '#fff', color: p === currentPage ? '#fff' : '#78716c', borderColor: p === currentPage ? '#f97316' : '#e7e5e4', fontWeight: p === currentPage ? 700 : 500 }}
-                            >{p}</button>
-                        )
-                    }
-                    <button onClick={() => handlePageChange(currentPage + 1)} disabled={currentPage === pagination.last_page} style={{ ...pageBtn, opacity: currentPage === pagination.last_page ? 0.4 : 1 }}>Next ›</button>
-                    <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 8 }}>
-                        {pagination.total} total students
-                    </span>
-                </div>
-            )}
 
             {viewing && <StudentDetailModal student={viewing} onClose={() => setViewing(null)} />}
             {modal && (                <Modal title={modal === 'add' ? 'Add New Student' : 'Edit Student'} onClose={() => setModal(null)} width={640}>

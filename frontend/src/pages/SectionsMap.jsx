@@ -21,7 +21,7 @@ export default function SectionsMap() {
     const [search, setSearch]           = useState('');
 
     useEffect(() => {
-        getStudents({ paginate: 'false' }).then(r => setAllStudents(Array.isArray(r.data) ? r.data : (r.data.data ?? []))).finally(() => setLoading(false));
+        getStudents({}).then(r => setAllStudents(r.data)).finally(() => setLoading(false));
     }, []);
 
     // Build section groups: key = "1IT-A", value = [students]

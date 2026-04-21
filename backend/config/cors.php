@@ -19,12 +19,12 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_values(array_filter([
+    'allowed_origins' => array_filter([
         'http://localhost:5173',
         'http://localhost:3000',
         env('FRONTEND_URL'),
         env('FRONTEND_URL_PROD'),
-    ])),
+    ]),
 
     'allowed_origins_patterns' => [],
 
