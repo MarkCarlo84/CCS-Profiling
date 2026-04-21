@@ -7,6 +7,7 @@ use App\Models\Student;
 use App\Models\Faculty;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
 
 class ReportController extends Controller
 {
@@ -89,15 +90,19 @@ class ReportController extends Controller
      */
     public function summary(): JsonResponse
     {
-        return response()->json([
-            'total_faculty'   => Faculty::count(),
-            'total_students'  => Student::count(),
-            'active_students' => Student::where('status', 'active')->count(),
-            'total_subjects'  => \App\Models\Subject::count(),
-            'total_violations'=> \App\Models\Violation::count(),
-            'by_gender'       => Student::selectRaw('gender, count(*) as count')
-                                    ->groupBy('gender')->pluck('count', 'gender'),
-        ]);
+        $data = Cache::remember('report_summary', 300, function () {
+            return [
+                'total_faculty'   => Faculty::count(),
+                'total_students'  => Student::count(),
+                'active_students' => Student::where('status', 'active')->count(),
+                'total_subjects'  => \App\Models\Subject::count(),
+                'total_violations'=> \App\Models\Violation::count(),
+                'by_gender'       => Student::selectRaw('gender, count(*) as count')
+                                        ->groupBy('gender')->pluck('count', 'gender'),
+            ];
+        });
+
+        return response()->json($data);
     }
 
     /**
@@ -106,21 +111,22 @@ class ReportController extends Controller
      */
     public function presets(): JsonResponse
     {
-        $skills = \App\Models\Skill::select('skill_name')
-            ->distinct()
-            ->orderBy('skill_name')
-            ->pluck('skill_name');
+        $data = Cache::remember('report_presets', 600, function () {
+            $skills = \App\Models\Skill::select('skill_name')
+                ->distinct()
+                ->orderBy('skill_name')
+                ->pluck('skill_name');
 
-        $affiliations = \App\Models\Affiliation::select('name')
-            ->whereNotNull('name')
-            ->distinct()
-            ->orderBy('name')
-            ->pluck('name');
+            $affiliations = \App\Models\Affiliation::select('name')
+                ->whereNotNull('name')
+                ->distinct()
+                ->orderBy('name')
+                ->pluck('name');
 
-        return response()->json([
-            'skills'       => $skills,
-            'affiliations' => $affiliations,
-        ]);
+            return ['skills' => $skills, 'affiliations' => $affiliations];
+        });
+
+        return response()->json($data);
     }
     public function search(Request $request): JsonResponse
     {

@@ -13,6 +13,7 @@ use App\Services\BrevoMailService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Cache;
 
 class StudentController extends Controller
 {
@@ -38,7 +39,13 @@ class StudentController extends Controller
             $query->where('department', $request->department);
         }
 
-        return response()->json($query->orderBy('last_name')->get());
+        // If paginate=false is explicitly passed (e.g. for print/export), return all
+        if ($request->boolean('paginate') === false || $request->input('paginate') === 'false') {
+            return response()->json($query->orderBy('last_name')->get());
+        }
+
+        $perPage = min((int) $request->input('per_page', 50), 100);
+        return response()->json($query->orderBy('last_name')->paginate($perPage));
     }
 
     public function store(Request $request): JsonResponse
@@ -73,6 +80,9 @@ class StudentController extends Controller
         unset($data['year_level']);
 
         $student = Student::create($data);
+
+        // Bust summary cache
+        Cache::forget('report_summary');
 
         // Auto-create user account with default password
         $defaultPassword = 'Student1234';
@@ -136,12 +146,14 @@ class StudentController extends Controller
             'status'         => 'in:active,inactive,graduated,dropped,loa',
         ]);
         $student->update($data);
+        Cache::forget('report_summary');
         return response()->json($student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']));
     }
 
     public function destroy(Student $student): JsonResponse
     {
         $student->delete();
+        Cache::forget('report_summary');
         return response()->json(['message' => 'Student deleted.']);
     }
 

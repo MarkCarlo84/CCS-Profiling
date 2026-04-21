@@ -78,7 +78,10 @@ export default function AcademicRecordsMap() {
     const load = () => {
         setLoading(true);
         Promise.all([getAcademicRecords(), getSubjects()])
-            .then(([r, s]) => { setRecords(r.data); setSubjects(s.data); })
+            .then(([r, s]) => {
+                setRecords(r.data);
+                setSubjects(Array.isArray(s.data) ? s.data : (s.data.data ?? []));
+            })
             .finally(() => setLoading(false));
     };
     useEffect(() => { load(); }, []);
@@ -548,7 +551,7 @@ function AddRecordModal({ onClose, onSave, saving, error }) {
 
     useEffect(() => {
         import('../api').then(({ getSubjects }) =>
-            getSubjects().then(r => setAllSubjects(r.data)).catch(() => {})
+            getSubjects().then(r => setAllSubjects(Array.isArray(r.data) ? r.data : (r.data.data ?? []))).catch(() => {})
         );
     }, []);
 
@@ -604,8 +607,9 @@ function AddRecordModal({ onClose, onSave, saving, error }) {
             setSearching(true);
             try {
                 const { getStudents } = await import('../api');
-                const res = await getStudents({ search: q });
-                setStudentResults(res.data.slice(0, 8));
+                const res = await getStudents({ search: q, paginate: 'false' });
+                const list = Array.isArray(res.data) ? res.data : (res.data.data ?? []);
+                setStudentResults(list.slice(0, 8));
             } catch { setStudentResults([]); }
             setSearching(false);
         }, 350));

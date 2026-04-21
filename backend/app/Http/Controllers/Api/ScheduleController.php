@@ -33,10 +33,9 @@ class ScheduleController extends Controller
         }
 
         $dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        $schedules = $query->get()->sort(function ($a, $b) use ($dayOrder) {
-            $dayDiff = array_search($a->day_of_week, $dayOrder) - array_search($b->day_of_week, $dayOrder);
-            return $dayDiff !== 0 ? $dayDiff : strcmp($a->time_start, $b->time_start);
-        })->values();
+        $schedules = $query->orderByRaw("FIELD(day_of_week, 'Monday','Tuesday','Wednesday','Thursday','Friday','Saturday')")
+            ->orderBy('time_start')
+            ->get();
 
         return response()->json($schedules);
     }

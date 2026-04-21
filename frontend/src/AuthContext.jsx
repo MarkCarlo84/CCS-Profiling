@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api, { verifyLoginOtp as apiVerifyLoginOtp, studentLogin as apiStudentLogin, staffLogin as apiStaffLogin } from './api';
 import { useLoading } from './LoadingContext';
+import { clearCache } from './cache';
 
 const AuthContext = createContext(null);
 
@@ -70,6 +71,7 @@ export function AuthProvider({ children }) {
     const logout = useCallback(async () => {
         await api.post('/auth/logout').catch(() => { });
         sessionStorage.removeItem('ccs_token');
+        clearCache();
         setUser(null);
     }, []);
 

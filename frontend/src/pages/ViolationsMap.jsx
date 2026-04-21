@@ -18,7 +18,7 @@ function RecordViolationModal({ onClose, onSaved }) {
     const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
     useEffect(() => {
-        getStudents().then(r => setStudents(r.data));
+        getStudents({ paginate: 'false' }).then(r => setStudents(Array.isArray(r.data) ? r.data : (r.data.data ?? [])));
     }, []);
 
     const filteredStudents = studentSearch.trim().length >= 1
