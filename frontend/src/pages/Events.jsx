@@ -54,7 +54,17 @@ export default function Events() {
         if (filterType) params.type = filterType;
         if (filterStatus) params.status = filterStatus;
         if (filterDept) params.department_id = filterDept;
-        try { const res = await api.get(`${prefix}/events`, { params }); setEvents(res.data); setPage(1); }
+        try {
+            const res = await api.get(`${prefix}/events`, { params });
+            const statusOrder = { upcoming: 0, ongoing: 1, completed: 2, cancelled: 3 };
+            const sorted = [...res.data].sort((a, b) => {
+                const so = (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9);
+                if (so !== 0) return so;
+                return new Date(a.date_start) - new Date(b.date_start);
+            });
+            setEvents(sorted);
+            setPage(1);
+        }
         catch (e) { console.error(e); }
         setLoading(false);
     };

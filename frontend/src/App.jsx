@@ -40,6 +40,7 @@ import TeacherCreateReport from './pages/TeacherCreateReport';
 import TeacherMyEvaluations from './pages/TeacherMyEvaluations';
 import TeacherMySubjects from './pages/TeacherMySubjects';
 import MyProfile from './pages/MyProfile';
+import TeacherSettings from './pages/TeacherSettings';
 import AcademicTracker from './pages/AcademicTracker';
 import SectionsMap from './pages/SectionsMap';
 
@@ -78,7 +79,9 @@ const ROUTES_BY_ROLE = {
     { path: '/my-evaluations',       element: <TeacherMyEvaluations /> },
     { path: '/my-subjects',          element: <TeacherMySubjects /> },
     { path: '/events',               element: <Events /> },
-    { path: '/change-password',      element: <ChangePassword /> },
+    { path: '/settings',             element: <TeacherSettings /> },
+    { path: '/settings/profile',     element: <TeacherSettings /> },
+    { path: '/settings/password',    element: <TeacherSettings /> },
   ],
   student: [
     { path: '/',                  element: <DashboardStudent /> },

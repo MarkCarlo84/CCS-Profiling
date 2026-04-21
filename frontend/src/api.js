@@ -135,6 +135,10 @@ export const getReportFaculties = (params = {}) => api.get('/reports/faculties',
 export const getSummary = () => api.get('/reports/summary');
 export const getReportPresets = () => api.get('/reports/presets');
 
+// ── Teacher Profile ───────────────────────────────────────────────────────────
+export const getTeacherProfile   = () => api.get('/teacher/profile');
+export const updateTeacherProfile = (data) => api.patch('/teacher/profile', data);
+
 // ── Teacher Reports (written) ─────────────────────────────────────────────────
 export const getTeacherReports = () => api.get('/teacher/reports');
 export const createTeacherReport = (data) => api.post('/teacher/reports', data);

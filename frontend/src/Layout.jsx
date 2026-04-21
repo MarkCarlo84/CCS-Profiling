@@ -6,7 +6,7 @@ import {
     GraduationCap, Users, BookOpen,
     ShieldAlert, Network, Zap, Trophy,
     ClipboardCheck, Award, ChevronLeft,
-    ChevronRight, LogOut, Activity, UserCircle, KeyRound, FileText, Star, PartyPopper, CalendarClock, UserCheck,
+    ChevronRight, LogOut, Activity, UserCircle, KeyRound, FileText, Star, PartyPopper, CalendarClock, UserCheck, Settings,
 } from 'lucide-react';
 import { useLoading } from './LoadingContext';
 import './Layout.css';
@@ -74,7 +74,7 @@ const NAV_BY_ROLE = {
                 { to: '/my-evaluations', label: 'My Evaluations', Icon: Star },
                 { to: '/create-report', label: 'My Reports', Icon: FileText },
                 { to: '/events', label: 'Events', Icon: PartyPopper },
-                { to: '/change-password', label: 'Change Password', Icon: KeyRound },
+                { to: '/settings/profile', label: 'Settings', Icon: Settings },
             ],
         },
     ],
