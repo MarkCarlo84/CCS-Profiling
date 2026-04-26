@@ -16,7 +16,7 @@ export default function TeacherRecordViolation() {
     const facultyId = user?.profile?.id;
 
     const [students, setStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [search, setSearch] = useState('');
     const [selectedStudent, setSelectedStudent] = useState(null);
     const [form, setForm] = useState(empty);
@@ -24,19 +24,19 @@ export default function TeacherRecordViolation() {
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
 
+    // Debounced server-side search instead of loading all students
     useEffect(() => {
-        getStudents({ status: 'active' })
-            .then(r => setStudents(r.data))
-            .finally(() => setLoading(false));
-    }, []);
+        if (search.trim().length < 2) { setStudents([]); return; }
+        const t = setTimeout(() => {
+            setLoading(true);
+            getStudents({ status: 'active', search })
+                .then(r => setStudents(r.data?.data ?? r.data))
+                .finally(() => setLoading(false));
+        }, 300);
+        return () => clearTimeout(t);
+    }, [search]);
 
-    const filtered = students.filter(s => {
-        const q = search.toLowerCase();
-        return !q ||
-            s.first_name?.toLowerCase().includes(q) ||
-            s.last_name?.toLowerCase().includes(q) ||
-            s.student_id?.toLowerCase().includes(q);
-    });
+    const filtered = students.slice(0, 10);
 
     const handleSubmit = async (e) => {
         e.preventDefault();

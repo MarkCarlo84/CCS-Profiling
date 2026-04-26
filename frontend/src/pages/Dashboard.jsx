@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { getSummary } from '../api';
+import { useQuery } from '../hooks/useQuery';
+import { SkeletonDashboard } from '../components/SkeletonLoader';
 import {
     Users, GraduationCap, CheckCircle,
     BookOpen, ShieldAlert, Zap, Trophy,
@@ -31,12 +33,7 @@ const QUICK_ACTIONS = [
 ];
 
 export default function Dashboard() {
-    const [summary, setSummary] = useState(null);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        getSummary().then(r => setSummary(r.data)).finally(() => setLoading(false));
-    }, []);
+    const { data: summary, loading } = useQuery('summary', getSummary);
 
     return (
         <div>
@@ -69,7 +66,7 @@ export default function Dashboard() {
             </div>
 
             {loading ? (
-                <div className="loading"><div className="loading-spinner" /><span>Loading dashboard…</span></div>
+                <SkeletonDashboard />
             ) : (
                 <>
                     {/* Stat Cards */}

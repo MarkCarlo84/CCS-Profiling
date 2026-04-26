@@ -1,7 +1,30 @@
-import React, { useRef, useState, useEffect } from 'react';
-import { useReactToPrint } from 'react-to-print';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { getStudents, createStudent, updateStudent, deleteStudent, getSectionCapacity } from '../api';
-import { GraduationCap, Search, Printer, Building, Plus, Pencil, Trash2, X, Check, Users, BookOpen } from 'lucide-react';
+import { useQuery, clearCache } from '../hooks/useQuery';
+import { useDebounce } from '../hooks/useDebounce';
+import { SkeletonTable } from '../components/SkeletonLoader';
+import { GraduationCap, Search, Building, Plus, Pencil, Trash2, X, Check, Users, BookOpen } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
+
+function flattenStudent(s, i) {
+    return {
+        '#': i + 1,
+        'Student ID': s.student_id || `STU-${s.id}`,
+        'Last Name': s.last_name || '',
+        'First Name': s.first_name || '',
+        'Middle Name': s.middle_name || '',
+        'Gender': s.gender || '',
+        'Age': s.age || '',
+        'Department': s.department || '',
+        'Section': s.section ? `${s.section.year_level}${s.section.section_name}` : '',
+        'Status': s.status || '',
+        'Skills': s.skills?.map(sk => sk.skill_name).join(', ') || '',
+        'Affiliations': s.affiliations?.map(a => a.name).join(', ') || '',
+        'Violations': s.violations?.length || 0,
+        'Guardian': s.guardian_name || '',
+        'Contact': s.contact_number || '',
+    };
+}
 
 function Badge({ value }) {
     return <span className={`badge badge-${value?.toLowerCase().replace(/\s/g, '_')}`}>{value?.replace(/_/g, ' ')}</span>;
@@ -250,8 +273,6 @@ function composeAddress(f) {
 }
 
 export default function StudentDataMap() {
-    const [allStudents, setAllStudents] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ status: 'active', search: '', gender: '', department: '' });
     const [modal, setModal] = useState(null);
     const [viewing, setViewing] = useState(null);
@@ -260,38 +281,34 @@ export default function StudentDataMap() {
     const [saveError, setSaveError] = useState('');
     const [deptPages, setDeptPages] = useState({});
     const pageSize = 10;
-    const [sectionCapacity, setSectionCapacity] = useState(null); // { sections: {A,B,C,D}, suggested }
+    const [sectionCapacity, setSectionCapacity] = useState(null);
     const [capacityLoading, setCapacityLoading] = useState(false);
 
-    const printRef = useRef();
+    const debouncedSearch = useDebounce(filters.search, 250);
 
-    const handlePrint = useReactToPrint({
-        contentRef: printRef,
-        documentTitle: 'CCS Student Data Map',
-        pageStyle: `@page { size: A4 landscape; margin: 10mm 8mm; } body { font-family: Arial, sans-serif; font-size: 10px; } table { font-size: 9px; }`,
-    });
+    const printRef = useRef(null);
 
-    // Load all students once — all filtering is done client-side
+    const { data: allStudents = [], loading, refetch } = useQuery('students', getStudents);
+
     const loadData = () => {
-        setLoading(true);
-        getStudents({}).then(r => setAllStudents(r.data)).finally(() => setLoading(false));
+        clearCache('students');
+        refetch(true);
     };
 
-    useEffect(loadData, []);
     useEffect(() => setDeptPages({}), [filters]);
 
-    // Client-side filtering
-    const students = allStudents.filter(s => {
+    // Client-side filtering with debounced search
+    const students = useMemo(() => (allStudents ?? []).filter(s => {
         const matchStatus = !filters.status || s.status === filters.status;
         const matchGender = !filters.gender || s.gender === filters.gender;
         const matchDept = !filters.department || s.department === filters.department;
-        const q = filters.search.toLowerCase();
+        const q = debouncedSearch.toLowerCase();
         const matchSearch = !q ||
             (s.first_name || '').toLowerCase().includes(q) ||
             (s.last_name || '').toLowerCase().includes(q) ||
             (s.student_id || '').toLowerCase().includes(q);
         return matchStatus && matchGender && matchDept && matchSearch;
-    });
+    }), [allStudents, filters.status, filters.gender, filters.department, debouncedSearch]);
 
     const openAdd = () => { setForm(emptyStudent); setModal('add'); setSectionCapacity(null); };
 
@@ -338,16 +355,12 @@ export default function StudentDataMap() {
         try {
             const payload = { ...form, address: composeAddress(form) };
             if (modal === 'add') {
-                const res = await createStudent(payload);
-                const newStudent = res.data?.student ?? res.data;
-                // Prepend directly — no full reload needed
-                setAllStudents(prev => [newStudent, ...prev]);
+                await createStudent(payload);
             } else {
-                const res = await updateStudent(modal.edit.id, payload);
-                const updated = res.data?.student ?? res.data;
-                setAllStudents(prev => prev.map(s => s.id === updated.id ? updated : s));
+                await updateStudent(modal.edit.id, payload);
             }
             setModal(null);
+            loadData();
         } catch (err) {
             setSaveError(err.response?.data?.message || 'Failed to save. Try again.');
         } finally {
@@ -365,7 +378,7 @@ export default function StudentDataMap() {
     const handleDelete = async (id) => {
         if (!window.confirm('Are you sure you want to delete this student record?')) return;
         await deleteStudent(id);
-        setAllStudents(prev => prev.filter(s => s.id !== id));
+        loadData();
     };
 
     // Group by department label
@@ -525,7 +538,7 @@ export default function StudentDataMap() {
                     const hasPrevGroup = groupStart > 1;
                     const hasNextGroup = groupEnd < totalPages;
                     return (
-                        <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0', flexWrap: 'wrap' }}>
+                        <div className="pdf-hide" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0', flexWrap: 'wrap' }}>
                             <button onClick={() => setDeptPage(dept, groupStart - GROUP)} disabled={!hasPrevGroup} style={{ ...pageBtn, opacity: !hasPrevGroup ? 0.4 : 1 }}>‹</button>
                             {pageNums.map(p => (
                                 <button key={p} onClick={() => setDeptPage(dept, p)}
@@ -596,13 +609,15 @@ export default function StudentDataMap() {
                             })}
                         </div>
                     </div>
-                    <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Student</button>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Student</button>
+                    </div>
                 </div>
             </div>
 
             <div className="filter-bar no-print">
                 <div style={{ position: 'relative' }}>
-                    <Search size={15} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
+                    <Search size={16} color="#a8a29e" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }} />
                     <input
                         type="text" placeholder="Search name or student ID…"
                         value={filters.search}
@@ -620,30 +635,39 @@ export default function StudentDataMap() {
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
-                    <option value="graduated">Graduated</option>
+                    <option value="graduated">Alumni</option>
                     <option value="loa">LOA</option>
                 </select>
-
                 <div style={{ flex: 1 }} />
-                <button className="btn btn-outline" onClick={handlePrint}>
-                    <Printer size={15} /> Print Map
-                </button>
+                <ExportButtons 
+                    printRef={printRef} 
+                    data={students} 
+                    flattenFn={flattenStudent} 
+                    filenamePrefix={filters.department ? `Students_${filters.department}` : 'Students_All'} 
+                />
             </div>
 
-            <div ref={printRef}>
-                <div className="print-header">
-                    <h1>CCS COMPREHENSIVE PROFILING SYSTEM</h1>
-                    <p>Student Data Map — Generated {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p>Total Students: {students.length}{filters.department ? ` — ${filters.department === 'IT' ? 'Information Technology' : 'Computer Science'}` : ''}</p>
-                    <hr style={{ margin: '6px 0' }} />
-                </div>
-
-                {loading ? (
-                    <div className="loading"><div className="loading-spinner" /><p>Loading student data…</p></div>
-                ) : students.length === 0 ? (
-                    <div className="empty"><GraduationCap size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No student records found.</p></div>
+            <div ref={printRef} style={{ background: '#fff' }}>
+                <PrintHeader 
+                    title="Student Data Map" 
+                    subtitle={filters.department || 'All Departments'} 
+                    count={students.length} 
+                    filters={filters} 
+                />
+                
+                {loading && !(allStudents?.length) ? (
+                    <SkeletonTable />
+                ) : students.length > 0 ? (
+                    Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))
                 ) : (
-                    Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))                )}
+                    <div className="card">
+                        <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
+                            <Search size={40} color="#cbd5e1" style={{ marginBottom: 12 }} />
+                            <h3 style={{ margin: '0 0 6px', color: '#1c1917', fontSize: '1.1rem' }}>No records found</h3>
+                            <p style={{ margin: 0, color: '#78716c', fontSize: '.9rem' }}>Try adjusting your filters or search term parameters.</p>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {viewing && <StudentDetailModal student={viewing} onClose={() => setViewing(null)} />}
@@ -698,7 +722,7 @@ export default function StudentDataMap() {
                                 <select style={iStyle} value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>
                                     <option value="active">Active</option>
                                     <option value="inactive">Inactive</option>
-                                    <option value="graduated">Graduated</option>
+                                    <option value="graduated">Alumni</option>
                                     <option value="loa">LOA</option>
                                 </select>
                             </div>

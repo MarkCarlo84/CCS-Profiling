@@ -26,7 +26,14 @@ class GradeController extends Controller
             $query->where('academic_record_id', $request->academic_record_id);
         }
         if ($request->filled('student_id')) {
-            $query->whereHas('academicRecord', fn($q) => $q->where('student_id', $request->student_id));
+            // Use a subquery instead of whereHas to avoid extra COUNT overhead
+            $query->whereIn('academic_record_id', function ($sub) use ($request) {
+                $sub->select('id')->from('academic_records')->where('student_id', $request->student_id);
+            });
+        }
+        if ($request->filled('per_page')) {
+            $perPage = min((int) $request->input('per_page'), 500);
+            return response()->json($query->paginate($perPage));
         }
         return response()->json($query->get());
     }

@@ -147,13 +147,13 @@ class StudentBulkSeeder extends Seeder
         // No wrapping transaction — process bucket by bucket to avoid long locks
         $this->seedBulkStudents();
 
-        $this->command->info('✓ StudentBulkSeeder complete — 1040 students seeded');
+        $this->command->info('✓ StudentBulkSeeder complete — 1000 students seeded');
     }
 
     private function seedBulkStudents(): void
     {
         // Skip if already seeded to prevent duplicate key errors on re-runs
-        if (DB::table('students')->count() >= 1040) {
+        if (DB::table('students')->count() >= 1000) {
             $this->command->warn('  ⚠ Students table already has data — skipping StudentBulkSeeder.');
             return;
         }
@@ -184,8 +184,8 @@ class StudentBulkSeeder extends Seeder
                 $userPayloads = [];
 
                 // ── 1. Build student rows ─────────────────────────────────────
-                for ($i = 0; $i < 130; $i++) {
-                    $section = ['A','B','C','D','E'][intdiv($i, 26)];
+                for ($i = 0; $i < 125; $i++) {
+                    $section = ['A','B','C','D','E'][intdiv($i, 25)];
 
                     $counter = 200 + $generated + $i;
                     $sid = $prefix . '0' . $deptCode . str_pad($counter, 3, '0', STR_PAD_LEFT);
@@ -406,8 +406,8 @@ class StudentBulkSeeder extends Seeder
 
                 $this->bulkUpdateGpa($gpaUpdates);
 
-                $generated += 130;
-                $this->command->info("  → $yearLevel $dept: 130 students done");
+                $generated += 125;
+                $this->command->info("  → $yearLevel $dept: 125 students done");
             }
         }
 

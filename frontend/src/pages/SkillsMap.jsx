@@ -1,6 +1,22 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { getSkills, deleteSkill, updateSkillLevel } from '../api';
+import { useDebounce } from '../hooks/useDebounce';
+import { SkeletonTable } from '../components/SkeletonLoader';
 import { Zap, Search, Pencil, Trash2, X, Check, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
+import { useRef } from 'react';
+
+function flattenSkill(s, i) {
+    return {
+        '#': i + 1,
+        'Level Group': s._level || '',
+        'Student ID': s.student?.student_id || s.student_id || '',
+        'Name': s.student ? `${s.student.first_name} ${s.student.last_name}` : '',
+        'Skill Name': s.skill_name || '',
+        'Level': s.skill_level || '',
+        'Certified': s.certification ? 'Yes' : 'No'
+    };
+}
 
 const LEVELS = ['beginner', 'intermediate', 'advanced', 'expert'];
 const LEVEL_COLORS = { expert: '#7c3aed', advanced: '#2563eb', intermediate: '#059669', beginner: '#d97706' };
@@ -39,12 +55,16 @@ export default function SkillsMap() {
     const [filterLevel, setFilterLevel] = useState('');
     const [editing, setEditing] = useState(null);
 
+    const printRef = useRef(null);
+
+    const debouncedSearch = useDebounce(search, 300);
+
     const buildPageParams = (pagesMap) =>
         Object.fromEntries(Object.entries(pagesMap).map(([lvl, pg]) => [`page_${lvl}`, pg]));
 
     const load = useCallback((pagesMap = pages) => {
         setLoading(true);
-        getSkills({ search, skill_level: filterLevel, ...buildPageParams(pagesMap) })
+        getSkills({ search: debouncedSearch, skill_level: filterLevel, ...buildPageParams(pagesMap) })
             .then(r => {
                 setGrouped(r.data);
                 setPages(prev => {
@@ -54,9 +74,9 @@ export default function SkillsMap() {
                 });
             })
             .finally(() => setLoading(false));
-    }, [search, filterLevel]);
+    }, [debouncedSearch, filterLevel]);
 
-    useEffect(() => { setPages({}); load({}); }, [search, filterLevel]);
+    useEffect(() => { setPages({}); load({}); }, [debouncedSearch, filterLevel]);
 
     const goToPage = (level, page) => {
         const next = { ...pages, [level]: page };
@@ -75,6 +95,10 @@ export default function SkillsMap() {
 
     const totalCount = Object.values(grouped).reduce((sum, cat) => sum + (cat.total ?? 0), 0);
 
+    const loadedData = Object.entries(grouped).flatMap(([lvl, cat]) => 
+        (cat.data || []).map(s => ({ ...s, _level: lvl }))
+    );
+
     return (
         <div>
             <div className="page-header">
@@ -85,7 +109,7 @@ export default function SkillsMap() {
                 <p style={sub}>Student skills, proficiency levels and certifications — {totalCount} total</p>
             </div>
 
-            <div className="filter-bar">
+            <div className="filter-bar no-print">
                 <div style={{ position: 'relative' }}>
                     <Search size={15} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                     <input type="text" placeholder="Search skill name..." value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36 }} />
@@ -94,9 +118,24 @@ export default function SkillsMap() {
                     <option value="">All Levels</option>
                     {LEVELS.map(l => <option key={l} value={l}>{l.charAt(0).toUpperCase() + l.slice(1)}</option>)}
                 </select>
+                <div style={{ flex: 1 }} />
+                <ExportButtons 
+                    printRef={printRef} 
+                    data={loadedData} 
+                    flattenFn={flattenSkill} 
+                    filenamePrefix="Skills_Map" 
+                />
             </div>
 
-            {loading ? (
+            <div ref={printRef} style={{ background: '#fff' }}>
+                <PrintHeader 
+                    title="Skills Map" 
+                    subtitle="Student skills, proficiency levels and certifications" 
+                    count={totalCount} 
+                    filters={{ search, level: filterLevel }} 
+                />
+
+                {loading ? (
                 <div className="loading"><div className="loading-spinner" /><p>Loading...</p></div>
             ) : Object.keys(grouped).length === 0 ? (
                 <div className="empty"><Zap size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No skills found.</p></div>
@@ -181,6 +220,7 @@ export default function SkillsMap() {
                     );
                 })
             )}
+            </div>
 
             {editing && <LevelModal skill={editing} onClose={() => setEditing(null)} onSaved={() => load()} />}
         </div>

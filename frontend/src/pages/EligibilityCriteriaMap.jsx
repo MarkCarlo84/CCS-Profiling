@@ -1,6 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { getEligibilityCriteria, createEligibilityCriteria, updateEligibilityCriteria, deleteEligibilityCriteria } from '../api';
 import { ClipboardCheck, Plus, Pencil, Trash2, X, Check } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
+import { useRef } from 'react';
+
+function flattenCriteria(c, i) {
+    return {
+        '#': i + 1,
+        'Criteria ID': c.criteria_id || `EC-${c.id}`,
+        'Min GPA': c.minimum_gpa != null ? parseFloat(c.minimum_gpa).toFixed(2) : '',
+        'Required Skill': c.required_skill || '',
+        'Affiliation Type': c.required_affiliation_type || '',
+        'Max Violations': c.max_allowed_violations ?? ''
+    };
+}
 
 const empty = { criteria_id: '', minimum_gpa: '', required_skill: '', required_affiliation_type: '', max_allowed_violations: '' };
 
@@ -36,6 +49,8 @@ export default function EligibilityCriteriaMap() {
     const [form, setForm] = useState(empty);
     const [saving, setSaving] = useState(false);
 
+    const printRef = useRef(null);
+
     const load = () => { setLoading(true); getEligibilityCriteria().then(r => setCriteria(r.data)).finally(() => setLoading(false)); };
     useEffect(load, []);
 
@@ -64,10 +79,25 @@ export default function EligibilityCriteriaMap() {
                     </div>
                     <p style={sub}>Define criteria for awards, honors, or eligibility checks</p>
                 </div>
-                <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Criteria</button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <ExportButtons 
+                        printRef={printRef} 
+                        data={criteria} 
+                        flattenFn={flattenCriteria} 
+                        filenamePrefix="Eligibility_Criteria" 
+                    />
+                    <button className="btn btn-primary no-print" onClick={openAdd}><Plus size={15} /> Add Criteria</button>
+                </div>
             </div>
 
-            {loading ? <div className="loading"><div className="loading-spinner" /></div> : (
+            <div ref={printRef} style={{ background: '#fff' }}>
+                <PrintHeader 
+                    title="Eligibility Criteria" 
+                    subtitle="Criteria for awards, honors, or eligibility checks" 
+                    count={criteria.length} 
+                />
+
+                {loading ? <div className="loading"><div className="loading-spinner" /></div> : (
                 <div className="card">
                     <div className="card-body" style={{ padding: 0 }}>
 
@@ -147,6 +177,7 @@ export default function EligibilityCriteriaMap() {
                     </div>
                 </div>
             )}
+            </div>
 
             {modal && <Modal title={modal === 'add' ? 'Add Criteria' : 'Edit Criteria'} onClose={() => setModal(null)} form={form} setForm={setForm} onSave={save} saving={saving} />}
         </div>

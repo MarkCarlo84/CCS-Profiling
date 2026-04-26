@@ -18,7 +18,13 @@ class StudentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Student::with(['violations', 'affiliations', 'academicRecords.grades', 'skills', 'nonAcademicHistories']);
+        // Only eager-load heavy relationships when explicitly requested
+        $with = ['academicRecords'];
+        if ($request->boolean('with_details')) {
+            $with = ['violations', 'affiliations', 'academicRecords.grades', 'skills', 'nonAcademicHistories'];
+        }
+
+        $query = Student::with($with);
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
@@ -36,6 +42,12 @@ class StudentController extends Controller
         }
         if ($request->filled('department')) {
             $query->where('department', $request->department);
+        }
+
+        // Support pagination when per_page is passed; otherwise return all (for client-side pages)
+        if ($request->filled('per_page')) {
+            $perPage = min((int) $request->input('per_page'), 200);
+            return response()->json($query->orderBy('last_name')->paginate($perPage));
         }
 
         return response()->json($query->orderBy('last_name')->get());

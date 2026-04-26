@@ -32,11 +32,13 @@ class ScheduleController extends Controller
             $query->where('school_year', $request->school_year);
         }
 
-        $dayOrder = ['Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-        $schedules = $query->get()->sort(function ($a, $b) use ($dayOrder) {
-            $dayDiff = array_search($a->day_of_week, $dayOrder) - array_search($b->day_of_week, $dayOrder);
-            return $dayDiff !== 0 ? $dayDiff : strcmp($a->time_start, $b->time_start);
-        })->values();
+        $dayOrder = ['Monday' => 0, 'Tuesday' => 1, 'Wednesday' => 2, 'Thursday' => 3, 'Friday' => 4, 'Saturday' => 5];
+        $dayCase = "CASE day_of_week " . implode(' ', array_map(
+            fn($day, $i) => "WHEN '$day' THEN $i",
+            array_keys($dayOrder), $dayOrder
+        )) . " END";
+
+        $schedules = $query->orderByRaw($dayCase)->orderBy('time_start')->get();
 
         return response()->json($schedules);
     }

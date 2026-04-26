@@ -1,6 +1,24 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getNonAcademicHistories, deleteNonAcademicHistory } from '../api';
+import { useDebounce } from '../hooks/useDebounce';
 import { Trophy, Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
+import { useRef } from 'react';
+
+function flattenNonAcademic(h, i) {
+    return {
+        '#': i + 1,
+        'Category': h._cat || '',
+        'Student ID': h.student?.student_id || h.student_id || '',
+        'Name': h.student ? `${h.student.first_name} ${h.student.last_name}` : '',
+        'Activity Title': h.activity_title || '',
+        'Role': h.role || '',
+        'Date Started': h.date_started ? new Date(h.date_started).toLocaleDateString('en-PH') : '',
+        'Date Ended': h.date_ended ? new Date(h.date_ended).toLocaleDateString('en-PH') : '',
+        'Organizer': h.organizer || '',
+        'Result': h.game_result || ''
+    };
+}
 
 const CAT_COLORS = { Academic: '#2563eb', Sports: '#16a34a', Leadership: '#7c3aed', Cultural: '#d97706', Community: '#0891b2' };
 
@@ -12,6 +30,10 @@ export default function NonAcademicHistoriesMap() {
     const [search, setSearch] = useState('');
     const [category, setCategory] = useState('');
 
+    const printRef = useRef(null);
+
+    const debouncedSearch = useDebounce(search, 300);
+
     const buildPageParams = (pagesMap) =>
         Object.fromEntries(
             Object.entries(pagesMap).map(([cat, pg]) => [
@@ -21,7 +43,7 @@ export default function NonAcademicHistoriesMap() {
 
     const load = useCallback((pagesMap = pages) => {
         setLoading(true);
-        getNonAcademicHistories({ search, category, ...buildPageParams(pagesMap) })
+        getNonAcademicHistories({ search: debouncedSearch, category, ...buildPageParams(pagesMap) })
             .then(r => {
                 setGrouped(r.data);
                 setPages(prev => {
@@ -31,15 +53,15 @@ export default function NonAcademicHistoriesMap() {
                 });
             })
             .finally(() => setLoading(false));
-    }, [search, category]);
+    }, [debouncedSearch, category]);
 
-    useEffect(() => { setPages({}); load({}); }, [search, category]);
+    useEffect(() => { setPages({}); load({}); }, [debouncedSearch, category]);
 
     const goToPage = (cat, page) => {
         const next = { ...pages, [cat]: page };
         setPages(next);
         setLoadingCat(cat);
-        getNonAcademicHistories({ search, category, ...buildPageParams(next) })
+        getNonAcademicHistories({ search: debouncedSearch, category, ...buildPageParams(next) })
             .then(r => setGrouped(r.data))
             .finally(() => setLoadingCat(null));
     };
@@ -52,6 +74,10 @@ export default function NonAcademicHistoriesMap() {
 
     const totalCount = Object.values(grouped).reduce((sum, cat) => sum + (cat.total ?? 0), 0);
 
+    const loadedData = Object.entries(grouped).flatMap(([cat, catData]) => 
+        (catData.data || []).map(h => ({ ...h, _cat: cat }))
+    );
+
     return (
         <div>
             <div className="page-header">
@@ -62,7 +88,7 @@ export default function NonAcademicHistoriesMap() {
                 <p style={sub}>Competitions, sports, leadership and cultural activities — {totalCount} total</p>
             </div>
 
-            <div className="filter-bar">
+            <div className="filter-bar no-print">
                 <div style={{ position: 'relative' }}>
                     <Search size={15} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                     <input type="text" placeholder="Search activity title…" value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36 }} />
@@ -71,9 +97,24 @@ export default function NonAcademicHistoriesMap() {
                     <option value="">All Categories</option>
                     {['Academic', 'Sports', 'Leadership', 'Cultural', 'Community'].map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
+                <div style={{ flex: 1 }} />
+                <ExportButtons 
+                    printRef={printRef} 
+                    data={loadedData} 
+                    flattenFn={flattenNonAcademic} 
+                    filenamePrefix="NonAcademicHistories_Map" 
+                />
             </div>
 
-            {loading ? (
+            <div ref={printRef} style={{ background: '#fff' }}>
+                <PrintHeader 
+                    title="Non-Academic Histories" 
+                    subtitle="Competitions, sports, leadership and cultural activities" 
+                    count={totalCount} 
+                    filters={{ search, category }} 
+                />
+
+                {loading ? (
                 <div className="loading"><div className="loading-spinner" /></div>
             ) : Object.keys(grouped).length === 0 ? (
                 <div className="empty"><Trophy size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No records found.</p></div>
@@ -158,6 +199,7 @@ export default function NonAcademicHistoriesMap() {
                     );
                 })
             )}
+            </div>
         </div>
     );
 }

@@ -1,7 +1,25 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { getFaculties, createFaculty, updateFaculty, deleteFaculty, getEligibilityCriteria, facultyCreateReport } from '../api';
-import { Users, Search, Printer, Building, Plus, Pencil, Trash2, X, Check, FileText, GraduationCap, AlertCircle, BookOpen } from 'lucide-react';
+import { useQuery, clearCache } from '../hooks/useQuery';
+import { useDebounce } from '../hooks/useDebounce';
+import { SkeletonTable } from '../components/SkeletonLoader';
+import { Users, Search, Building, Plus, Pencil, Trash2, X, Check, FileText, GraduationCap, AlertCircle, BookOpen } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
+
+function flattenFaculty(f, i) {
+    return {
+        '#': i + 1,
+        'Faculty ID': f.faculty_id || `FAC-${f.id}`,
+        'Last Name': f.last_name || '',
+        'First Name': f.first_name || '',
+        'Middle Name': f.middle_name || '',
+        'Department': f.department || '',
+        'Position': f.position || '',
+        'Email': f.email || '',
+        'Contact Number': f.contact_number || '09',
+    };
+}
 
 function Modal({ title, onClose, children }) {
     return (
@@ -244,8 +262,6 @@ function FacultyDetailModal({ faculty: f, onClose }) {
 }
 
 export default function FacultyDataMap() {
-    const [allFaculties, setAllFaculties] = useState([]);
-    const [loading, setLoading] = useState(true);
     const [filters, setFilters] = useState({ department: '', search: '' });
     const [modal, setModal] = useState(null);
     const [form, setForm] = useState(emptyFaculty);
@@ -256,33 +272,29 @@ export default function FacultyDataMap() {
     const [deptPages, setDeptPages] = useState({});
     const PAGE_SIZE = 5;
 
-    const printRef = useRef();
+    const debouncedSearch = useDebounce(filters.search, 250);
 
-    const handlePrint = useReactToPrint({
-        contentRef: printRef,
-        documentTitle: 'CCS Faculty Data Map',
-        pageStyle: `@page { size: A4 landscape; margin: 15mm 12mm; } body { font-family: Arial, sans-serif; }`,
-    });
+    const printRef = useRef(null);
 
-    // Load all faculty once — tab/search filtering is done client-side
+    const { data: allFaculties = [], loading, refetch } = useQuery('faculties', getFaculties);
+
     const loadData = () => {
-        setLoading(true);
-        getFaculties({}).then(r => setAllFaculties(r.data)).finally(() => setLoading(false));
+        clearCache('faculties');
+        refetch(true);
     };
 
-    useEffect(loadData, []);
     useEffect(() => setDeptPages({}), [filters]);
 
-    // Client-side filtering
-    const faculties = allFaculties.filter(f => {
+    // Client-side filtering with debounced search
+    const faculties = useMemo(() => (allFaculties ?? []).filter(f => {
         const matchDept = !filters.department || f.department === filters.department;
-        const q = filters.search.toLowerCase();
+        const q = debouncedSearch.toLowerCase();
         const matchSearch = !q ||
             (f.first_name || '').toLowerCase().includes(q) ||
             (f.last_name || '').toLowerCase().includes(q) ||
             (f.faculty_id || '').toLowerCase().includes(q);
         return matchDept && matchSearch;
-    });
+    }), [allFaculties, filters.department, debouncedSearch]);
 
     const openAdd = () => { setForm(emptyFaculty); setModal('add'); };
     const openEdit = (f) => {
@@ -380,7 +392,9 @@ export default function FacultyDataMap() {
                             })}
                         </div>
                     </div>
-                    <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Faculty</button>
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                        <button className="btn btn-primary" onClick={openAdd}><Plus size={15} /> Add Faculty</button>
+                    </div>
                 </div>
             </div>
 
@@ -395,21 +409,24 @@ export default function FacultyDataMap() {
                     />
                 </div>
                 <div style={{ flex: 1 }} />
-                <button className="btn btn-outline" onClick={handlePrint} style={{ whiteSpace: 'nowrap' }}>
-                    <Printer size={15} /> Print Report
-                </button>
+                <ExportButtons 
+                    printRef={printRef} 
+                    data={faculties} 
+                    flattenFn={flattenFaculty} 
+                    filenamePrefix={filters.department ? `Faculty_${filters.department}` : 'Faculty_All'} 
+                />
             </div>
 
-            <div ref={printRef}>
-                <div className="print-header">
-                    <h1>CCS COMPREHENSIVE PROFILING SYSTEM</h1>
-                    <p>Faculty Data Map — Generated {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                    <p>Total Faculty: {faculties.length}</p>
-                    <hr style={{ margin: '6px 0' }} />
-                </div>
+            <div ref={printRef} style={{ background: '#fff' }}>
+                <PrintHeader 
+                    title="Faculty Data Map" 
+                    subtitle={filters.department || 'All Departments'} 
+                    count={faculties.length} 
+                    filters={filters} 
+                />
 
                 {loading ? (
-                    <div className="loading"><div className="loading-spinner" /><p>Loading faculty data…</p></div>
+                    <SkeletonTable rows={5} cols={7} />
                 ) : faculties.length === 0 ? (
                     <div className="empty"><Users size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No faculty records found.</p></div>
                 ) : (

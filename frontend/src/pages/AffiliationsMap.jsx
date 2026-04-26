@@ -1,6 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { getAffiliations, deleteAffiliation } from '../api';
+import { useDebounce } from '../hooks/useDebounce';
+import { SkeletonTable } from '../components/SkeletonLoader';
 import { Network, Search, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
+
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
+import { useRef } from 'react';
+
+function flattenAffiliation(a, i) {
+    return {
+        '#': i + 1,
+        'Type': a._type || '',
+        'Student ID': a.student?.student_id || a.student_id || '',
+        'Name': a.student ? `${a.student.first_name} ${a.student.last_name}` : '',
+        'Organization Name': a.name || '',
+        'Role': a.role || '',
+        'Date Joined': a.date_joined ? new Date(a.date_joined).toLocaleDateString('en-PH') : ''
+    };
+}
 
 function Badge({ value }) {
     return value ? <span className={`badge badge-${value.toLowerCase().replace(/\s/g, '_')}`}>{value}</span> : null;
@@ -8,10 +25,14 @@ function Badge({ value }) {
 
 export default function AffiliationsMap() {
     const [grouped, setGrouped] = useState({});
-    const [pages, setPages] = useState({});   // { [type]: currentPage }
+    const [pages, setPages] = useState({});
     const [loading, setLoading] = useState(true);
     const [loadingCategory, setLoadingCategory] = useState(null);
     const [search, setSearch] = useState('');
+
+    const printRef = useRef(null);
+
+    const debouncedSearch = useDebounce(search, 300);
 
     const buildPageParams = (pagesMap) =>
         Object.fromEntries(
@@ -23,7 +44,7 @@ export default function AffiliationsMap() {
 
     const load = useCallback((pagesMap = pages) => {
         setLoading(true);
-        getAffiliations({ search, ...buildPageParams(pagesMap) })
+        getAffiliations({ search: debouncedSearch, ...buildPageParams(pagesMap) })
             .then(r => {
                 const data = r.data;
                 setGrouped(data);
@@ -36,15 +57,15 @@ export default function AffiliationsMap() {
                 });
             })
             .finally(() => setLoading(false));
-    }, [search]);
+    }, [debouncedSearch]);
 
-    useEffect(() => { setPages({}); load({}); }, [search]);
+    useEffect(() => { setPages({}); load({}); }, [debouncedSearch]);
 
-    const goToPage = (type, page) => {
+        const goToPage = (type, page) => {
         const next = { ...pages, [type]: page };
         setPages(next);
         setLoadingCategory(type);
-        getAffiliations({ search, ...buildPageParams(next) })
+        getAffiliations({ search: debouncedSearch, ...buildPageParams(next) })
             .then(r => setGrouped(r.data))
             .finally(() => setLoadingCategory(null));
     };
@@ -57,6 +78,11 @@ export default function AffiliationsMap() {
 
     const totalCount = Object.values(grouped).reduce((sum, cat) => sum + (cat.total ?? 0), 0);
 
+    // Flatten currently loaded pages into a single array for Excel
+    const loadedData = Object.entries(grouped).flatMap(([type, cat]) => 
+        (cat.data || []).map(a => ({ ...a, _type: type }))
+    );
+
     return (
         <div>
             <div className="page-header">
@@ -67,14 +93,29 @@ export default function AffiliationsMap() {
                 <p style={sub}>All student organizational affiliations — {totalCount} total</p>
             </div>
 
-            <div className="filter-bar">
+            <div className="filter-bar no-print">
                 <div style={{ position: 'relative' }}>
                     <Search size={15} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                     <input type="text" placeholder="Search organization name…" value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36 }} />
                 </div>
+                <div style={{ flex: 1 }} />
+                <ExportButtons 
+                    printRef={printRef} 
+                    data={loadedData} 
+                    flattenFn={flattenAffiliation} 
+                    filenamePrefix="Affiliations_Map" 
+                />
             </div>
 
-            {loading ? (
+            <div ref={printRef} style={{ background: '#fff' }}>
+                <PrintHeader 
+                    title="Affiliations Map" 
+                    subtitle="All student organizational affiliations" 
+                    count={totalCount} 
+                    filters={{ search }} 
+                />
+
+                {loading ? (
                 <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div>
             ) : Object.keys(grouped).length === 0 ? (
                 <div className="empty"><Network size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No affiliations found.</p></div>
@@ -148,6 +189,7 @@ export default function AffiliationsMap() {
                     );
                 })
             )}
+            </div>
         </div>
     );
 }

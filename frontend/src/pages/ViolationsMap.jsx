@@ -1,32 +1,51 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { getViolations, deleteViolation, updateViolationAction, createViolation, getStudents, resolveViolation } from '../api';
 import { useAuth } from '../AuthContext';
+import { useDebounce } from '../hooks/useDebounce';
+import { SkeletonTable } from '../components/SkeletonLoader';
 import { ShieldAlert, Search, Trash2, Pencil, X, Check, CheckCircle, Plus, History, AlertTriangle, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
+
+function flattenViolation(v, i) {
+    return {
+        '#': i + 1,
+        'Student ID': v.student?.student_id || '',
+        'Student Name': `${v.student?.first_name || ''} ${v.student?.last_name || ''}`.trim(),
+        'Violation Type': v.violation_type || '',
+        'Severity': v.severity_level || '',
+        'Date Committed': v.date_committed || '',
+        'Action Taken': v.action_taken || '',
+        'Description': v.description || '',
+        'Status': v.is_resolved ? 'Resolved' : 'Active',
+    };
+}
 
 function Badge({ value }) {
     return value ? <span className={`badge badge-${value.toLowerCase()}`}>{value.replace(/_/g, ' ')}</span> : null;
 }
 
 function RecordViolationModal({ onClose, onSaved }) {
-    const [students, setStudents] = useState([]);
     const [form, setForm] = useState({ student_id: '', violation_type: '', description: '', date_committed: '', severity_level: 'minor', action_taken: '' });
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
     const [studentSearch, setStudentSearch] = useState('');
     const [studentDropdown, setStudentDropdown] = useState(false);
     const [selectedStudent, setSelectedStudent] = useState(null);
+    const [studentResults, setStudentResults] = useState([]);
     const set = (k, v) => setForm(p => ({ ...p, [k]: v }));
 
-    useEffect(() => {
-        getStudents().then(r => setStudents(r.data));
-    }, []);
+    const searchStudents = async (q) => {
+        if (q.trim().length < 2) { setStudentResults([]); return; }
+        try {
+            const res = await getStudents({ search: q });
+            setStudentResults((res.data?.data ?? res.data).slice(0, 8));
+        } catch { setStudentResults([]); }
+    };
 
-    const filteredStudents = studentSearch.trim().length >= 1
-        ? students.filter(s =>
-            `${s.first_name} ${s.last_name}`.toLowerCase().includes(studentSearch.toLowerCase()) ||
-            s.student_id?.toLowerCase().includes(studentSearch.toLowerCase())
-          ).slice(0, 8)
-        : [];
+    useEffect(() => {
+        const t = setTimeout(() => searchStudents(studentSearch), 300);
+        return () => clearTimeout(t);
+    }, [studentSearch]);
 
     const selectStudent = (s) => {
         setSelectedStudent(s);
@@ -77,9 +96,9 @@ function RecordViolationModal({ onClose, onSaved }) {
                             {/* Hidden input to enforce required */}
                             <input type="hidden" value={form.student_id} required />
                         </div>
-                        {studentDropdown && filteredStudents.length > 0 && (
+                        {studentDropdown && studentResults.length > 0 && (
                             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #fde8d0', borderRadius: 8, boxShadow: '0 8px 24px rgba(0,0,0,.12)', zIndex: 50, maxHeight: 220, overflowY: 'auto' }}>
-                                {filteredStudents.map(s => (
+                                {studentResults.map(s => (
                                     <div
                                         key={s.id}
                                         onMouseDown={() => selectStudent(s)}
@@ -93,7 +112,7 @@ function RecordViolationModal({ onClose, onSaved }) {
                                 ))}
                             </div>
                         )}
-                        {studentDropdown && studentSearch.trim().length >= 1 && filteredStudents.length === 0 && (
+                        {studentDropdown && studentSearch.trim().length >= 2 && studentResults.length === 0 && (
                             <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, background: '#fff', border: '1px solid #fde8d0', borderRadius: 8, padding: '10px 14px', fontSize: '.82rem', color: '#a8a29e', zIndex: 50 }}>
                                 No students found.
                             </div>
@@ -176,7 +195,7 @@ export default function ViolationsMap() {
     const { role } = useAuth();
     const isAdmin = role === 'admin';
 
-    const [tab, setTab] = useState('active'); // 'active' | 'history'
+    const [tab, setTab] = useState('active');
     const [violations, setViolations] = useState([]);
     const [currentPage, setCurrentPage] = useState(1);
     const [lastPage, setLastPage] = useState(1);
@@ -187,9 +206,12 @@ export default function ViolationsMap() {
     const [editing, setEditing] = useState(null);
     const [recording, setRecording] = useState(false);
 
-    const load = (page = currentPage) => {
+    const debouncedSearch = useDebounce(search, 250);
+    const printRef = useRef(null);
+
+    const load = useCallback((page = currentPage) => {
         setLoading(true);
-        getViolations({ search, severity_level: severity, is_resolved: tab === 'history' ? true : false, page })
+        getViolations({ search: debouncedSearch, severity_level: severity, is_resolved: tab === 'history' ? true : false, page })
             .then(r => {
                 setViolations(r.data.data);
                 setCurrentPage(r.data.current_page);
@@ -197,9 +219,9 @@ export default function ViolationsMap() {
                 setTotal(r.data.total);
             })
             .finally(() => setLoading(false));
-    };
+    }, [debouncedSearch, severity, tab]);
 
-    useEffect(() => { setCurrentPage(1); load(1); }, [search, severity, tab]);
+    useEffect(() => { setCurrentPage(1); load(1); }, [debouncedSearch, severity, tab]);
 
     const goToPage = (page) => { setCurrentPage(page); load(page); };
 
@@ -233,16 +255,18 @@ export default function ViolationsMap() {
                         <div style={iconWrap}><ShieldAlert size={22} color="#f97316" /></div>
                         <h1 style={h1}>Violations</h1>
                     </div>
-                    {isAdmin && (
-                        <button className="btn btn-primary" onClick={() => setRecording(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                            <Plus size={15} /> Record Violation
-                        </button>
-                    )}
+                    <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+
+                        {isAdmin && (
+                            <button className="btn btn-primary" onClick={() => setRecording(true)} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                <Plus size={15} /> Record Violation
+                            </button>
+                        )}
+                    </div>
                 </div>
                 <p style={sub}>Student violation records — {total} total</p>
             </div>
 
-            {/* Tabs */}
             <div style={{ display: 'flex', gap: 4, marginBottom: 16, borderBottom: '1px solid #fde8d0', paddingBottom: 0 }}>
                 <button style={tabStyle('active')} onClick={() => setTab('active')}>
                     <AlertTriangle size={13} style={{ marginRight: 5, verticalAlign: 'middle' }} />
@@ -265,12 +289,26 @@ export default function ViolationsMap() {
                     <option value="major">Major</option>
                     <option value="grave">Grave</option>
                 </select>
+                <div style={{ flex: 1 }} />
+                <ExportButtons 
+                    printRef={printRef} 
+                    data={violations} 
+                    flattenFn={flattenViolation} 
+                    filenamePrefix={`Violations_${tab === 'history' ? 'History' : 'Active'}`} 
+                />
             </div>
 
-            {loading ? <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div> : (
-                <div className="card">
-                    <div className="card-body" style={{ padding: 0 }}>
-                        {/* Tablet+: scrollable table */}
+            <div ref={printRef} style={{ background: '#fff' }}>
+                <PrintHeader 
+                    title="Violations Map" 
+                    subtitle={tab === 'history' ? 'Violation History' : 'Active Violations'} 
+                    count={total} 
+                    filters={{ severity, search }} 
+                />
+
+                {loading ? <SkeletonTable rows={6} cols={9} /> : (
+                    <div className="card">
+                        <div className="card-body" style={{ padding: 0 }}>
                         <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                             <table style={{ minWidth: 700 }}>
                                 <thead>
@@ -284,7 +322,7 @@ export default function ViolationsMap() {
                                         <th>Action Taken</th>
                                         <th>Description</th>
                                         {tab === 'history' && <th>Resolved At</th>}
-                                        <th>Actions</th>
+                                        <th className="no-print">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -303,16 +341,12 @@ export default function ViolationsMap() {
                                                     {v.resolved_at ? new Date(v.resolved_at).toLocaleDateString('en-PH') : '—'}
                                                 </td>
                                             )}
-                                            <td>
+                                            <td className="no-print">
                                                 <div style={{ display: 'flex', gap: 6 }}>
-                                                    {tab === 'active' && (
+                                                    {isAdmin && !v.is_resolved && (
                                                         <>
-                                                            <button style={iconBtn} title="Update action" onClick={() => setEditing(v)}><Pencil size={13} /></button>
-                                                            {isAdmin && (
-                                                                <button style={{ ...iconBtn, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }} title="Mark as resolved" onClick={() => handleResolve(v)}>
-                                                                    <CheckCircle size={13} />
-                                                                </button>
-                                                            )}
+                                                            <button style={{ ...iconBtn, background: '#f8fafc', color: '#0ea5e9' }} onClick={() => setEditing(v)} title="Update Action Taken"><Pencil size={14} /></button>
+                                                            <button style={{ ...iconBtn, background: '#f0fdf4', color: '#16a34a' }} onClick={() => handleResolve(v)} title="Mark as Resolved"><CheckCircle size={14} /></button>
                                                         </>
                                                     )}
                                                     {isAdmin && (
@@ -396,6 +430,7 @@ export default function ViolationsMap() {
                     )}
                 </div>
             )}
+            </div>
             {editing && <ActionModal violation={editing} onClose={() => setEditing(null)} onSaved={load} />}
             {recording && <RecordViolationModal onClose={() => setRecording(false)} onSaved={load} />}
         </div>

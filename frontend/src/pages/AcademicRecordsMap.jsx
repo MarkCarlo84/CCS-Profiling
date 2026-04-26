@@ -46,7 +46,7 @@ const getStatus = (s) => {
     const st = s?.status?.toLowerCase() || '';
     if (st === 'active' || st === 'regular') return 'Regular';
     if (st === 'inactive' || st === 'irregular') return 'Irregular';
-    if (st === 'graduated') return 'Graduated';
+    if (st === 'graduated' || st === 'alumni') return 'Alumni';
     if (st === 'dropped' || st === 'loa') return 'LOA';
     return 'Other';
 };
@@ -94,7 +94,7 @@ export default function AcademicRecordsMap() {
     const allStudents = Object.values(studentMap);
 
     // Status counts (unique students)
-    const statusCounts = { Regular: 0, Irregular: 0, Graduated: 0, LOA: 0 };
+    const statusCounts = { Regular: 0, Irregular: 0, Alumni: 0, LOA: 0 };
     allStudents.forEach(s => { const st = getStatus(s); if (statusCounts[st] !== undefined) statusCounts[st]++; });
 
     // Group students by year level (derived from their highest year_level record)
@@ -144,7 +144,7 @@ export default function AcademicRecordsMap() {
     const metricCards = [
         { label: 'REGULAR',   key: 'Regular',   color: '#16a34a', bg: '#f0fdf4', border: '#bbf7d0', icon: User },
         { label: 'IRREGULAR', key: 'Irregular', color: '#d97706', bg: '#fffbeb', border: '#fde68a', icon: AlertTriangle },
-        { label: 'GRADUATED', key: 'Graduated', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: GraduationCap },
+        { label: 'ALUMNI', key: 'Alumni', color: '#2563eb', bg: '#eff6ff', border: '#bfdbfe', icon: GraduationCap },
         { label: 'LOA',       key: 'LOA',       color: '#dc2626', bg: '#fef2f2', border: '#fecaca', icon: UserX },
     ];
 
@@ -279,7 +279,7 @@ export default function AcademicRecordsMap() {
                                     {pageStudents.map(s => {
                                         const recCount = programRecords.filter(r => r.student?.id === s.id).length;
                                         const status = getStatus(s);
-                                        const statusColors = { Regular: '#16a34a', Irregular: '#d97706', Graduated: '#2563eb', LOA: '#dc2626', Other: '#64748b' };
+                                        const statusColors = { Regular: '#16a34a', Irregular: '#d97706', Alumni: '#2563eb', LOA: '#dc2626', Other: '#64748b' };
                                         const sc = statusColors[status] || '#64748b';
                                         return (
                                             <div key={s.id} onClick={() => setSelectedStudent(s)}
@@ -686,7 +686,7 @@ function AddRecordModal({ onClose, onSave, saving, error }) {
                     <option value="active">Regular</option>
                     <option value="inactive">Irregular</option>
                     <option value="loa">LOA</option>
-                    <option value="graduated">Graduated</option>
+                    <option value="graduated">Alumni</option>
                 </select>
             </div>
 
