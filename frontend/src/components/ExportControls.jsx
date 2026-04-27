@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
-import * as XLSX from 'xlsx';
-import { FileDown, FileSpreadsheet, X, FileText, Loader2, Printer } from 'lucide-react';
-import { useReactToPrint } from 'react-to-print';
+import ExcelJS from 'exceljs';
+import { saveAs } from 'file-saver';
+import { FileDown, FileSpreadsheet, X, FileText, Loader2 } from 'lucide-react';
 
 /**
  * Standardized PDF/Print Header that is hidden on screen and revealed during export.
@@ -55,39 +55,31 @@ export function PrintHeader({ title, subtitle, count, filters }) {
  * - data: Raw array of rows to export.
  * - flattenFn: Function mapper to convert raw data to Excel columns.
  * - filenamePrefix: e.g. 'Student_Data_Map'
+ * - groupByKey: Optional field to group data into multiple sheets.
  */
-export function ExportButtons({ printRef, data, flattenFn, filenamePrefix = 'Export' }) {
+export function ExportButtons({ printRef, data, flattenFn, filenamePrefix = 'Export', groupByKey = null, onBeforePdf = null, onAfterPdf = null }) {
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [pdfGenerating, setPdfGenerating] = useState(false);
 
-    const handlePrint = useReactToPrint({
-        contentRef: printRef,
-        documentTitle: `CCS_${filenamePrefix}`,
-        onBeforeGetContent: () => {
-            if (!printRef.current) return;
+    // PDF download — uses callbacks so parent can switch React state before capture
+    const handlePdfDownload = useCallback(async () => {
+        if (!printRef.current) return;
+        setPdfGenerating(true);
+
+        // 1. If parent provided a React-state callback, use it and wait for repaint
+        if (onBeforePdf) {
+            await onBeforePdf();
+            // Wait 2 frames so React re-renders & browser repaints before capture
+            await new Promise(r => setTimeout(r, 300));
+        } else {
+            // Fallback: direct DOM toggle + repaint wait
             const toHide = printRef.current.querySelectorAll('.pdf-hide');
             const toShow = printRef.current.querySelectorAll('.pdf-only');
             toHide.forEach(el => { el.style.display = 'none'; });
             toShow.forEach(el => { el.style.display = 'block'; });
-        },
-        onAfterPrint: () => {
-            if (!printRef.current) return;
-            const toHide = printRef.current.querySelectorAll('.pdf-hide');
-            const toShow = printRef.current.querySelectorAll('.pdf-only');
-            toHide.forEach(el => { el.style.display = ''; });
-            toShow.forEach(el => { el.style.display = 'none'; });
+            await new Promise(r => setTimeout(r, 300));
         }
-    });
 
-    // Modern html2pdf block for direct PDF download
-    const handlePdfDownload = useCallback(async () => {
-        if (!printRef.current) return;
-        setPdfGenerating(true);
-        // Reveal pdf-only block (header) and hide pdf-hide blocks (pagination)
-        const toHide = printRef.current.querySelectorAll('.pdf-hide');
-        const toShow = printRef.current.querySelectorAll('.pdf-only');
-        toHide.forEach(el => { el.style.display = 'none'; });
-        toShow.forEach(el => { el.style.display = 'block'; });
         try {
             const html2pdf = (await import('html2pdf.js')).default;
             const filename = `CCS_${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.pdf`;
@@ -96,49 +88,118 @@ export function ExportButtons({ printRef, data, flattenFn, filenamePrefix = 'Exp
                     margin: [8, 6, 8, 6],
                     filename,
                     image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, logging: false },
+                    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
                     jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                    pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
+                    pagebreak: { mode: ['css', 'legacy'] },
                 })
                 .from(printRef.current)
                 .save();
         } finally {
-            toHide.forEach(el => { el.style.display = ''; });
-            toShow.forEach(el => { el.style.display = 'none'; });
+            if (onAfterPdf) {
+                onAfterPdf();
+            } else {
+                const toHide = printRef.current.querySelectorAll('.pdf-hide');
+                const toShow = printRef.current.querySelectorAll('.pdf-only');
+                toHide.forEach(el => { el.style.display = ''; });
+                toShow.forEach(el => { el.style.display = 'none'; });
+            }
             setPdfGenerating(false);
         }
-    }, [printRef, filenamePrefix]);
+    }, [printRef, filenamePrefix, onBeforePdf, onAfterPdf]);
 
-    const handleExcelExport = useCallback(() => {
-        if (!data || data.length === 0) return;
-        const rows = data.map(flattenFn);
-        const ws = XLSX.utils.json_to_sheet(rows);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Report');
+    const handleExcelExport = useCallback(async () => {
+        let exportData = data;
+        if (typeof data === 'function') {
+            setPdfGenerating(true); // Reuse loading state for UI
+            try {
+                exportData = await data();
+            } finally {
+                setPdfGenerating(false);
+            }
+        }
 
-        // Auto-width columns
-        const colWidths = Object.keys(rows[0] || {}).map(key => ({
-            wch: Math.max(key.length, ...rows.map(r => String(r[key] || '').length)) + 2
-        }));
-        ws['!cols'] = colWidths;
+        if (!exportData || exportData.length === 0) return;
+        
+        const wb = new ExcelJS.Workbook();
+        
+        const addSheet = (sheetName, items) => {
+            // Clean sheet name (Excel limits to 31 chars and disallows some special chars)
+            const cleanName = String(sheetName).replace(/[\[\]\*\\\?\:\/]/g, '').substring(0, 31) || 'Report';
+            const ws = wb.addWorksheet(cleanName);
+            const rows = items.map(flattenFn);
+            if (rows.length === 0) return;
+            
+            // Set columns
+            const columns = Object.keys(rows[0]).map(k => ({
+                header: k,
+                key: k,
+                width: Math.max(k.length + 5, 16)
+            }));
+            ws.columns = columns;
+            
+            // Add rows
+            rows.forEach(r => ws.addRow(r));
+            
+            // Style Header Row
+            const headerRow = ws.getRow(1);
+            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+            headerRow.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFEA580C' } // Orange matching PDF headers
+            };
+            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+            headerRow.height = 25;
+            
+            // Style Data Rows
+            ws.eachRow((row, rowNumber) => {
+                if (rowNumber > 1) {
+                    row.font = { color: { argb: 'FF334155' } };
+                    row.alignment = { vertical: 'middle', wrapText: true };
+                }
+                // Add Borders to all rows
+                row.eachCell(cell => {
+                    if (rowNumber === 1) {
+                        cell.border = {
+                            top: {style:'thin', color: {argb:'FFC2410C'}},
+                            left: {style:'thin', color: {argb:'FFC2410C'}},
+                            bottom: {style:'thin', color: {argb:'FFC2410C'}},
+                            right: {style:'thin', color: {argb:'FFC2410C'}}
+                        };
+                    } else {
+                        cell.border = {
+                            top: {style:'thin', color: {argb:'FFE2E8F0'}},
+                            left: {style:'thin', color: {argb:'FFE2E8F0'}},
+                            bottom: {style:'thin', color: {argb:'FFE2E8F0'}},
+                            right: {style:'thin', color: {argb:'FFE2E8F0'}}
+                        };
+                    }
+                });
+            });
+        };
 
-        const filename = `CCS_${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`;
-        XLSX.writeFile(wb, filename);
-    }, [data, flattenFn, filenamePrefix]);
+        if (groupByKey) {
+            const groups = exportData.reduce((acc, item) => {
+                const key = item[groupByKey] || 'Other';
+                if (!acc[key]) acc[key] = [];
+                acc[key].push(item);
+                return acc;
+            }, {});
+            Object.entries(groups).forEach(([key, items]) => {
+                addSheet(key, items);
+            });
+        } else {
+            addSheet('Report', exportData);
+        }
+
+        const buffer = await wb.xlsx.writeBuffer();
+        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        saveAs(blob, `CCS_${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+    }, [data, flattenFn, filenamePrefix, groupByKey]);
 
     return (
         <>
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                <button
-                    className="btn btn-outline"
-                    style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.82rem', padding: '7px 14px' }}
-                    onClick={handlePrint}
-                    disabled={pdfGenerating}
-                    title="Print Document"
-                >
-                    <Printer size={14} />
-                    Print
-                </button>
                 <button
                     className="btn btn-primary"
                     style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.82rem', padding: '7px 14px' }}

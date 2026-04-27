@@ -38,3 +38,61 @@ h2,
 h3 {
   line-height: 1.2;
 }
+
+/* ===================== STANDARD REPORT TABLES ===================== */
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.85rem;
+  margin-top: 10px;
+  background-color: #ffffff;
+  color: #334155;
+}
+
+.report-table th,
+.report-table td {
+  border: 1px solid #e2e8f0;
+  padding: 10px 14px;
+  text-align: left;
+}
+
+.report-table th {
+  background-color: #f8fafc;
+  font-weight: 700;
+  color: #0f172a;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  letter-spacing: 0.05em;
+}
+
+.report-table tbody tr:nth-child(even) {
+  background-color: #f8fafc;
+}
+
+.report-table tbody tr:hover {
+  background-color: #f1f5f9;
+}
+
+/* Print Specific Rules for Tables */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+  
+  .report-table {
+    font-size: 10pt;
+    width: 100%;
+    page-break-inside: auto;
+  }
+  
+  .report-table th,
+  .report-table td {
+    padding: 8px 12px;
+  }
+  
+  .report-table tbody tr {
+    page-break-inside: avoid;
+    page-break-after: auto;
+  }
+}

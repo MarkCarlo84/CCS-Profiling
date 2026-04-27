@@ -11,7 +11,7 @@ class AffiliationController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $perPage = 5;
+        $perPage = $request->get('limit', 5);
 
         // Base constraints
         $baseQuery = Affiliation::with('student');

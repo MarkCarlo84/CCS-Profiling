@@ -283,6 +283,7 @@ export default function StudentDataMap() {
     const pageSize = 10;
     const [sectionCapacity, setSectionCapacity] = useState(null);
     const [capacityLoading, setCapacityLoading] = useState(false);
+    const [isPdfMode, setIsPdfMode] = useState(false);
 
     const debouncedSearch = useDebounce(filters.search, 250);
 
@@ -394,13 +395,14 @@ export default function StudentDataMap() {
     const setDeptPage = (dept, p) => setDeptPages(prev => ({ ...prev, [dept]: p }));
 
     const renderDeptTable = (dept, deptStudents) => {
-        const label = DEPT_LABELS[dept] || dept;        const page = getDeptPage(dept);
+        const label = DEPT_LABELS[dept] || dept;
+        const page = getDeptPage(dept);
         const totalPages = Math.ceil(deptStudents.length / pageSize);
         const paginated = deptStudents.slice((page - 1) * pageSize, page * pageSize);
 
         return (
-            <div key={dept} className="card" style={{ marginBottom: 28 }}>
-                <div className="card-header" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fff' }}>
+            <div key={dept} className="card pdf-hide" style={{ marginBottom: 28, pageBreakInside: 'auto' }}>
+                <div className="card-header no-print" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fff' }}>
                     <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                         <Building size={17} strokeWidth={2} />{label}
                     </h2>
@@ -408,7 +410,8 @@ export default function StudentDataMap() {
                 </div>
                 <div className="card-body" style={{ padding: 0 }}>
 
-                    {/* Tablet+: scrollable table */}
+                    {/* Screen View: Paginated & Cards */}
+                    <div>
                     <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                         <table style={{ minWidth: 700 }}>
                             <thead>
@@ -527,6 +530,7 @@ export default function StudentDataMap() {
                             </div>
                         ))}
                     </div>
+                    </div>
 
                 </div>
                 {totalPages > 1 && (() => {
@@ -644,6 +648,9 @@ export default function StudentDataMap() {
                     data={students} 
                     flattenFn={flattenStudent} 
                     filenamePrefix={filters.department ? `Students_${filters.department}` : 'Students_All'} 
+                    groupByKey="department"
+                    onBeforePdf={() => setIsPdfMode(true)}
+                    onAfterPdf={() => setIsPdfMode(false)}
                 />
             </div>
 
@@ -658,7 +665,77 @@ export default function StudentDataMap() {
                 {loading && !(allStudents?.length) ? (
                     <SkeletonTable />
                 ) : students.length > 0 ? (
-                    Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))
+                    <>
+                        {/* Screen cards — hidden when generating PDF */}
+                        {!isPdfMode && Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))}
+
+                        {/* PDF-only full print section — rendered when isPdfMode is true */}
+                        {isPdfMode && (
+                            <div>
+                                {['IT', 'CS'].map(dept => {
+                                    const deptStudents = (grouped[dept] || [])
+                                        .slice()
+                                        .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''));
+                                    if (deptStudents.length === 0) return null;
+                                    const label = DEPT_LABELS[dept] || dept;
+                                    const PRINT_PAGE = 10;
+                                    const pageChunks = [];
+                                    for (let i = 0; i < deptStudents.length; i += PRINT_PAGE) {
+                                        pageChunks.push(deptStudents.slice(i, i + PRINT_PAGE));
+                                    }
+                                    return (
+                                        <div key={dept}>
+                                            {pageChunks.map((chunk, pageIdx) => (
+                                                <div key={pageIdx} style={{ pageBreakAfter: pageIdx < pageChunks.length - 1 ? 'always' : 'auto', marginBottom: 32 }}>
+                                                    <div style={{
+                                                        background: 'linear-gradient(135deg,#f97316,#ea580c)',
+                                                        color: '#fff', padding: '10px 16px',
+                                                        fontWeight: 800, fontSize: '1rem',
+                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                    }}>
+                                                        <span>{label} Department</span>
+                                                        <span style={{ fontSize: '.82rem', opacity: .85 }}>
+                                                            Page {pageIdx + 1} of {pageChunks.length} &nbsp;·&nbsp; {deptStudents.length} students total
+                                                        </span>
+                                                    </div>
+                                                    <table className="report-table" style={{ marginTop: 0 }}>
+                                                        <thead>
+                                                            <tr>
+                                                                <th>#</th>
+                                                                <th>Student ID</th>
+                                                                <th>Full Name</th>
+                                                                <th>Age</th>
+                                                                <th>Gender</th>
+                                                                <th>Section</th>
+                                                                <th>Violations</th>
+                                                                <th>Affiliations</th>
+                                                                <th>Skills</th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            {chunk.map((stu, idx) => (
+                                                                <tr key={stu.id}>
+                                                                    <td>{pageIdx * PRINT_PAGE + idx + 1}</td>
+                                                                    <td>{stu.student_id || `STU-${stu.id}`}</td>
+                                                                    <td>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</td>
+                                                                    <td>{stu.age || '—'}</td>
+                                                                    <td>{stu.gender || '—'}</td>
+                                                                    <td>{fmtSection(stu) || '—'}</td>
+                                                                    <td>{stu.violations?.filter(v => !v.is_resolved).length || 0}</td>
+                                                                    <td>{stu.affiliations?.length || 0}</td>
+                                                                    <td>{stu.skills?.length || 0}</td>
+                                                                </tr>
+                                                            ))}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </>
                 ) : (
                     <div className="card">
                         <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px' }}>

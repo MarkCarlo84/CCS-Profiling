@@ -11,7 +11,7 @@ class SkillController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $perPage = 5;
+        $perPage = $request->get('limit', 5);
 
         $baseQuery = Skill::with('student');
         if ($request->filled('student_id')) {

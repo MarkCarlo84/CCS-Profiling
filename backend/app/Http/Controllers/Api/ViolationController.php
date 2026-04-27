@@ -25,7 +25,7 @@ class ViolationController extends Controller
             $query->where('is_resolved', filter_var($request->is_resolved, FILTER_VALIDATE_BOOLEAN));
         }
 
-        $paginated = $query->orderBy('date_committed', 'desc')->paginate(10);
+        $paginated = $query->orderBy('date_committed', 'desc')->paginate($request->get('limit', 10));
 
         return response()->json([
             'data'         => $paginated->items(),

@@ -10,9 +10,21 @@ use Illuminate\Http\JsonResponse;
 
 class EligibilityCriteriaController extends Controller
 {
-    public function index(): JsonResponse
+    public function index(Request $request): JsonResponse
     {
-        return response()->json(EligibilityCriteria::all());
+        $query = EligibilityCriteria::query();
+        
+        if ($request->has('limit')) {
+            $paginated = $query->paginate($request->get('limit'));
+            return response()->json([
+                'data'         => $paginated->items(),
+                'current_page' => $paginated->currentPage(),
+                'last_page'    => $paginated->lastPage(),
+                'total'        => $paginated->total(),
+            ]);
+        }
+
+        return response()->json($query->get());
     }
 
     public function store(Request $request): JsonResponse

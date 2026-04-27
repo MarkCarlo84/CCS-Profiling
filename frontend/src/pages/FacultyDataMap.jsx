@@ -156,15 +156,20 @@ function ReportModal({ faculty, onClose }) {
                                     <p style={{ marginTop: 8, color: '#78716c' }}>No students meet this criteria.</p>
                                 </div>
                             ) : (
-                                <div className="card">
-                                    <div className="card-header" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
+                                <div className="card" style={{ pageBreakInside: 'avoid' }}>
+                                    <div className="card-header pdf-hide" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
                                         <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <GraduationCap size={16} /> Eligible Students ({report.eligible_students?.length})
                                         </h2>
                                     </div>
+                                    <div className="pdf-only" style={{ display: 'none', padding: '10px 0' }}>
+                                        <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1c1917', borderBottom: '2px solid #ea580c', paddingBottom: '4px', marginBottom: '8px' }}>
+                                            Eligible Students ({report.eligible_students?.length})
+                                        </h2>
+                                    </div>
                                     <div className="card-body" style={{ padding: 0 }}>
                                         <div className="table-wrap">
-                                            <table>
+                                            <table className="report-table">
                                                 <thead>
                                                     <tr>
                                                         <th>#</th>
@@ -181,11 +186,14 @@ function ReportModal({ faculty, onClose }) {
                                                             <td><strong>{s.student_id || `STU-${s.id}`}</strong></td>
                                                             <td>{s.last_name}, {s.first_name}{s.middle_name ? ` ${s.middle_name[0]}.` : ''}</td>
                                                             <td>
-                                                                <span style={{
+                                                                <span className="pdf-hide" style={{
                                                                     fontSize: '.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999,
                                                                     background: s.status === 'active' ? '#dcfce7' : '#f1f5f9',
                                                                     color: s.status === 'active' ? '#16a34a' : '#64748b',
                                                                 }}>
+                                                                    {s.status || 'active'}
+                                                                </span>
+                                                                <span className="pdf-only" style={{ display: 'none' }}>
                                                                     {s.status || 'active'}
                                                                 </span>
                                                             </td>
@@ -414,6 +422,7 @@ export default function FacultyDataMap() {
                     data={faculties} 
                     flattenFn={flattenFaculty} 
                     filenamePrefix={filters.department ? `Faculty_${filters.department}` : 'Faculty_All'} 
+                    groupByKey="department"
                 />
             </div>
 
@@ -437,96 +446,131 @@ export default function FacultyDataMap() {
                         const totalPages = Math.ceil(members.length / PAGE_SIZE);
                         const paginated = members.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
                         return (
-                        <div key={deptKey} className="card" style={{ marginBottom: 24 }}>
-                            <div className="card-header" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
-                                <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Building size={17} strokeWidth={2} />{label}
-                                </h2>
-                                <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{members.length} faculty</span>
-                            </div>
-                            <div className="card-body" style={{ padding: 0 }}>
-
-                                {/* Tablet+: scrollable table */}
-                                <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                    <table style={{ minWidth: 560 }}>
-                                        <thead>
-                                            <tr>
-                                                <th>#</th><th>Faculty ID</th><th>Full Name</th><th>Position</th>
-                                                <th>Email</th><th>Contact No.</th>
-                                                <th className="no-print">Actions</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {paginated.map((fac, idx) => (
-                                                <tr key={fac.id}>
-                                                    <td>{(page - 1) * PAGE_SIZE + idx + 1}</td>
-                                                    <td><strong style={{ color: '#8b5cf6', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewingFaculty(fac)}>{fac.faculty_id || `FAC-${fac.id}`}</strong></td>
-                                                    <td>{fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}</td>
-                                                    <td>{fac.position}</td>
-                                                    <td>{fac.email || '—'}</td>
-                                                    <td>{fac.contact_number || '—'}</td>
-                                                    <td className="no-print">
-                                                        <div style={{ display: 'flex', gap: 6 }}>
-                                                            <button style={{ ...iconBtnStyle, color: '#2563eb' }} onClick={() => setReportFaculty(fac)} title="Create Report"><FileText size={13} /></button>
-                                                            <button style={iconBtnStyle} onClick={() => openEdit(fac)} title="Edit"><Pencil size={13} /></button>
-                                                            <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(fac.id)} title="Delete"><Trash2 size={13} /></button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
+                        <div key={deptKey} className="card" style={{ marginBottom: 24, breakInside: 'auto' }}>
+                            {/* ======================= SCREEN VIEW (PAGINATED) ======================= */}
+                            <div className="pdf-hide">
+                                <div className="card-header" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
+                                    <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <Building size={17} strokeWidth={2} />{label}
+                                    </h2>
+                                    <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{members.length} faculty</span>
                                 </div>
+                                <div className="card-body" style={{ padding: 0 }}>
 
-                                {/* Mobile: card list */}
-                                <div className="subjects-card-list">
-                                    {paginated.map((fac, idx) => (
-                                        <div key={fac.id} style={{
-                                            padding: '12px 14px',
-                                            borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
-                                        }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
-                                                        <strong
-                                                            style={{ color: '#8b5cf6', fontSize: '.82rem', fontFamily: 'monospace', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
-                                                            onClick={() => setViewingFaculty(fac)}
-                                                        >
-                                                            {fac.faculty_id || `FAC-${fac.id}`}
-                                                        </strong>
+                                    {/* Tablet+: scrollable table */}
+                                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                        <table style={{ minWidth: 560 }}>
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th><th>Faculty ID</th><th>Full Name</th><th>Position</th>
+                                                    <th>Email</th><th>Contact No.</th>
+                                                    <th className="no-print">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {paginated.map((fac, idx) => (
+                                                    <tr key={fac.id}>
+                                                        <td>{(page - 1) * PAGE_SIZE + idx + 1}</td>
+                                                        <td><strong style={{ color: '#8b5cf6', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewingFaculty(fac)}>{fac.faculty_id || `FAC-${fac.id}`}</strong></td>
+                                                        <td>{fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}</td>
+                                                        <td>{fac.position}</td>
+                                                        <td>{fac.email || '—'}</td>
+                                                        <td>{fac.contact_number || '—'}</td>
+                                                        <td className="no-print">
+                                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                                <button style={{ ...iconBtnStyle, color: '#2563eb' }} onClick={() => setReportFaculty(fac)} title="Create Report"><FileText size={13} /></button>
+                                                                <button style={iconBtnStyle} onClick={() => openEdit(fac)} title="Edit"><Pencil size={13} /></button>
+                                                                <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(fac.id)} title="Delete"><Trash2 size={13} /></button>
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Mobile: card list */}
+                                    <div className="subjects-card-list">
+                                        {paginated.map((fac, idx) => (
+                                            <div key={fac.id} style={{
+                                                padding: '12px 14px',
+                                                borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
+                                            }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                                                            <strong
+                                                                style={{ color: '#8b5cf6', fontSize: '.82rem', fontFamily: 'monospace', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
+                                                                onClick={() => setViewingFaculty(fac)}
+                                                            >
+                                                                {fac.faculty_id || `FAC-${fac.id}`}
+                                                            </strong>
+                                                        </div>
+                                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
+                                                            {fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}
+                                                        </div>
+                                                        <div style={{ fontSize: '.78rem', color: '#78716c', marginBottom: 1 }}>{fac.position}</div>
+                                                        {fac.email && <div style={{ fontSize: '.75rem', color: '#a8a29e' }}>{fac.email}</div>}
+                                                        {fac.contact_number && <div style={{ fontSize: '.75rem', color: '#a8a29e' }}>{fac.contact_number}</div>}
                                                     </div>
-                                                    <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
-                                                        {fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}
+                                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                                        <button style={{ ...iconBtnStyle, color: '#2563eb' }} onClick={() => setReportFaculty(fac)} title="Create Report"><FileText size={13} /></button>
+                                                        <button style={iconBtnStyle} onClick={() => openEdit(fac)} title="Edit"><Pencil size={13} /></button>
+                                                        <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(fac.id)} title="Delete"><Trash2 size={13} /></button>
                                                     </div>
-                                                    <div style={{ fontSize: '.78rem', color: '#78716c', marginBottom: 1 }}>{fac.position}</div>
-                                                    {fac.email && <div style={{ fontSize: '.75rem', color: '#a8a29e' }}>{fac.email}</div>}
-                                                    {fac.contact_number && <div style={{ fontSize: '.75rem', color: '#a8a29e' }}>{fac.contact_number}</div>}
-                                                </div>
-                                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                                    <button style={{ ...iconBtnStyle, color: '#2563eb' }} onClick={() => setReportFaculty(fac)} title="Create Report"><FileText size={13} /></button>
-                                                    <button style={iconBtnStyle} onClick={() => openEdit(fac)} title="Edit"><Pencil size={13} /></button>
-                                                    <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(fac.id)} title="Delete"><Trash2 size={13} /></button>
                                                 </div>
                                             </div>
-                                        </div>
-                                    ))}
-                                </div>
+                                        ))}
+                                    </div>
 
-                            </div>
-                            {totalPages > 1 && (
-                                <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
-                                    <button onClick={() => setDeptPage(deptKey, Math.max(1, page - 1))} disabled={page === 1} style={{ ...pageBtn, opacity: page === 1 ? 0.4 : 1 }}>‹</button>
-                                    {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
-                                        <button key={p} onClick={() => setDeptPage(deptKey, p)}
-                                            style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
-                                        >{p}</button>
-                                    ))}
-                                    <button onClick={() => setDeptPage(deptKey, Math.min(totalPages, page + 1))} disabled={page === totalPages} style={{ ...pageBtn, opacity: page === totalPages ? 0.4 : 1 }}>›</button>
-                                    <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 8 }}>
-                                        {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, members.length)} of {members.length}
-                                    </span>
                                 </div>
-                            )}
+                                {totalPages > 1 && (
+                                    <div className="no-print" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, padding: '12px 0' }}>
+                                        <button onClick={() => setDeptPage(deptKey, Math.max(1, page - 1))} disabled={page === 1} style={{ ...pageBtn, opacity: page === 1 ? 0.4 : 1 }}>‹</button>
+                                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                                            <button key={p} onClick={() => setDeptPage(deptKey, p)}
+                                                style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
+                                            >{p}</button>
+                                        ))}
+                                        <button onClick={() => setDeptPage(deptKey, Math.min(totalPages, page + 1))} disabled={page === totalPages} style={{ ...pageBtn, opacity: page === totalPages ? 0.4 : 1 }}>›</button>
+                                        <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 8 }}>
+                                            {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, members.length)} of {members.length}
+                                        </span>
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* ======================= PRINT VIEW (ALL RECORDS) ======================= */}
+                            <div className="pdf-only" style={{ display: 'none', padding: '20px 0' }}>
+                                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1c1917', borderBottom: '2px solid #ea580c', paddingBottom: '6px', marginBottom: '12px' }}>
+                                    <Building size={18} strokeWidth={2.5} style={{ verticalAlign: 'text-bottom', marginRight: '6px', color: '#ea580c' }} />
+                                    {label} ({members.length} faculty)
+                                </h2>
+                                <table className="report-table">
+                                    <thead>
+                                        <tr>
+                                            <th style={{ width: '4%' }}>#</th>
+                                            <th style={{ width: '15%' }}>Faculty ID</th>
+                                            <th style={{ width: '25%' }}>Full Name</th>
+                                            <th style={{ width: '20%' }}>Position</th>
+                                            <th style={{ width: '20%' }}>Email</th>
+                                            <th style={{ width: '16%' }}>Contact No.</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {members.map((fac, idx) => (
+                                            <tr key={fac.id}>
+                                                <td>{idx + 1}</td>
+                                                <td><strong>{fac.faculty_id || `FAC-${fac.id}`}</strong></td>
+                                                <td>{fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}</td>
+                                                <td>{fac.position}</td>
+                                                <td>{fac.email || '—'}</td>
+                                                <td>{fac.contact_number || '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                         );
                     })

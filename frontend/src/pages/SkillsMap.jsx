@@ -54,6 +54,8 @@ export default function SkillsMap() {
     const [search, setSearch] = useState('');
     const [filterLevel, setFilterLevel] = useState('');
     const [editing, setEditing] = useState(null);
+    const [isPdfMode, setIsPdfMode] = useState(false);
+    const [pdfData, setPdfData] = useState([]);
 
     const printRef = useRef(null);
 
@@ -99,6 +101,20 @@ export default function SkillsMap() {
         (cat.data || []).map(s => ({ ...s, _level: lvl }))
     );
 
+    const fetchFullData = async () => {
+        const res = await getSkills({ search: debouncedSearch, skill_level: filterLevel, limit: 99999 });
+        const all = Object.entries(res.data).flatMap(([lvl, cat]) => 
+            (cat.data || []).map(s => ({ ...s, _level: lvl }))
+        );
+        return all;
+    };
+
+    const handleBeforePdf = async () => {
+        setIsPdfMode(true);
+        const data = await fetchFullData();
+        setPdfData(data);
+    };
+
     return (
         <div>
             <div className="page-header">
@@ -121,9 +137,12 @@ export default function SkillsMap() {
                 <div style={{ flex: 1 }} />
                 <ExportButtons 
                     printRef={printRef} 
-                    data={loadedData} 
+                    data={fetchFullData} 
                     flattenFn={flattenSkill} 
                     filenamePrefix="Skills_Map" 
+                    groupByKey="_level"
+                    onBeforePdf={handleBeforePdf}
+                    onAfterPdf={() => setIsPdfMode(false)}
                 />
             </div>
 
@@ -136,90 +155,161 @@ export default function SkillsMap() {
                 />
 
                 {loading ? (
-                <div className="loading"><div className="loading-spinner" /><p>Loading...</p></div>
-            ) : Object.keys(grouped).length === 0 ? (
-                <div className="empty"><Zap size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No skills found.</p></div>
-            ) : (
-                LEVELS.filter(lvl => grouped[lvl]).map(lvl => {
-                    const cat = grouped[lvl];
-                    const items = cat.data ?? [];
-                    const currentPage = cat.current_page ?? 1;
-                    const lastPage = cat.last_page ?? 1;
-                    const color = LEVEL_COLORS[lvl];
+                    <div className="loading"><div className="loading-spinner" /><p>Loading...</p></div>
+                ) : Object.keys(grouped).length === 0 ? (
+                    <div className="empty"><Zap size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No skills found.</p></div>
+                ) : (
+                    <>
+                        {/* Screen View */}
+                        {!isPdfMode && LEVELS.filter(lvl => grouped[lvl]).map(lvl => {
+                            const cat = grouped[lvl];
+                            const items = cat.data ?? [];
+                            const currentPage = cat.current_page ?? 1;
+                            const lastPage = cat.last_page ?? 1;
+                            const color = LEVEL_COLORS[lvl];
 
-                    return (
-                        <div key={lvl} className="card" style={{ marginBottom: 20 }}>
-                            <div className="card-header" style={{ background: `linear-gradient(135deg,${color},${color}cc)`, color: '#fff' }}>
-                                <h2 style={{ color: '#fff', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Zap size={16} /> {lvl}
-                                </h2>
-                                <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{cat.total}</span>
-                            </div>
-
-                            <div className="card-body" style={{ padding: 0, opacity: loadingLevel === lvl ? 0.5 : 1, transition: 'opacity .2s' }}>
-                                <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                    <table style={{ minWidth: 460 }}>
-                                        <thead>
-                                            <tr><th>#</th><th>Student ID</th><th>Name</th><th>Skill Name</th><th>Level</th><th>Certified</th><th>Actions</th></tr>
-                                        </thead>
-                                        <tbody>
-                                            {items.map((s, i) => (
-                                                <tr key={s.id}>
-                                                    <td>{(currentPage - 1) * 5 + i + 1}</td>
-                                                    <td><strong>{s.student?.student_id ?? s.student_id}</strong></td>
-                                                    <td>{s.student ? `${s.student.first_name} ${s.student.last_name}` : '—'}</td>
-                                                    <td>{s.skill_name}</td>
-                                                    <td><span className={`badge badge-${s.skill_level}`} style={{ textTransform: 'capitalize' }}>{s.skill_level}</span></td>
-                                                    <td>{s.certification ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.8rem' }}>Yes</span> : <span style={{ color: '#a8a29e', fontSize: '.8rem' }}>No</span>}</td>
-                                                    <td>
-                                                        <div style={{ display: 'flex', gap: 6 }}>
-                                                            <button style={iconBtn} onClick={() => setEditing(s)}><Pencil size={13} /></button>
-                                                            <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)}><Trash2 size={13} /></button>
-                                                        </div>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                            {items.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>No skills found.</td></tr>}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div className="subjects-card-list">
-                                    {items.map((s, i) => (
-                                        <div key={s.id} style={{ padding: '11px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
-                                                    <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{s.student?.student_id ?? s.student_id}</strong>
-                                                    {s.student && <span style={{ fontSize: '.82rem', color: '#44403c' }}>{s.student.first_name} {s.student.last_name}</span>}
-                                                    <span className={`badge badge-${s.skill_level}`} style={{ textTransform: 'capitalize' }}>{s.skill_level}</span>
-                                                    {s.certification && <span style={{ fontSize: '.7rem', color: '#16a34a', fontWeight: 700 }}>Certified</span>}
-                                                </div>
-                                                <div style={{ fontWeight: 600, fontSize: '.875rem', color: '#1c1917' }}>{s.skill_name}</div>
-                                            </div>
-                                            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                                <button style={iconBtn} onClick={() => setEditing(s)}><Pencil size={13} /></button>
-                                                <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)}><Trash2 size={13} /></button>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {lastPage > 1 && (
-                                    <div style={paginationWrap}>
-                                        <button style={pageBtn} disabled={currentPage === 1} onClick={() => goToPage(lvl, currentPage - 1)}>
-                                            <ChevronLeft size={14} />
-                                        </button>
-                                        <span style={{ fontSize: '.82rem', color: '#78716c' }}>Page {currentPage} of {lastPage}</span>
-                                        <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => goToPage(lvl, currentPage + 1)}>
-                                            <ChevronRight size={14} />
-                                        </button>
+                            return (
+                                <div key={lvl} className="card pdf-hide" style={{ marginBottom: 20 }}>
+                                    <div className="card-header no-print" style={{ background: `linear-gradient(135deg,${color},${color}cc)`, color: '#fff' }}>
+                                        <h2 style={{ color: '#fff', textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <Zap size={16} /> {lvl}
+                                        </h2>
+                                        <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{cat.total}</span>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })
-            )}
+
+                                    <div className="card-body" style={{ padding: 0, opacity: loadingLevel === lvl ? 0.5 : 1, transition: 'opacity .2s' }}>
+                                        <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                            <table style={{ minWidth: 460 }}>
+                                                <thead>
+                                                    <tr><th>#</th><th>Student ID</th><th>Name</th><th>Skill Name</th><th>Level</th><th>Certified</th><th className="no-print">Actions</th></tr>
+                                                </thead>
+                                                <tbody>
+                                                    {items.map((s, i) => (
+                                                        <tr key={s.id}>
+                                                            <td>{(currentPage - 1) * 5 + i + 1}</td>
+                                                            <td><strong>{s.student?.student_id ?? s.student_id}</strong></td>
+                                                            <td>{s.student ? `${s.student.first_name} ${s.student.last_name}` : '—'}</td>
+                                                            <td>{s.skill_name}</td>
+                                                            <td><span className={`badge badge-${s.skill_level}`} style={{ textTransform: 'capitalize' }}>{s.skill_level}</span></td>
+                                                            <td>{s.certification ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.8rem' }}>Yes</span> : <span style={{ color: '#a8a29e', fontSize: '.8rem' }}>No</span>}</td>
+                                                            <td className="no-print">
+                                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                                    <button style={iconBtn} onClick={() => setEditing(s)}><Pencil size={13} /></button>
+                                                                    <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)}><Trash2 size={13} /></button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                    {items.length === 0 && <tr><td colSpan={7} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>No skills found.</td></tr>}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div className="subjects-card-list">
+                                            {items.map((s, i) => (
+                                                <div key={s.id} style={{ padding: '11px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 2 }}>
+                                                            <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{s.student?.student_id ?? s.student_id}</strong>
+                                                            {s.student && <span style={{ fontSize: '.82rem', color: '#44403c' }}>{s.student.first_name} {s.student.last_name}</span>}
+                                                            <span className={`badge badge-${s.skill_level}`} style={{ textTransform: 'capitalize' }}>{s.skill_level}</span>
+                                                            {s.certification && <span style={{ fontSize: '.7rem', color: '#16a34a', fontWeight: 700 }}>Certified</span>}
+                                                        </div>
+                                                        <div style={{ fontWeight: 600, fontSize: '.875rem', color: '#1c1917' }}>{s.skill_name}</div>
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                                        <button style={iconBtn} onClick={() => setEditing(s)}><Pencil size={13} /></button>
+                                                        <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(s.id)}><Trash2 size={13} /></button>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+
+                                        {lastPage > 1 && (
+                                            <div style={paginationWrap}>
+                                                <button style={pageBtn} disabled={currentPage === 1} onClick={() => goToPage(lvl, currentPage - 1)}>
+                                                    <ChevronLeft size={14} />
+                                                </button>
+                                                <span style={{ fontSize: '.82rem', color: '#78716c' }}>Page {currentPage} of {lastPage}</span>
+                                                <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => goToPage(lvl, currentPage + 1)}>
+                                                    <ChevronRight size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {/* PDF View */}
+                        {isPdfMode && (() => {
+                            const groupedPdf = pdfData.reduce((acc, item) => {
+                                const t = item._level || 'Other';
+                                if (!acc[t]) acc[t] = [];
+                                acc[t].push(item);
+                                return acc;
+                            }, {});
+                            const sortedLevels = Object.keys(groupedPdf).sort((a, b) => LEVELS.indexOf(a) - LEVELS.indexOf(b));
+
+                            return (
+                                <div>
+                                    {sortedLevels.map(lvl => {
+                                        const items = groupedPdf[lvl];
+                                        const PRINT_PAGE = 15;
+                                        const color = LEVEL_COLORS[lvl] || '#f97316';
+                                        const pageChunks = [];
+                                        for (let i = 0; i < items.length; i += PRINT_PAGE) {
+                                            pageChunks.push(items.slice(i, i + PRINT_PAGE));
+                                        }
+
+                                        return (
+                                            <div key={lvl}>
+                                                {pageChunks.map((chunk, pageIdx) => (
+                                                    <div key={pageIdx} style={{ pageBreakAfter: pageIdx < pageChunks.length - 1 ? 'always' : 'auto', marginBottom: 32 }}>
+                                                        <div style={{
+                                                            background: `linear-gradient(135deg,${color},${color}cc)`,
+                                                            color: '#fff', padding: '10px 16px',
+                                                            fontWeight: 800, fontSize: '1rem',
+                                                            textTransform: 'capitalize',
+                                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        }}>
+                                                            <span>{lvl} Skills</span>
+                                                            <span style={{ fontSize: '.82rem', opacity: .85 }}>
+                                                                Page {pageIdx + 1} of {pageChunks.length} &nbsp;·&nbsp; {items.length} total
+                                                            </span>
+                                                        </div>
+                                                        <table className="report-table" style={{ marginTop: 0 }}>
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>#</th>
+                                                                    <th>Student ID</th>
+                                                                    <th>Name</th>
+                                                                    <th>Skill Name</th>
+                                                                    <th>Certified</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {chunk.map((s, i) => (
+                                                                    <tr key={s.id}>
+                                                                        <td>{pageIdx * PRINT_PAGE + i + 1}</td>
+                                                                        <td><strong>{s.student?.student_id ?? s.student_id}</strong></td>
+                                                                        <td>{s.student ? `${s.student.first_name} ${s.student.last_name}` : '—'}</td>
+                                                                        <td>{s.skill_name}</td>
+                                                                        <td>{s.certification ? <span style={{ color: '#16a34a', fontWeight: 700, fontSize: '.8rem' }}>Yes</span> : <span style={{ color: '#a8a29e', fontSize: '.8rem' }}>No</span>}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
+                    </>
+                )}
             </div>
 
             {editing && <LevelModal skill={editing} onClose={() => setEditing(null)} onSaved={() => load()} />}

@@ -205,6 +205,8 @@ export default function ViolationsMap() {
     const [severity, setSeverity] = useState('');
     const [editing, setEditing] = useState(null);
     const [recording, setRecording] = useState(false);
+    const [isPdfMode, setIsPdfMode] = useState(false);
+    const [pdfData, setPdfData] = useState([]);
 
     const debouncedSearch = useDebounce(search, 250);
     const printRef = useRef(null);
@@ -224,6 +226,17 @@ export default function ViolationsMap() {
     useEffect(() => { setCurrentPage(1); load(1); }, [debouncedSearch, severity, tab]);
 
     const goToPage = (page) => { setCurrentPage(page); load(page); };
+
+    const fetchFullData = async () => {
+        const res = await getViolations({ search: debouncedSearch, severity_level: severity, is_resolved: tab === 'history' ? true : false, limit: 99999 });
+        return res.data.data;
+    };
+
+    const handleBeforePdf = async () => {
+        setIsPdfMode(true);
+        const data = await fetchFullData();
+        setPdfData(data);
+    };
 
     const handleResolve = async (v) => {
         if (!window.confirm(`Mark "${v.violation_type}" as resolved?\n\nThis will move it to Violation History.`)) return;
@@ -292,9 +305,11 @@ export default function ViolationsMap() {
                 <div style={{ flex: 1 }} />
                 <ExportButtons 
                     printRef={printRef} 
-                    data={violations} 
+                    data={fetchFullData} 
                     flattenFn={flattenViolation} 
                     filenamePrefix={`Violations_${tab === 'history' ? 'History' : 'Active'}`} 
+                    onBeforePdf={handleBeforePdf}
+                    onAfterPdf={() => setIsPdfMode(false)}
                 />
             </div>
 
@@ -307,129 +322,203 @@ export default function ViolationsMap() {
                 />
 
                 {loading ? <SkeletonTable rows={6} cols={9} /> : (
-                    <div className="card">
-                        <div className="card-body" style={{ padding: 0 }}>
-                        <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                            <table style={{ minWidth: 700 }}>
-                                <thead>
-                                    <tr>
-                                        <th>#</th>
-                                        <th>Student ID</th>
-                                        <th>Student Name</th>
-                                        <th>Violation Type</th>
-                                        <th>Severity</th>
-                                        <th>Date Committed</th>
-                                        <th>Action Taken</th>
-                                        <th>Description</th>
-                                        {tab === 'history' && <th>Resolved At</th>}
-                                        <th className="no-print">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {violations.map((v, i) => (
-                                        <tr key={v.id} style={{ opacity: tab === 'history' ? 0.85 : 1 }}>
-                                            <td>{(currentPage - 1) * 10 + i + 1}</td>
-                                            <td><strong>{v.student?.student_id || '—'}</strong></td>
-                                            <td>{v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}</td>
-                                            <td>{v.violation_type}</td>
-                                            <td><Badge value={v.severity_level} /></td>
-                                            <td>{v.date_committed ? new Date(v.date_committed).toLocaleDateString('en-PH') : '—'}</td>
-                                            <td style={{ maxWidth: 160, fontSize: '.8rem' }}>{v.action_taken || <span style={{ color: '#a8a29e' }}>Pending</span>}</td>
-                                            <td style={{ maxWidth: 180, fontSize: '.8rem', color: '#78716c' }}>{v.description || '—'}</td>
-                                            {tab === 'history' && (
-                                                <td style={{ fontSize: '.78rem', color: '#16a34a', fontWeight: 600 }}>
-                                                    {v.resolved_at ? new Date(v.resolved_at).toLocaleDateString('en-PH') : '—'}
-                                                </td>
-                                            )}
-                                            <td className="no-print">
-                                                <div style={{ display: 'flex', gap: 6 }}>
-                                                    {isAdmin && !v.is_resolved && (
-                                                        <>
-                                                            <button style={{ ...iconBtn, background: '#f8fafc', color: '#0ea5e9' }} onClick={() => setEditing(v)} title="Update Action Taken"><Pencil size={14} /></button>
-                                                            <button style={{ ...iconBtn, background: '#f0fdf4', color: '#16a34a' }} onClick={() => handleResolve(v)} title="Mark as Resolved"><CheckCircle size={14} /></button>
-                                                        </>
-                                                    )}
-                                                    {isAdmin && (
-                                                        <button style={{ ...iconBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }} title="Delete permanently" onClick={() => remove(v.id, v.violation_type)}>
-                                                            <Trash2 size={13} />
-                                                        </button>
-                                                    )}
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))}
-                                    {violations.length === 0 && (
-                                        <tr><td colSpan={tab === 'history' ? 10 : 9} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>
-                                            {tab === 'active' ? 'No active violations.' : 'No violation history yet.'}
-                                        </td></tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Mobile: card list */}
-                        <div className="subjects-card-list">
-                            {violations.length === 0 ? (
-                                <p style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: '.875rem' }}>
-                                    {tab === 'active' ? 'No active violations.' : 'No violation history yet.'}
-                                </p>
-                            ) : violations.map((v, i) => (
-                                <div key={v.id} style={{ padding: '12px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', opacity: tab === 'history' ? 0.85 : 1 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
-                                                <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{v.student?.student_id || '—'}</strong>
-                                                <Badge value={v.severity_level} />
-                                                {tab === 'history' && v.resolved_at && (
-                                                    <span style={{ fontSize: '.7rem', color: '#16a34a', fontWeight: 700 }}>✓ Resolved</span>
+                    <>
+                        {/* Screen View */}
+                        {!isPdfMode && (
+                            <>
+                                <div className="card pdf-hide">
+                                    <div className="card-body" style={{ padding: 0 }}>
+                                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                        <table style={{ minWidth: 700 }}>
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>Student ID</th>
+                                                    <th>Student Name</th>
+                                                    <th>Violation Type</th>
+                                                    <th>Severity</th>
+                                                    <th>Date Committed</th>
+                                                    <th>Action Taken</th>
+                                                    <th>Description</th>
+                                                    {tab === 'history' && <th>Resolved At</th>}
+                                                    <th className="no-print">Actions</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                {violations.map((v, i) => (
+                                                    <tr key={v.id} style={{ opacity: tab === 'history' ? 0.85 : 1 }}>
+                                                        <td>{(currentPage - 1) * 10 + i + 1}</td>
+                                                        <td><strong>{v.student?.student_id || '—'}</strong></td>
+                                                        <td>{v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}</td>
+                                                        <td>{v.violation_type}</td>
+                                                        <td><Badge value={v.severity_level} /></td>
+                                                        <td>{v.date_committed ? new Date(v.date_committed).toLocaleDateString('en-PH') : '—'}</td>
+                                                        <td style={{ maxWidth: 160, fontSize: '.8rem' }}>{v.action_taken || <span style={{ color: '#a8a29e' }}>Pending</span>}</td>
+                                                        <td style={{ maxWidth: 180, fontSize: '.8rem', color: '#78716c' }}>{v.description || '—'}</td>
+                                                        {tab === 'history' && (
+                                                            <td style={{ fontSize: '.78rem', color: '#16a34a', fontWeight: 600 }}>
+                                                                {v.resolved_at ? new Date(v.resolved_at).toLocaleDateString('en-PH') : '—'}
+                                                            </td>
+                                                        )}
+                                                        <td className="no-print">
+                                                            <div style={{ display: 'flex', gap: 6 }}>
+                                                                {isAdmin && !v.is_resolved && (
+                                                                    <>
+                                                                        <button style={{ ...iconBtn, background: '#f8fafc', color: '#0ea5e9' }} onClick={() => setEditing(v)} title="Update Action Taken"><Pencil size={14} /></button>
+                                                                        <button style={{ ...iconBtn, background: '#f0fdf4', color: '#16a34a' }} onClick={() => handleResolve(v)} title="Mark as Resolved"><CheckCircle size={14} /></button>
+                                                                    </>
+                                                                )}
+                                                                {isAdmin && (
+                                                                    <button style={{ ...iconBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }} title="Delete permanently" onClick={() => remove(v.id, v.violation_type)}>
+                                                                        <Trash2 size={13} />
+                                                                    </button>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                                {violations.length === 0 && (
+                                                    <tr><td colSpan={tab === 'history' ? 10 : 9} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>
+                                                        {tab === 'active' ? 'No active violations.' : 'No violation history yet.'}
+                                                    </td></tr>
                                                 )}
+                                            </tbody>
+                                        </table>
+                                    </div>
+
+                                    {/* Mobile: card list */}
+                                    <div className="subjects-card-list">
+                                        {violations.length === 0 ? (
+                                            <p style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: '.875rem' }}>
+                                                {tab === 'active' ? 'No active violations.' : 'No violation history yet.'}
+                                            </p>
+                                        ) : violations.map((v, i) => (
+                                            <div key={v.id} style={{ padding: '12px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', opacity: tab === 'history' ? 0.85 : 1 }}>
+                                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                                                            <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace' }}>{v.student?.student_id || '—'}</strong>
+                                                            <Badge value={v.severity_level} />
+                                                            {tab === 'history' && v.resolved_at && (
+                                                                <span style={{ fontSize: '.7rem', color: '#16a34a', fontWeight: 700 }}>✓ Resolved</span>
+                                                            )}
+                                                        </div>
+                                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
+                                                            {v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}
+                                                        </div>
+                                                        <div style={{ fontSize: '.82rem', color: '#44403c', marginBottom: 2 }}>{v.violation_type}</div>
+                                                        {v.date_committed && <div style={{ fontSize: '.75rem', color: '#78716c' }}>{new Date(v.date_committed).toLocaleDateString('en-PH')}</div>}
+                                                        {v.action_taken && <div style={{ fontSize: '.75rem', color: '#78716c', marginTop: 2 }}>Action: {v.action_taken}</div>}
+                                                        {v.description && <div style={{ fontSize: '.75rem', color: '#a8a29e', marginTop: 1 }}>{v.description}</div>}
+                                                    </div>
+                                                    <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
+                                                        {tab === 'active' && (
+                                                            <>
+                                                                <button style={iconBtn} title="Update action" onClick={() => setEditing(v)}><Pencil size={13} /></button>
+                                                                {isAdmin && (
+                                                                    <button style={{ ...iconBtn, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }} title="Resolve" onClick={() => handleResolve(v)}>
+                                                                        <CheckCircle size={13} />
+                                                                    </button>
+                                                                )}
+                                                            </>
+                                                        )}
+                                                        {isAdmin && (
+                                                            <button style={{ ...iconBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }} title="Delete" onClick={() => remove(v.id, v.violation_type)}>
+                                                                <Trash2 size={13} />
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
-                                                {v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}
-                                            </div>
-                                            <div style={{ fontSize: '.82rem', color: '#44403c', marginBottom: 2 }}>{v.violation_type}</div>
-                                            {v.date_committed && <div style={{ fontSize: '.75rem', color: '#78716c' }}>{new Date(v.date_committed).toLocaleDateString('en-PH')}</div>}
-                                            {v.action_taken && <div style={{ fontSize: '.75rem', color: '#78716c', marginTop: 2 }}>Action: {v.action_taken}</div>}
-                                            {v.description && <div style={{ fontSize: '.75rem', color: '#a8a29e', marginTop: 1 }}>{v.description}</div>}
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-                                            {tab === 'active' && (
-                                                <>
-                                                    <button style={iconBtn} title="Update action" onClick={() => setEditing(v)}><Pencil size={13} /></button>
-                                                    {isAdmin && (
-                                                        <button style={{ ...iconBtn, color: '#16a34a', borderColor: '#bbf7d0', background: '#f0fdf4' }} title="Resolve" onClick={() => handleResolve(v)}>
-                                                            <CheckCircle size={13} />
-                                                        </button>
-                                                    )}
-                                                </>
-                                            )}
-                                            {isAdmin && (
-                                                <button style={{ ...iconBtn, color: '#dc2626', borderColor: '#fecaca', background: '#fef2f2' }} title="Delete" onClick={() => remove(v.id, v.violation_type)}>
-                                                    <Trash2 size={13} />
-                                                </button>
-                                            )}
-                                        </div>
+                                        ))}
                                     </div>
                                 </div>
-                            ))}
-                        </div>
-                    </div>
 
-                    {lastPage > 1 && (
-                        <div style={paginationWrap}>
-                            <button style={pageBtn} disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)}>
-                                <ChevronLeft size={14} />
-                            </button>
-                            <span style={{ fontSize: '.82rem', color: '#78716c' }}>
-                                Page {currentPage} of {lastPage} &nbsp;·&nbsp; {total} records
-                            </span>
-                            <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => goToPage(currentPage + 1)}>
-                                <ChevronRight size={14} />
-                            </button>
-                        </div>
-                    )}
-                </div>
-            )}
+                                {lastPage > 1 && (
+                                    <div className="pdf-hide" style={paginationWrap}>
+                                        <button style={pageBtn} disabled={currentPage === 1} onClick={() => goToPage(currentPage - 1)}>
+                                            <ChevronLeft size={14} />
+                                        </button>
+                                        <span style={{ fontSize: '.82rem', color: '#78716c' }}>
+                                            Page {currentPage} of {lastPage} &nbsp;·&nbsp; {total} records
+                                        </span>
+                                        <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => goToPage(currentPage + 1)}>
+                                            <ChevronRight size={14} />
+                                        </button>
+                                    </div>
+                                )}
+                                </div>
+                            </>
+                        )}
+
+                        {/* PDF View */}
+                        {isPdfMode && (() => {
+                            const PRINT_PAGE = 15;
+                            const pageChunks = [];
+                            for (let i = 0; i < pdfData.length; i += PRINT_PAGE) {
+                                pageChunks.push(pdfData.slice(i, i + PRINT_PAGE));
+                            }
+                            if (pageChunks.length === 0) pageChunks.push([]); // Ensure at least 1 page
+
+                            return (
+                                <div>
+                                    {pageChunks.map((chunk, pageIdx) => (
+                                        <div key={pageIdx} style={{ pageBreakAfter: pageIdx < pageChunks.length - 1 ? 'always' : 'auto', marginBottom: 32 }}>
+                                            <div style={{
+                                                background: 'linear-gradient(135deg,#ea580c,#f97316)',
+                                                color: '#fff', padding: '10px 16px',
+                                                fontWeight: 800, fontSize: '1rem',
+                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                            }}>
+                                                <span>{tab === 'history' ? 'Violation History' : 'Active Violations'}</span>
+                                                <span style={{ fontSize: '.82rem', opacity: .85 }}>
+                                                    Page {pageIdx + 1} of {pageChunks.length} &nbsp;·&nbsp; {pdfData.length} records
+                                                </span>
+                                            </div>
+                                            <table className="report-table" style={{ marginTop: 0 }}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th>
+                                                        <th>Student ID</th>
+                                                        <th>Student Name</th>
+                                                        <th>Violation Type</th>
+                                                        <th>Severity</th>
+                                                        <th>Date Committed</th>
+                                                        <th>Action Taken</th>
+                                                        {tab === 'history' && <th>Resolved At</th>}
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {chunk.map((v, i) => (
+                                                        <tr key={v.id}>
+                                                            <td>{pageIdx * PRINT_PAGE + i + 1}</td>
+                                                            <td><strong>{v.student?.student_id || '—'}</strong></td>
+                                                            <td>{v.student ? `${v.student.first_name} ${v.student.last_name}` : '—'}</td>
+                                                            <td>{v.violation_type}</td>
+                                                            <td>{v.severity_level ? v.severity_level.toUpperCase() : '—'}</td>
+                                                            <td>{v.date_committed ? new Date(v.date_committed).toLocaleDateString('en-PH') : '—'}</td>
+                                                            <td style={{ maxWidth: 160, fontSize: '.8rem' }}>{v.action_taken || <span style={{ color: '#a8a29e' }}>Pending</span>}</td>
+                                                            {tab === 'history' && (
+                                                                <td style={{ fontSize: '.78rem', color: '#16a34a', fontWeight: 600 }}>
+                                                                    {v.resolved_at ? new Date(v.resolved_at).toLocaleDateString('en-PH') : '—'}
+                                                                </td>
+                                                            )}
+                                                        </tr>
+                                                    ))}
+                                                    {chunk.length === 0 && (
+                                                        <tr><td colSpan={tab === 'history' ? 8 : 7} style={{ textAlign: 'center', color: '#a8a29e', padding: 32 }}>
+                                                            No records found.
+                                                        </td></tr>
+                                                    )}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    ))}
+                                </div>
+                            );
+                        })()}
+                    </>
+                )}
             </div>
             {editing && <ActionModal violation={editing} onClose={() => setEditing(null)} onSaved={load} />}
             {recording && <RecordViolationModal onClose={() => setRecording(false)} onSaved={load} />}

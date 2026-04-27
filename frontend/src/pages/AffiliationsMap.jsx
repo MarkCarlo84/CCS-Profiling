@@ -29,6 +29,8 @@ export default function AffiliationsMap() {
     const [loading, setLoading] = useState(true);
     const [loadingCategory, setLoadingCategory] = useState(null);
     const [search, setSearch] = useState('');
+    const [isPdfMode, setIsPdfMode] = useState(false);
+    const [pdfData, setPdfData] = useState([]);
 
     const printRef = useRef(null);
 
@@ -83,6 +85,20 @@ export default function AffiliationsMap() {
         (cat.data || []).map(a => ({ ...a, _type: type }))
     );
 
+    const fetchFullData = async () => {
+        const res = await getAffiliations({ search: debouncedSearch, limit: 99999 });
+        const all = Object.entries(res.data).flatMap(([type, cat]) => 
+            (cat.data || []).map(a => ({ ...a, _type: type }))
+        );
+        return all;
+    };
+
+    const handleBeforePdf = async () => {
+        setIsPdfMode(true);
+        const data = await fetchFullData();
+        setPdfData(data);
+    };
+
     return (
         <div>
             <div className="page-header">
@@ -101,9 +117,12 @@ export default function AffiliationsMap() {
                 <div style={{ flex: 1 }} />
                 <ExportButtons 
                     printRef={printRef} 
-                    data={loadedData} 
+                    data={fetchFullData} 
                     flattenFn={flattenAffiliation} 
                     filenamePrefix="Affiliations_Map" 
+                    groupByKey="_type"
+                    onBeforePdf={handleBeforePdf}
+                    onAfterPdf={() => setIsPdfMode(false)}
                 />
             </div>
 
@@ -116,79 +135,152 @@ export default function AffiliationsMap() {
                 />
 
                 {loading ? (
-                <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div>
-            ) : Object.keys(grouped).length === 0 ? (
-                <div className="empty"><Network size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No affiliations found.</p></div>
-            ) : (
-                Object.entries(grouped).map(([type, cat]) => {
-                    const items = cat.data ?? [];
-                    const currentPage = cat.current_page ?? 1;
-                    const lastPage = cat.last_page ?? 1;
+                    <div className="loading"><div className="loading-spinner" /><p>Loading…</p></div>
+                ) : Object.keys(grouped).length === 0 ? (
+                    <div className="empty"><Network size={40} color="#fed7aa" /><p style={{ marginTop: 10 }}>No affiliations found.</p></div>
+                ) : (
+                    <>
+                        {/* Screen View */}
+                        {!isPdfMode && Object.entries(grouped).map(([type, cat]) => {
+                            const items = cat.data ?? [];
+                            const currentPage = cat.current_page ?? 1;
+                            const lastPage = cat.last_page ?? 1;
 
-                    return (
-                        <div key={type} className="card" style={{ marginBottom: 20 }}>
-                            <div className="card-header" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
-                                <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Network size={16} /> {type}
-                                </h2>
-                                <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{cat.total}</span>
-                            </div>
-
-                            <div className="card-body" style={{ padding: 0, opacity: loadingCategory === type ? 0.5 : 1, transition: 'opacity .2s' }}>
-                                <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                    <table style={{ minWidth: 480 }}>
-                                        <thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Organization Name</th><th>Role</th><th>Date Joined</th><th>Actions</th></tr></thead>
-                                        <tbody>
-                                            {items.map((a, i) => (
-                                                <tr key={a.id}>
-                                                    <td>{(currentPage - 1) * 5 + i + 1}</td>
-                                                    <td><strong>{a.student?.student_id ?? a.student_id}</strong></td>
-                                                    <td>{a.student ? `${a.student.first_name} ${a.student.last_name}` : '—'}</td>
-                                                    <td>{a.name}</td>
-                                                    <td>{a.role || '—'}</td>
-                                                    <td>{a.date_joined ? new Date(a.date_joined).toLocaleDateString('en-PH') : '—'}</td>
-                                                    <td><button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(a.id)}><Trash2 size={13} /></button></td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                <div className="subjects-card-list">
-                                    {items.map((a, i) => (
-                                        <div key={a.id} style={{ padding: '11px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                                            <div style={{ flex: 1, minWidth: 0 }}>
-                                                <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>{a.name}</div>
-                                                <div style={{ fontSize: '.78rem', color: '#78716c' }}>
-                                                    <strong style={{ color: '#f97316' }}>{a.student?.student_id ?? a.student_id}</strong>
-                                                    {a.student && <span> · {a.student.first_name} {a.student.last_name}</span>}
-                                                    {a.role && <span> · {a.role}</span>}
-                                                    {a.date_joined && <span> · {new Date(a.date_joined).toLocaleDateString('en-PH')}</span>}
-                                                </div>
-                                            </div>
-                                            <button style={{ ...iconBtn, color: '#dc2626', flexShrink: 0 }} onClick={() => remove(a.id)}><Trash2 size={13} /></button>
-                                        </div>
-                                    ))}
-                                </div>
-
-                                {lastPage > 1 && (
-                                    <div style={paginationWrap}>
-                                        <button style={pageBtn} disabled={currentPage === 1} onClick={() => goToPage(type, currentPage - 1)}>
-                                            <ChevronLeft size={14} />
-                                        </button>
-                                        <span style={{ fontSize: '.82rem', color: '#78716c' }}>
-                                            Page {currentPage} of {lastPage}
-                                        </span>
-                                        <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => goToPage(type, currentPage + 1)}>
-                                            <ChevronRight size={14} />
-                                        </button>
+                            return (
+                                <div key={type} className="card pdf-hide" style={{ marginBottom: 20 }}>
+                                    <div className="card-header no-print" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
+                                        <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <Network size={16} /> {type}
+                                        </h2>
+                                        <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{cat.total}</span>
                                     </div>
-                                )}
-                            </div>
-                        </div>
-                    );
-                })
-            )}
+
+                                    <div className="card-body" style={{ padding: 0, opacity: loadingCategory === type ? 0.5 : 1, transition: 'opacity .2s' }}>
+                                        <div>
+                                        <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                            <table style={{ minWidth: 480 }}>
+                                                <thead><tr><th>#</th><th>Student ID</th><th>Name</th><th>Organization Name</th><th>Role</th><th>Date Joined</th><th className="no-print">Actions</th></tr></thead>
+                                                <tbody>
+                                                    {items.map((a, i) => (
+                                                        <tr key={a.id}>
+                                                            <td>{(currentPage - 1) * 5 + i + 1}</td>
+                                                            <td><strong>{a.student?.student_id ?? a.student_id}</strong></td>
+                                                            <td>{a.student ? `${a.student.first_name} ${a.student.last_name}` : '—'}</td>
+                                                            <td>{a.name}</td>
+                                                            <td>{a.role || '—'}</td>
+                                                            <td>{a.date_joined ? new Date(a.date_joined).toLocaleDateString('en-PH') : '—'}</td>
+                                                            <td className="no-print"><button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(a.id)}><Trash2 size={13} /></button></td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
+                                        </div>
+
+                                        <div className="subjects-card-list">
+                                            {items.map((a, i) => (
+                                                <div key={a.id} style={{ padding: '11px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                                    <div style={{ flex: 1, minWidth: 0 }}>
+                                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>{a.name}</div>
+                                                        <div style={{ fontSize: '.78rem', color: '#78716c' }}>
+                                                            <strong style={{ color: '#f97316' }}>{a.student?.student_id ?? a.student_id}</strong>
+                                                            {a.student && <span> · {a.student.first_name} {a.student.last_name}</span>}
+                                                            {a.role && <span> · {a.role}</span>}
+                                                            {a.date_joined && <span> · {new Date(a.date_joined).toLocaleDateString('en-PH')}</span>}
+                                                        </div>
+                                                    </div>
+                                                    <button style={{ ...iconBtn, color: '#dc2626', flexShrink: 0 }} onClick={() => remove(a.id)}><Trash2 size={13} /></button>
+                                                </div>
+                                            ))}
+                                        </div>
+                                        </div>
+
+                                        {lastPage > 1 && (
+                                            <div style={paginationWrap}>
+                                                <button style={pageBtn} disabled={currentPage === 1} onClick={() => goToPage(type, currentPage - 1)}>
+                                                    <ChevronLeft size={14} />
+                                                </button>
+                                                <span style={{ fontSize: '.82rem', color: '#78716c' }}>
+                                                    Page {currentPage} of {lastPage}
+                                                </span>
+                                                <button style={pageBtn} disabled={currentPage === lastPage} onClick={() => goToPage(type, currentPage + 1)}>
+                                                    <ChevronRight size={14} />
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            );
+                        })}
+
+                        {/* PDF View */}
+                        {isPdfMode && (() => {
+                            const groupedPdf = pdfData.reduce((acc, item) => {
+                                const t = item._type || 'Other';
+                                if (!acc[t]) acc[t] = [];
+                                acc[t].push(item);
+                                return acc;
+                            }, {});
+                            const sortedTypes = Object.keys(groupedPdf).sort();
+
+                            return (
+                                <div>
+                                    {sortedTypes.map(type => {
+                                        const items = groupedPdf[type];
+                                        const PRINT_PAGE = 15;
+                                        const pageChunks = [];
+                                        for (let i = 0; i < items.length; i += PRINT_PAGE) {
+                                            pageChunks.push(items.slice(i, i + PRINT_PAGE));
+                                        }
+
+                                        return (
+                                            <div key={type}>
+                                                {pageChunks.map((chunk, pageIdx) => (
+                                                    <div key={pageIdx} style={{ pageBreakAfter: pageIdx < pageChunks.length - 1 ? 'always' : 'auto', marginBottom: 32 }}>
+                                                        <div style={{
+                                                            background: 'linear-gradient(135deg,#ea580c,#f97316)',
+                                                            color: '#fff', padding: '10px 16px',
+                                                            fontWeight: 800, fontSize: '1rem',
+                                                            display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                                        }}>
+                                                            <span>{type} Affiliations</span>
+                                                            <span style={{ fontSize: '.82rem', opacity: .85 }}>
+                                                                Page {pageIdx + 1} of {pageChunks.length} &nbsp;·&nbsp; {items.length} total
+                                                            </span>
+                                                        </div>
+                                                        <table className="report-table" style={{ marginTop: 0 }}>
+                                                            <thead>
+                                                                <tr>
+                                                                    <th>#</th>
+                                                                    <th>Student ID</th>
+                                                                    <th>Name</th>
+                                                                    <th>Organization Name</th>
+                                                                    <th>Role</th>
+                                                                    <th>Date Joined</th>
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody>
+                                                                {chunk.map((a, i) => (
+                                                                    <tr key={a.id}>
+                                                                        <td>{pageIdx * PRINT_PAGE + i + 1}</td>
+                                                                        <td><strong>{a.student?.student_id ?? a.student_id}</strong></td>
+                                                                        <td>{a.student ? `${a.student.first_name} ${a.student.last_name}` : '—'}</td>
+                                                                        <td>{a.name}</td>
+                                                                        <td>{a.role || '—'}</td>
+                                                                        <td>{a.date_joined ? new Date(a.date_joined).toLocaleDateString('en-PH') : '—'}</td>
+                                                                    </tr>
+                                                                ))}
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            );
+                        })()}
+                    </>
+                )}
             </div>
         </div>
     );
