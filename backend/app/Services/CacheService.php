@@ -13,7 +13,7 @@ class CacheService
      * Cache duration in seconds
      */
     const CACHE_DURATION = [
-        'short' => 300,   // 5 minutes
+        'short' => 30,    // 30 seconds
         'medium' => 1800, // 30 minutes  
         'long' => 3600,   // 1 hour
         'daily' => 86400, // 24 hours

@@ -16,7 +16,7 @@ class PerformanceOptimizer
     const CACHE_DURATIONS = [
         'static' => 86400,    // 24 hours for rarely changing data
         'dynamic' => 3600,    // 1 hour for frequently changing data
-        'realtime' => 300,    // 5 minutes for real-time data
+        'realtime' => 30,     // 30 seconds for real-time data
     ];
 
     /**

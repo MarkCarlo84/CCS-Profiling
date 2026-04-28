@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getSummary } from '../api';
 import { useQuery } from '../hooks/useQuery';
@@ -33,7 +33,10 @@ const QUICK_ACTIONS = [
 ];
 
 export default function Dashboard() {
-    const { data: summary, loading } = useQuery('summary', getSummary);
+    const { data: summary, loading, refetch } = useQuery('summary', getSummary);
+
+    // Always fetch fresh data on mount — bypass stale cache
+    useEffect(() => { refetch(true); }, []);
 
     return (
         <div>
