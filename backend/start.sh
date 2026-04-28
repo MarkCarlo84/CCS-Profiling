@@ -2,7 +2,6 @@
 set -e
 
 APP_PORT=${PORT:-80}
-# Use file cache for better performance in production
 export CACHE_STORE=file
 
 echo "==> Starting on port $APP_PORT"
@@ -44,24 +43,23 @@ php artisan route:clear
 php artisan config:cache
 php artisan route:cache
 
-echo "==> Seeding database..."
-if php artisan db:seed --force --class=DatabaseSeeder --verbose; then
-    echo "==> Database seeding completed successfully"
-else
-    SEED_EXIT_CODE=$?
-    echo "==> Database seeding failed with exit code $SEED_EXIT_CODE"
-    echo "==> This is not critical for deployment, continuing..."
-fi
-
-echo "==> Warming up application caches..."
-if php artisan cache:warmup; then
-    echo "==> Cache warmup completed successfully"
-else
-    echo "==> Cache warmup failed, continuing without cache warmup..."
-fi
-
 echo "==> Starting nginx on port $APP_PORT..."
 nginx -g "daemon off;" &
 
-echo "==> App ready. Keeping nginx in foreground..."
+echo "==> Running seeder and cache warmup in background..."
+(
+    if php artisan db:seed --force --class=DatabaseSeeder --verbose; then
+        echo "==> Seeding completed successfully"
+    else
+        echo "==> Seeding failed (non-critical), continuing..."
+    fi
+
+    if php artisan cache:warmup; then
+        echo "==> Cache warmup completed"
+    else
+        echo "==> Cache warmup failed (non-critical)"
+    fi
+) &
+
+echo "==> App ready."
 wait
