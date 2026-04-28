@@ -47,7 +47,13 @@ php artisan config:cache
 php artisan route:cache
 
 echo "==> Seeding database..."
-php artisan db:seed --force --class=DatabaseSeeder
+if php artisan db:seed --force --class=DatabaseSeeder --verbose; then
+    echo "==> Database seeding completed successfully"
+else
+    SEED_EXIT_CODE=$?
+    echo "==> Database seeding failed with exit code $SEED_EXIT_CODE"
+    echo "==> This is not critical for deployment, continuing..."
+fi
 
 echo "==> App ready. Keeping nginx in foreground..."
 wait
