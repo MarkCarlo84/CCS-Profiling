@@ -21,8 +21,13 @@ class DatabaseSeeder extends Seeder
         );
 
         $this->command->info('✓ Admin user ready');
-        $this->command->info('  Email: admin@ccs.edu.ph');
-        $this->command->info('  Password: Admin1234');
+
+        // Skip all heavy seeders if data already exists
+        $studentCount = \Illuminate\Support\Facades\DB::table('students')->count();
+        if ($studentCount >= 100) {
+            $this->command->info("✓ Database already seeded ({$studentCount} students found) — skipping.");
+            return;
+        }
 
         $this->call(SubjectSeeder::class);
         $this->call(EligibilityCriteriaSeeder::class);

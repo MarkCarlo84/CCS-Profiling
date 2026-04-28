@@ -49,6 +49,9 @@ nginx -g "daemon off;" &
 
 echo "==> Running seeder and cache warmup in background..."
 (
+    # Wait for the app to be fully ready before seeding
+    sleep 5
+
     if php artisan db:seed --force --class=DatabaseSeeder --verbose; then
         echo "==> Seeding completed successfully"
     else
