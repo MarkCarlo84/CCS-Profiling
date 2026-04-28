@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\OtpController;
 use App\Http\Controllers\Api\TeacherController;
 use App\Http\Controllers\Api\TeacherReportController;
 use App\Http\Controllers\Api\StudentProfileController;
+use App\Http\Controllers\Api\HealthController;
 
 use App\Http\Controllers\Api\StudentController;
 use App\Http\Controllers\Api\SubjectController;
@@ -32,6 +33,9 @@ use App\Http\Controllers\Api\FacultySubjectController;
 use App\Http\Controllers\Api\EnrollmentController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// Health check endpoint
+Route::get('health', [HealthController::class, 'check']);
 
 // Handle OPTIONS preflight for all routes
 Route::options('{any}', function () {

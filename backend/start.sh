@@ -2,7 +2,8 @@
 set -e
 
 APP_PORT=${PORT:-80}
-export CACHE_STORE=array
+# Use file cache for better performance in production
+export CACHE_STORE=file
 
 echo "==> Starting on port $APP_PORT"
 
@@ -45,6 +46,9 @@ php artisan cache:clear
 php artisan route:clear
 php artisan config:cache
 php artisan route:cache
+
+echo "==> Warming up application caches..."
+php artisan cache:warmup
 
 echo "==> Seeding database..."
 if php artisan db:seed --force --class=DatabaseSeeder --verbose; then

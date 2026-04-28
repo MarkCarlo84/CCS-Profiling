@@ -11,7 +11,7 @@ class DepartmentController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(Department::where('is_active', true)->orderBy('code')->get());
+        return response()->json(\App\Services\CacheService::getDepartments());
     }
 
     public function store(Request $request): JsonResponse
@@ -22,7 +22,13 @@ class DepartmentController extends Controller
             'description' => 'nullable|string',
             'is_active'   => 'boolean',
         ]);
-        return response()->json(Department::create($data), 201);
+        
+        $department = Department::create($data);
+        
+        // Clear department cache
+        \App\Services\CacheService::clear('departments_list');
+        
+        return response()->json($department, 201);
     }
 
     public function show(Department $department): JsonResponse
@@ -38,13 +44,22 @@ class DepartmentController extends Controller
             'description' => 'nullable|string',
             'is_active'   => 'boolean',
         ]);
+        
         $department->update($data);
+        
+        // Clear department cache
+        \App\Services\CacheService::clear('departments_list');
+        
         return response()->json($department);
     }
 
     public function destroy(Department $department): JsonResponse
     {
         $department->delete();
+        
+        // Clear department cache
+        \App\Services\CacheService::clear('departments_list');
+        
         return response()->json(['message' => 'Department deleted.']);
     }
 }

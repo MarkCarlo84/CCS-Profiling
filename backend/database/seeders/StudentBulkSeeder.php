@@ -147,14 +147,18 @@ class StudentBulkSeeder extends Seeder
         // No wrapping transaction — process bucket by bucket to avoid long locks
         $this->seedBulkStudents();
 
-        $this->command->info('✓ StudentBulkSeeder complete — 1000 students seeded');
+        $totalStudents = app()->environment('production') ? 200 : 1000;
+        $this->command->info("✓ StudentBulkSeeder complete — $totalStudents students seeded");
     }
 
     private function seedBulkStudents(): void
     {
+        // Reduce student count for production performance
+        $targetCount = app()->environment('production') ? 200 : 1000;
+        
         // Skip if already seeded to prevent duplicate key errors on re-runs
-        if (DB::table('students')->count() >= 1000) {
-            $this->command->warn('  ⚠ Students table already has data — skipping StudentBulkSeeder.');
+        if (DB::table('students')->count() >= $targetCount) {
+            $this->command->warn("  ⚠ Students table already has data — skipping StudentBulkSeeder.");
             return;
         }
 
@@ -183,8 +187,11 @@ class StudentBulkSeeder extends Seeder
                 $studentRows  = [];
                 $userPayloads = [];
 
+                // Reduce students per department/year in production
+                $studentsPerGroup = app()->environment('production') ? 25 : 125;
+
                 // ── 1. Build student rows ─────────────────────────────────────
-                for ($i = 0; $i < 125; $i++) {
+                for ($i = 0; $i < $studentsPerGroup; $i++) {
                     $section = ['A','B','C','D','E'][intdiv($i, 25)];
 
                     $counter = 200 + $generated + $i;
@@ -406,8 +413,8 @@ class StudentBulkSeeder extends Seeder
 
                 $this->bulkUpdateGpa($gpaUpdates);
 
-                $generated += 125;
-                $this->command->info("  → $yearLevel $dept: 125 students done");
+                $generated += $studentsPerGroup;
+                $this->command->info("  → $yearLevel $dept: $studentsPerGroup students done");
             }
         }
 

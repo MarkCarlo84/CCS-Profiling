@@ -19,9 +19,10 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => array_filter([
+    'allowed_origins' => app()->environment('production') ? ['*'] : array_filter([
         'http://localhost:5173',
         'http://localhost:3000',
+        'https://ccs-profiling.vercel.app',
         env('FRONTEND_URL'),
         env('FRONTEND_URL_PROD'),
     ]),
