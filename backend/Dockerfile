@@ -19,7 +19,13 @@ COPY . .
 
 # Storage & permissions
 RUN chmod -R 775 storage bootstrap/cache \
-    && chown -R www-data:www-data /app
+    && chown -R www-data:www-data /app \
+    && mkdir -p storage/framework/cache/data \
+    && mkdir -p storage/framework/sessions \
+    && mkdir -p storage/framework/views \
+    && mkdir -p storage/logs \
+    && chmod -R 775 storage \
+    && chown -R www-data:www-data storage
 
 # Copy startup script
 COPY start.sh /start.sh

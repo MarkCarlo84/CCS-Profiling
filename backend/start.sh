@@ -2,7 +2,8 @@
 set -e
 
 APP_PORT=${PORT:-80}
-export CACHE_STORE=file
+# Use array cache — Render's filesystem is ephemeral, file cache causes permission errors
+export CACHE_STORE=array
 
 echo "==> Starting on port $APP_PORT"
 
