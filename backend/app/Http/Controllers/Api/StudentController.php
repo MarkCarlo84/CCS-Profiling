@@ -55,8 +55,12 @@ class StudentController extends Controller
                 $query->with($with);
             }
 
-            // Return simple array like other controllers
-            $students = $query->orderBy('last_name')->get();
+            // Limit with_details queries to prevent memory exhaustion on large datasets
+            if ($request->boolean('with_details') && !$request->filled('search') && !$request->filled('department')) {
+                $students = $query->orderBy('last_name')->limit(500)->get();
+            } else {
+                $students = $query->orderBy('last_name')->get();
+            }
             return response()->json($students);
         } catch (\Exception $e) {
             // Return empty array on error
