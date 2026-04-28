@@ -67,10 +67,6 @@ class PerformanceOptimizer
                         ->groupBy('department')
                         ->pluck('count', 'department')
                         ->toArray(),
-                    'by_year' => Student::select('year_level', DB::raw('count(*) as count'))
-                        ->groupBy('year_level')
-                        ->pluck('count', 'year_level')
-                        ->toArray(),
                 ],
                 'faculty' => [
                     'total' => Faculty::count(),
