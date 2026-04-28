@@ -47,9 +47,6 @@ php artisan route:clear
 php artisan config:cache
 php artisan route:cache
 
-echo "==> Warming up application caches..."
-php artisan cache:warmup
-
 echo "==> Seeding database..."
 if php artisan db:seed --force --class=DatabaseSeeder --verbose; then
     echo "==> Database seeding completed successfully"
@@ -57,6 +54,13 @@ else
     SEED_EXIT_CODE=$?
     echo "==> Database seeding failed with exit code $SEED_EXIT_CODE"
     echo "==> This is not critical for deployment, continuing..."
+fi
+
+echo "==> Warming up application caches..."
+if php artisan cache:warmup; then
+    echo "==> Cache warmup completed successfully"
+else
+    echo "==> Cache warmup failed, continuing without cache warmup..."
 fi
 
 echo "==> App ready. Keeping nginx in foreground..."

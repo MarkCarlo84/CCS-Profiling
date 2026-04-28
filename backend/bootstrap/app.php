@@ -17,8 +17,6 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->prepend(\App\Http\Middleware\HandlePreflight::class);
         // CORS must be global so OPTIONS preflight requests are handled
         $middleware->prepend(\Illuminate\Http\Middleware\HandleCors::class);
-        // Add response optimization middleware for API routes
-        $middleware->api(append: \App\Http\Middleware\OptimizeResponse::class);
         // Trust all proxies (needed for Render/Cloudflare)
         $middleware->trustProxies(at: '*');
         // Role-based access control
