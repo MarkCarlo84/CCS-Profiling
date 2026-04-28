@@ -86,7 +86,10 @@ class EligibilityCriteriaSeeder extends Seeder
         ];
 
         foreach ($criteria as $criterion) {
-            EligibilityCriteria::create($criterion);
+            EligibilityCriteria::firstOrCreate(
+                ['criteria_id' => $criterion['criteria_id']],
+                $criterion
+            );
         }
     }
 }

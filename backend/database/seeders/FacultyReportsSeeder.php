@@ -97,6 +97,13 @@ class FacultyReportsSeeder extends Seeder
             // Assign reports to different faculty members
             $faculty = $faculties->get($index % $faculties->count());
             
+            // Check if report already exists to prevent duplicates
+            $exists = Report::where('faculty_id', $faculty->id)
+                ->where('title', $template['title'])
+                ->exists();
+                
+            if ($exists) continue;
+            
             Report::create([
                 'faculty_id' => $faculty->id,
                 'title' => $template['title'],
