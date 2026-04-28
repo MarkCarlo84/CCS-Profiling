@@ -349,7 +349,7 @@ export default function SearchPage() {
                     {totalCount > 0 && (
                         <ExportButtons
                             printRef={printRef}
-                            data={getExportData}
+                            data={getExportData()}
                             flattenFn={flattenSearchResult}
                             filenamePrefix={`Global_Search_${query.replace(/\s+/g, '_')}`}
                         />

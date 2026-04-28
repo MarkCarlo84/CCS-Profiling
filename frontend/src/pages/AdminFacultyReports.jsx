@@ -1,7 +1,8 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { getAllFacultyReports } from '../api';
-import { FileText, Search, Printer, ChevronLeft, Users } from 'lucide-react';
+import { FileText, Search, Printer, ChevronLeft, Users, Download } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
 
 const STATUS_STYLE = {
     draft:     { bg: '#fef9c3', color: '#854d0e' },
@@ -112,13 +113,34 @@ export default function AdminFacultyReports() {
     return (
         <div>
             <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={s.iconWrap}><FileText size={22} color="#f97316" /></div>
-                    <div>
-                        <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Faculty Reports</h1>
-                        <p style={{ color: '#78716c', margin: 0, fontSize: '.875rem' }}>
-                            {reports.length} report{reports.length !== 1 ? 's' : ''} submitted by faculty
-                        </p>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                        <div style={s.iconWrap}><FileText size={22} color="#f97316" /></div>
+                        <div>
+                            <h1 style={{ fontSize: '1.6rem', fontWeight: 800, color: '#1c1917', margin: 0 }}>Faculty Reports</h1>
+                            <p style={{ color: '#78716c', margin: 0, fontSize: '.875rem' }}>
+                                {reports.length} report{reports.length !== 1 ? 's' : ''} submitted by faculty
+                            </p>
+                        </div>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        <ExportButtons
+                            printRef={printRef}
+                            data={filtered}
+                            flattenFn={(report) => ({
+                                'Report Title': report.title,
+                                'Report Type': report.report_type || '—',
+                                'Faculty Name': report.faculty ? `${report.faculty.first_name} ${report.faculty.last_name}` : '—',
+                                'Department': report.faculty?.department || '—',
+                                'Subject/Student': report.subject_student || '—',
+                                'Status': report.status,
+                                'Report Date': report.report_date || '—',
+                                'Content': report.content,
+                                'Created': new Date(report.created_at).toLocaleDateString(),
+                            })}
+                            filenamePrefix="Faculty_Reports"
+                            groupByKey="status"
+                        />
                     </div>
                 </div>
             </div>
@@ -148,51 +170,59 @@ export default function AdminFacultyReports() {
                     <p style={{ marginTop: 10 }}>{reports.length === 0 ? 'No faculty reports yet.' : 'No reports match your search.'}</p>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {filtered.map(r => {
-                        const st = STATUS_STYLE[r.status] ?? STATUS_STYLE.draft;
-                        const f = r.faculty;
-                        return (
-                            <div key={r.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setViewing(r)}>
-                                <div className="card-body">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                                                <span style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>{r.title}</span>
-                                                <span style={{ fontSize: '.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: st.bg, color: st.color }}>
-                                                    {r.status}
-                                                </span>
-                                                {r.report_type && (
-                                                    <span style={{ fontSize: '.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#f1f5f9', color: '#475569' }}>
-                                                        {r.report_type}
+                <div ref={printRef}>
+                    <PrintHeader 
+                        title="Faculty Reports"
+                        subtitle="Administrative View"
+                        count={filtered.length}
+                        filters={{ search, status: filterStatus }}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {filtered.map(r => {
+                            const st = STATUS_STYLE[r.status] ?? STATUS_STYLE.draft;
+                            const f = r.faculty;
+                            return (
+                                <div key={r.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setViewing(r)}>
+                                    <div className="card-body">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                                                    <span style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>{r.title}</span>
+                                                    <span style={{ fontSize: '.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: st.bg, color: st.color }}>
+                                                        {r.status}
                                                     </span>
-                                                )}
+                                                    {r.report_type && (
+                                                        <span style={{ fontSize: '.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#f1f5f9', color: '#475569' }}>
+                                                            {r.report_type}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <div style={{ display: 'flex', gap: 16, fontSize: '.82rem', color: '#78716c', flexWrap: 'wrap' }}>
+                                                    {f && (
+                                                        <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                                                            <Users size={12} /> {f.first_name} {f.last_name}{f.department ? ` — ${f.department}` : ''}
+                                                        </span>
+                                                    )}
+                                                    {r.subject_student && <span>Subject: {r.subject_student}</span>}
+                                                    <span>{r.report_date}</span>
+                                                </div>
+                                                <p style={{ fontSize: '.85rem', color: '#44403c', marginTop: 8, lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                    {r.content}
+                                                </p>
                                             </div>
-                                            <div style={{ display: 'flex', gap: 16, fontSize: '.82rem', color: '#78716c', flexWrap: 'wrap' }}>
-                                                {f && (
-                                                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                                                        <Users size={12} /> {f.first_name} {f.last_name}{f.department ? ` — ${f.department}` : ''}
-                                                    </span>
-                                                )}
-                                                {r.subject_student && <span>Subject: {r.subject_student}</span>}
-                                                <span>{r.report_date}</span>
-                                            </div>
-                                            <p style={{ fontSize: '.85rem', color: '#44403c', marginTop: 8, lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                                {r.content}
-                                            </p>
+                                            <button
+                                                className="btn btn-outline"
+                                                style={{ flexShrink: 0 }}
+                                                onClick={e => { e.stopPropagation(); setViewing(r); }}
+                                            >
+                                                <Printer size={13} /> View
+                                            </button>
                                         </div>
-                                        <button
-                                            className="btn btn-outline"
-                                            style={{ flexShrink: 0 }}
-                                            onClick={e => { e.stopPropagation(); setViewing(r); }}
-                                        >
-                                            <Printer size={13} /> View
-                                        </button>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>

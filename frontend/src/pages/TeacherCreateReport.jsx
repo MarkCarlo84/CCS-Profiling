@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
 import { useAuth } from '../AuthContext';
 import { getTeacherReports, createTeacherReport, updateTeacherReport, deleteTeacherReport } from '../api';
-import { FileText, Plus, Printer, Pencil, Trash2, X, Check, AlertCircle, ChevronLeft } from 'lucide-react';
+import { FileText, Plus, Printer, Pencil, Trash2, X, Check, AlertCircle, ChevronLeft, Download } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
 
 const REPORT_TYPES = ['Incident Report', 'Academic Report', 'Behavioral Report', 'Progress Report', 'General Report'];
 const empty = { title: '', report_type: '', subject_student: '', content: '', status: 'draft', report_date: new Date().toISOString().split('T')[0] };
@@ -164,7 +165,24 @@ export default function TeacherCreateReport() {
                 <div className="page-header no-print">
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                         <button className="btn btn-outline" onClick={() => setView('list')}><ChevronLeft size={15} /> Back</button>
-                        <button className="btn btn-primary" onClick={handlePrint}><Printer size={14} /> Print</button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <ExportButtons
+                                printRef={printRef}
+                                data={[view.print]}
+                                flattenFn={(report) => ({
+                                    'Report Title': report.title,
+                                    'Report Type': report.report_type || '—',
+                                    'Faculty Name': facultyName,
+                                    'Subject/Student': report.subject_student || '—',
+                                    'Status': report.status,
+                                    'Report Date': report.report_date || '—',
+                                    'Content': report.content,
+                                    'Created': new Date(report.created_at).toLocaleDateString(),
+                                })}
+                                filenamePrefix={`Report_${view.print.title.replace(/[^a-zA-Z0-9]/g, '_')}`}
+                            />
+                            <button className="btn btn-primary" onClick={handlePrint}><Printer size={14} /> Print</button>
+                        </div>
                     </div>
                 </div>
                 <div className="card">
@@ -218,9 +236,29 @@ export default function TeacherCreateReport() {
                             <p style={{ color: '#78716c', margin: 0, fontSize: '.875rem' }}>{reports.length} report{reports.length !== 1 ? 's' : ''} on record</p>
                         </div>
                     </div>
-                    <button className="btn btn-primary" onClick={() => { setError(''); setView('new'); }}>
-                        <Plus size={15} /> New Report
-                    </button>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                        {reports.length > 0 && (
+                            <ExportButtons
+                                printRef={printRef}
+                                data={reports}
+                                flattenFn={(report) => ({
+                                    'Report Title': report.title,
+                                    'Report Type': report.report_type || '—',
+                                    'Faculty Name': facultyName,
+                                    'Subject/Student': report.subject_student || '—',
+                                    'Status': report.status,
+                                    'Report Date': report.report_date || '—',
+                                    'Content': report.content,
+                                    'Created': new Date(report.created_at).toLocaleDateString(),
+                                })}
+                                filenamePrefix="My_Reports"
+                                groupByKey="status"
+                            />
+                        )}
+                        <button className="btn btn-primary" onClick={() => { setError(''); setView('new'); }}>
+                            <Plus size={15} /> New Report
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -235,41 +273,49 @@ export default function TeacherCreateReport() {
                     </button>
                 </div>
             ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                    {reports.map(r => {
-                        const st = STATUS_STYLE[r.status] ?? STATUS_STYLE.draft;
-                        return (
-                            <div key={r.id} className="card">
-                                <div className="card-body">
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                                        <div style={{ flex: 1, minWidth: 0 }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
-                                                <span style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>{r.title}</span>
-                                                <span style={{ fontSize: '.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: st.bg, color: st.color }}>
-                                                    {r.status}
-                                                </span>
-                                                {r.report_type && (
-                                                    <span style={{ fontSize: '.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#f1f5f9', color: '#475569' }}>
-                                                        {r.report_type}
+                <div ref={printRef}>
+                    <PrintHeader 
+                        title="Faculty Reports"
+                        subtitle={`Prepared by ${facultyName}`}
+                        count={reports.length}
+                        filters={{}}
+                    />
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                        {reports.map(r => {
+                            const st = STATUS_STYLE[r.status] ?? STATUS_STYLE.draft;
+                            return (
+                                <div key={r.id} className="card">
+                                    <div className="card-body">
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 4 }}>
+                                                    <span style={{ fontWeight: 800, fontSize: '.95rem', color: '#1c1917' }}>{r.title}</span>
+                                                    <span style={{ fontSize: '.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: st.bg, color: st.color }}>
+                                                        {r.status}
                                                     </span>
-                                                )}
+                                                    {r.report_type && (
+                                                        <span style={{ fontSize: '.72rem', fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#f1f5f9', color: '#475569' }}>
+                                                            {r.report_type}
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {r.subject_student && <div style={{ fontSize: '.82rem', color: '#78716c' }}>Subject: {r.subject_student}</div>}
+                                                <div style={{ fontSize: '.78rem', color: '#a8a29e', marginTop: 2 }}>{r.report_date}</div>
+                                                <p style={{ fontSize: '.85rem', color: '#44403c', marginTop: 8, lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
+                                                    {r.content}
+                                                </p>
                                             </div>
-                                            {r.subject_student && <div style={{ fontSize: '.82rem', color: '#78716c' }}>Subject: {r.subject_student}</div>}
-                                            <div style={{ fontSize: '.78rem', color: '#a8a29e', marginTop: 2 }}>{r.report_date}</div>
-                                            <p style={{ fontSize: '.85rem', color: '#44403c', marginTop: 8, lineHeight: 1.6, overflow: 'hidden', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical' }}>
-                                                {r.content}
-                                            </p>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                            <button style={{ ...s.iconBtn, color: '#2563eb' }} onClick={() => setView({ print: r })} title="Print"><Printer size={13} /></button>
-                                            <button style={s.iconBtn} onClick={() => { setError(''); setView({ edit: r }); }} title="Edit"><Pencil size={13} /></button>
-                                            <button style={{ ...s.iconBtn, color: '#dc2626' }} onClick={() => handleDelete(r.id)} title="Delete"><Trash2 size={13} /></button>
+                                            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                                <button style={{ ...s.iconBtn, color: '#2563eb' }} onClick={() => setView({ print: r })} title="Print"><Printer size={13} /></button>
+                                                <button style={s.iconBtn} onClick={() => { setError(''); setView({ edit: r }); }} title="Edit"><Pencil size={13} /></button>
+                                                <button style={{ ...s.iconBtn, color: '#dc2626' }} onClick={() => handleDelete(r.id)} title="Delete"><Trash2 size={13} /></button>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-                        );
-                    })}
+                            );
+                        })}
+                    </div>
                 </div>
             )}
         </div>

@@ -30,23 +30,24 @@ server {
 }
 EOF
 
+echo "==> Starting php-fpm..."
+php-fpm -D
+
+echo "==> Starting nginx on port $APP_PORT (background)..."
+nginx -g "daemon off;" &
+
 echo "==> Running migrations..."
 php artisan migrate --force
 
-echo "==> Clearing config..."
+echo "==> Clearing and caching config..."
 php artisan config:clear
 php artisan cache:clear
 php artisan route:clear
+php artisan config:cache
+php artisan route:cache
 
 echo "==> Seeding database..."
 php artisan db:seed --force --class=DatabaseSeeder
 
-echo "==> Caching config..."
-php artisan config:cache
-php artisan route:cache
-
-echo "==> Starting php-fpm..."
-php-fpm -D
-
-echo "==> Starting nginx on port $APP_PORT..."
-exec nginx -g "daemon off;"
+echo "==> App ready. Keeping nginx in foreground..."
+wait

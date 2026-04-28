@@ -145,28 +145,43 @@ class FacultyEvaluationController extends Controller
 
     /**
      * GET /api/admin/faculty-evaluations/summary
-     * Per-faculty average scores.
+     * Per-faculty average scores - optimized with database aggregation.
      */
     public function adminSummary(): JsonResponse
     {
-        $faculties = Faculty::with('evaluations')->get(['id', 'first_name', 'last_name', 'department', 'position']);
-
-        $summary = $faculties->map(function ($f) {
-            $evals = $f->evaluations;
-            if ($evals->isEmpty()) {
-                return array_merge($f->toArray(), ['evaluation_count' => 0, 'average_rating' => null]);
-            }
-            $avg = fn($field) => round($evals->avg($field), 2);
-            return array_merge($f->toArray(), [
-                'evaluation_count'       => $evals->count(),
-                'average_rating'         => round($evals->map(fn($e) => $e->average_rating)->avg(), 2),
-                'teaching_effectiveness' => $avg('teaching_effectiveness'),
-                'communication'          => $avg('communication'),
-                'professionalism'        => $avg('professionalism'),
-                'subject_mastery'        => $avg('subject_mastery'),
-                'student_engagement'     => $avg('student_engagement'),
-            ]);
-        });
+        // Use database aggregation instead of loading all evaluations into memory
+        $summary = Faculty::select([
+                'faculties.id',
+                'faculties.first_name', 
+                'faculties.last_name', 
+                'faculties.department', 
+                'faculties.position'
+            ])
+            ->leftJoin('faculty_evaluations', 'faculties.id', '=', 'faculty_evaluations.faculty_id')
+            ->selectRaw('
+                COUNT(faculty_evaluations.id) as evaluation_count,
+                ROUND(AVG(
+                    (faculty_evaluations.teaching_effectiveness + 
+                     faculty_evaluations.communication + 
+                     faculty_evaluations.professionalism + 
+                     faculty_evaluations.subject_mastery + 
+                     faculty_evaluations.student_engagement) / 5.0
+                ), 2) as average_rating,
+                ROUND(AVG(faculty_evaluations.teaching_effectiveness), 2) as teaching_effectiveness,
+                ROUND(AVG(faculty_evaluations.communication), 2) as communication,
+                ROUND(AVG(faculty_evaluations.professionalism), 2) as professionalism,
+                ROUND(AVG(faculty_evaluations.subject_mastery), 2) as subject_mastery,
+                ROUND(AVG(faculty_evaluations.student_engagement), 2) as student_engagement
+            ')
+            ->groupBy([
+                'faculties.id', 
+                'faculties.first_name', 
+                'faculties.last_name', 
+                'faculties.department', 
+                'faculties.position'
+            ])
+            ->orderBy('faculties.last_name')
+            ->get();
 
         return response()->json($summary);
     }

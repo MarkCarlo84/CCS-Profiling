@@ -13,7 +13,7 @@ function flattenViolation(v, i) {
         'Student Name': `${v.student?.first_name || ''} ${v.student?.last_name || ''}`.trim(),
         'Violation Type': v.violation_type || '',
         'Severity': v.severity_level || '',
-        'Date Committed': v.date_committed || '',
+        'Date Committed': v.date_committed ? new Date(v.date_committed).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '',
         'Action Taken': v.action_taken || '',
         'Description': v.description || '',
         'Status': v.is_resolved ? 'Resolved' : 'Active',

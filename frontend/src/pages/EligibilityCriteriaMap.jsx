@@ -48,30 +48,18 @@ export default function EligibilityCriteriaMap() {
     const [modal, setModal] = useState(null);
     const [form, setForm] = useState(empty);
     const [saving, setSaving] = useState(false);
-    const [isPdfMode, setIsPdfMode] = useState(false);
-    const [pdfData, setPdfData] = useState([]);
 
     const printRef = useRef(null);
 
     const load = () => { 
         setLoading(true); 
         getEligibilityCriteria().then(r => {
-            // Support both direct array and paginated response
-            setCriteria(Array.isArray(r.data) ? r.data : r.data.data);
+            const loaded = Array.isArray(r.data) ? r.data : r.data.data;
+            console.log('EligibilityCriteria loaded:', loaded);
+            setCriteria(loaded);
         }).finally(() => setLoading(false)); 
     };
     useEffect(load, []);
-
-    const fetchFullData = async () => {
-        const res = await getEligibilityCriteria({ limit: 99999 });
-        return Array.isArray(res.data) ? res.data : res.data.data;
-    };
-
-    const handleBeforePdf = async () => {
-        setIsPdfMode(true);
-        const data = await fetchFullData();
-        setPdfData(data);
-    };
 
     const openAdd = () => { setForm(empty); setModal('add'); };
     const openEdit = (c) => { setForm({ criteria_id: c.criteria_id || '', minimum_gpa: c.minimum_gpa || '', required_skill: c.required_skill || '', required_affiliation_type: c.required_affiliation_type || '', max_allowed_violations: c.max_allowed_violations ?? '' }); setModal({ edit: c }); };
@@ -101,11 +89,9 @@ export default function EligibilityCriteriaMap() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                     <ExportButtons 
                         printRef={printRef} 
-                        data={fetchFullData} 
+                        data={() => criteria} 
                         flattenFn={flattenCriteria} 
                         filenamePrefix="Eligibility_Criteria" 
-                        onBeforePdf={handleBeforePdf}
-                        onAfterPdf={() => setIsPdfMode(false)}
                     />
                     <button className="btn btn-primary no-print" onClick={openAdd}><Plus size={15} /> Add Criteria</button>
                 </div>
@@ -119,140 +105,83 @@ export default function EligibilityCriteriaMap() {
                 />
 
                 {loading ? <div className="loading"><div className="loading-spinner" /></div> : (
-                    <>
-                        {/* Screen View */}
-                        {!isPdfMode && (
-                            <div className="card pdf-hide">
-                                <div className="card-body" style={{ padding: 0 }}>
-                                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                        <table style={{ minWidth: 520 }}>
-                                            <thead>
-                                                <tr><th>#</th><th>Criteria ID</th><th>Min GPA</th><th>Required Skill</th><th>Affiliation Type</th><th>Max Violations</th><th className="no-print">Actions</th></tr>
-                                            </thead>
-                                            <tbody>
-                                                {criteria.map((c, i) => (
-                                                    <tr key={c.id}>
-                                                        <td>{i + 1}</td>
-                                                        <td><strong>{c.criteria_id || `EC-${c.id}`}</strong></td>
-                                                        <td>{c.minimum_gpa != null ? <span style={{ fontWeight: 700, color: '#2563eb' }}>{parseFloat(c.minimum_gpa).toFixed(2)}</span> : '—'}</td>
-                                                        <td>{c.required_skill || '—'}</td>
-                                                        <td>{c.required_affiliation_type || '—'}</td>
-                                                        <td>{c.max_allowed_violations ?? '—'}</td>
-                                                        <td className="no-print">
-                                                            <div style={{ display: 'flex', gap: 6 }}>
-                                                                <button style={iconBtn} onClick={() => openEdit(c)}><Pencil size={13} /></button>
-                                                                <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(c.id)}><Trash2 size={13} /></button>
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-                                                ))}
-                                                {criteria.length === 0 && (
-                                                    <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#a8a29e' }}>
-                                                        No eligibility criteria defined yet. Click "Add Criteria" to get started.
-                                                    </td></tr>
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {/* Mobile: card list */}
-                                    <div className="subjects-card-list">
-                                        {criteria.length === 0 ? (
-                                            <p style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: '.875rem' }}>No eligibility criteria defined yet.</p>
-                                        ) : criteria.map((c, i) => (
-                                            <div key={c.id} style={{ padding: '12px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                                                <div style={{ flex: 1, minWidth: 0 }}>
-                                                    <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 4 }}>
-                                                        {c.criteria_id || `EC-${c.id}`}
-                                                    </div>
-                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-                                                        {c.minimum_gpa != null && (
-                                                            <span style={{ fontSize: '.72rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 5, padding: '1px 7px', fontWeight: 700 }}>
-                                                                GPA ≤ {parseFloat(c.minimum_gpa).toFixed(2)}
-                                                            </span>
-                                                        )}
-                                                        {c.required_skill && (
-                                                            <span style={{ fontSize: '.72rem', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
-                                                                Skill: {c.required_skill}
-                                                            </span>
-                                                        )}
-                                                        {c.required_affiliation_type && (
-                                                            <span style={{ fontSize: '.72rem', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
-                                                                {c.required_affiliation_type}
-                                                            </span>
-                                                        )}
-                                                        {c.max_allowed_violations != null && (
-                                                            <span style={{ fontSize: '.72rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
-                                                                Max {c.max_allowed_violations} violation{c.max_allowed_violations !== 1 ? 's' : ''}
-                                                            </span>
-                                                        )}
-                                                    </div>
-                                                </div>
-                                                <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                                    <button style={iconBtn} onClick={() => openEdit(c)}><Pencil size={13} /></button>
-                                                    <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(c.id)}><Trash2 size={13} /></button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
+                    <div className="card">
+                        <div className="card-body" style={{ padding: 0 }}>
+                            {/* Screen view */}
+                            <div className="pdf-hide">
+                                <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                    <table style={{ minWidth: 520 }}>
+                                        <thead>
+                                            <tr><th>#</th><th>Criteria ID</th><th>Min GPA</th><th>Required Skill</th><th>Affiliation Type</th><th>Max Violations</th><th className="no-print">Actions</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {criteria.map((c, i) => (
+                                                <tr key={c.id}>
+                                                    <td>{i + 1}</td>
+                                                    <td><strong>{c.criteria_id || `EC-${c.id}`}</strong></td>
+                                                    <td>{c.minimum_gpa != null ? <span style={{ fontWeight: 700, color: '#2563eb' }}>{parseFloat(c.minimum_gpa).toFixed(2)}</span> : '—'}</td>
+                                                    <td>{c.required_skill || '—'}</td>
+                                                    <td>{c.required_affiliation_type || '—'}</td>
+                                                    <td>{c.max_allowed_violations ?? '—'}</td>
+                                                    <td className="no-print">
+                                                        <div style={{ display: 'flex', gap: 6 }}>
+                                                            <button style={iconBtn} onClick={() => openEdit(c)}><Pencil size={13} /></button>
+                                                            <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(c.id)}><Trash2 size={13} /></button>
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                            {criteria.length === 0 && (
+                                                <tr><td colSpan={7} style={{ textAlign: 'center', padding: 40, color: '#a8a29e' }}>No eligibility criteria defined yet.</td></tr>
+                                            )}
+                                        </tbody>
+                                    </table>
                                 </div>
-                            </div>
-                        )}
-
-                        {/* PDF View */}
-                        {isPdfMode && (() => {
-                            const PRINT_PAGE = 15;
-                            const pageChunks = [];
-                            for (let i = 0; i < pdfData.length; i += PRINT_PAGE) {
-                                pageChunks.push(pdfData.slice(i, i + PRINT_PAGE));
-                            }
-                            if (pageChunks.length === 0) pageChunks.push([]);
-
-                            return (
-                                <div>
-                                    {pageChunks.map((chunk, pageIdx) => (
-                                        <div key={pageIdx} style={{ pageBreakAfter: pageIdx < pageChunks.length - 1 ? 'always' : 'auto', marginBottom: 32 }}>
-                                            <div style={{
-                                                background: 'linear-gradient(135deg,#ea580c,#f97316)',
-                                                color: '#fff', padding: '10px 16px',
-                                                fontWeight: 800, fontSize: '1rem',
-                                                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                            }}>
-                                                <span>Eligibility Criteria List</span>
-                                                <span style={{ fontSize: '.82rem', opacity: .85 }}>
-                                                    Page {pageIdx + 1} of {pageChunks.length} &nbsp;·&nbsp; {pdfData.length} items
-                                                </span>
+                                <div className="subjects-card-list">
+                                    {criteria.length === 0 ? (
+                                        <p style={{ padding: '24px 14px', textAlign: 'center', color: '#a8a29e', fontSize: '.875rem' }}>No eligibility criteria defined yet.</p>
+                                    ) : criteria.map((c, i) => (
+                                        <div key={c.id} style={{ padding: '12px 14px', borderTop: i > 0 ? '1px solid var(--border)' : 'none', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                            <div style={{ flex: 1, minWidth: 0 }}>
+                                                <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 4 }}>{c.criteria_id || `EC-${c.id}`}</div>
+                                                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                                                    {c.minimum_gpa != null && <span style={{ fontSize: '.72rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 5, padding: '1px 7px', fontWeight: 700 }}>GPA ≤ {parseFloat(c.minimum_gpa).toFixed(2)}</span>}
+                                                    {c.required_skill && <span style={{ fontSize: '.72rem', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>Skill: {c.required_skill}</span>}
+                                                    {c.required_affiliation_type && <span style={{ fontSize: '.72rem', background: '#f0f9ff', color: '#0369a1', border: '1px solid #bae6fd', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>{c.required_affiliation_type}</span>}
+                                                    {c.max_allowed_violations != null && <span style={{ fontSize: '.72rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>Max {c.max_allowed_violations} violation{c.max_allowed_violations !== 1 ? 's' : ''}</span>}
+                                                </div>
                                             </div>
-                                            <table className="report-table" style={{ marginTop: 0 }}>
-                                                <thead>
-                                                    <tr>
-                                                        <th>#</th>
-                                                        <th>Criteria ID</th>
-                                                        <th>Min GPA</th>
-                                                        <th>Required Skill</th>
-                                                        <th>Affiliation Type</th>
-                                                        <th>Max Violations</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {chunk.map((c, i) => (
-                                                        <tr key={c.id}>
-                                                            <td>{pageIdx * PRINT_PAGE + i + 1}</td>
-                                                            <td><strong>{c.criteria_id || `EC-${c.id}`}</strong></td>
-                                                            <td>{c.minimum_gpa != null ? <span style={{ fontWeight: 700 }}>{parseFloat(c.minimum_gpa).toFixed(2)}</span> : '—'}</td>
-                                                            <td>{c.required_skill || '—'}</td>
-                                                            <td>{c.required_affiliation_type || '—'}</td>
-                                                            <td>{c.max_allowed_violations ?? '—'}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
+                                            <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                                <button style={iconBtn} onClick={() => openEdit(c)}><Pencil size={13} /></button>
+                                                <button style={{ ...iconBtn, color: '#dc2626' }} onClick={() => remove(c.id)}><Trash2 size={13} /></button>
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
-                            );
-                        })()}
-                    </>
+                            </div>
+
+                            {/* PDF-only view */}
+                            <div className="pdf-only" style={{ display: 'none' }}>
+                                <table className="report-table">
+                                    <thead>
+                                        <tr><th>#</th><th>Criteria ID</th><th>Min GPA</th><th>Required Skill</th><th>Affiliation Type</th><th>Max Violations</th></tr>
+                                    </thead>
+                                    <tbody>
+                                        {criteria.map((c, i) => (
+                                            <tr key={c.id}>
+                                                <td>{i + 1}</td>
+                                                <td><strong>{c.criteria_id || `EC-${c.id}`}</strong></td>
+                                                <td>{c.minimum_gpa != null ? parseFloat(c.minimum_gpa).toFixed(2) : '—'}</td>
+                                                <td>{c.required_skill || '—'}</td>
+                                                <td>{c.required_affiliation_type || '—'}</td>
+                                                <td>{c.max_allowed_violations ?? '—'}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </div>
 

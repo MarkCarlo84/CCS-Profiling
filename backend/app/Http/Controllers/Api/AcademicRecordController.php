@@ -8,6 +8,7 @@ use App\Models\Grade;
 use App\Models\Student;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
 
 class AcademicRecordController extends Controller
 {
@@ -97,85 +98,103 @@ class AcademicRecordController extends Controller
         $created = [];
         $skipped = [];
 
-        foreach ($periods as $period) {
-            $alreadyExists = AcademicRecord::where('student_id', $student->id)
-                ->where('school_year', $period['school_year'])
-                ->where('semester', $period['semester'])
-                ->exists();
+        // Use database transaction for better performance and data integrity
+        \DB::transaction(function () use ($periods, $student, &$created, &$skipped, $data, $isRegular, $irregFromYear, $irregFromSem, $programLabel, $irregSubjectMap) {
+            foreach ($periods as $period) {
+                $alreadyExists = AcademicRecord::where('student_id', $student->id)
+                    ->where('school_year', $period['school_year'])
+                    ->where('semester', $period['semester'])
+                    ->exists();
 
-            if ($alreadyExists) {
-                $skipped[] = "Year {$period['year_level']} {$period['semester']} sem ({$period['school_year']})";
-                continue;
-            }
-
-            $record = AcademicRecord::create([
-                'student_id'  => $student->id,
-                'school_year' => $period['school_year'],
-                'semester'    => $period['semester'],
-                'year_level'  => $period['year_level'],
-                'gpa'         => null,
-            ]);
-
-            $isLastPeriod = (
-                $period['year_level'] === $data['year_level'] &&
-                $period['semester']   === $data['semester']
-            );
-
-            // Determine if this period is before the irregular point
-            $periodIndex      = $this->periodIndex($period['year_level'], $period['semester']);
-            $irregStartIndex  = $this->periodIndex($irregFromYear, $irregFromSem);
-            $isBeforeIrreg    = $periodIndex < $irregStartIndex;
-
-            if ($isRegular || $isBeforeIrreg) {
-                // Auto-fill from curriculum — Passed for previous, IP for current
-                $yearLabel = $this->yearLabel($period['year_level']);
-                $semLabel  = $this->semLabel($period['semester']);
-
-                $subjects = \App\Models\Subject::where('year_level', $yearLabel)
-                    ->where('semester', $semLabel)
-                    ->where('program', $programLabel)
-                    ->get();
-
-                $isPrevious = !$isLastPeriod;
-
-                foreach ($subjects as $subject) {
-                    Grade::create([
-                        'academic_record_id' => $record->id,
-                        'subject_id'         => $subject->id,
-                        'subject_name'       => $subject->subject_name,
-                        'score'              => null,
-                        'remarks'            => $isPrevious ? 'Passed' : 'IP',
-                    ]);
+                if ($alreadyExists) {
+                    $skipped[] = "Year {$period['year_level']} {$period['semester']} sem ({$period['school_year']})";
+                    continue;
                 }
-            } else {
-                // Irregular period — use admin-provided subjects
-                $subs = $irregSubjectMap[$period['year_level']][$period['semester']] ?? [];
-                foreach ($subs as $sub) {
-                    $subjectId   = $sub['subject_id'] ?? null;
-                    $subjectName = $sub['subject_name'] ?? null;
-                    if ($subjectId) {
-                        $subject = \App\Models\Subject::find($subjectId);
-                        Grade::create([
+
+                $record = AcademicRecord::create([
+                    'student_id'  => $student->id,
+                    'school_year' => $period['school_year'],
+                    'semester'    => $period['semester'],
+                    'year_level'  => $period['year_level'],
+                    'gpa'         => null,
+                ]);
+
+                $isLastPeriod = (
+                    $period['year_level'] === $data['year_level'] &&
+                    $period['semester']   === $data['semester']
+                );
+
+                // Determine if this period is before the irregular point
+                $periodIndex      = $this->periodIndex($period['year_level'], $period['semester']);
+                $irregStartIndex  = $this->periodIndex($irregFromYear, $irregFromSem);
+                $isBeforeIrreg    = $periodIndex < $irregStartIndex;
+
+                // Prepare grades for batch insert
+                $gradesToInsert = [];
+                $now = now();
+
+                if ($isRegular || $isBeforeIrreg) {
+                    // Auto-fill from curriculum — Passed for previous, IP for current
+                    $yearLabel = $this->yearLabel($period['year_level']);
+                    $semLabel  = $this->semLabel($period['semester']);
+
+                    $subjects = \App\Models\Subject::where('year_level', $yearLabel)
+                        ->where('semester', $semLabel)
+                        ->where('program', $programLabel)
+                        ->get();
+
+                    $isPrevious = !$isLastPeriod;
+
+                    foreach ($subjects as $subject) {
+                        $gradesToInsert[] = [
                             'academic_record_id' => $record->id,
-                            'subject_id'         => $subjectId,
-                            'subject_name'       => $subject?->subject_name ?? $subjectName,
+                            'subject_id'         => $subject->id,
+                            'subject_name'       => $subject->subject_name,
                             'score'              => null,
-                            'remarks'            => 'IP',
-                        ]);
-                    } elseif ($subjectName) {
-                        Grade::create([
-                            'academic_record_id' => $record->id,
-                            'subject_id'         => null,
-                            'subject_name'       => $subjectName,
-                            'score'              => null,
-                            'remarks'            => 'IP',
-                        ]);
+                            'remarks'            => $isPrevious ? 'Passed' : 'IP',
+                            'created_at'         => $now,
+                            'updated_at'         => $now,
+                        ];
+                    }
+                } else {
+                    // Irregular period — use admin-provided subjects
+                    $subs = $irregSubjectMap[$period['year_level']][$period['semester']] ?? [];
+                    foreach ($subs as $sub) {
+                        $subjectId   = $sub['subject_id'] ?? null;
+                        $subjectName = $sub['subject_name'] ?? null;
+                        if ($subjectId) {
+                            $subject = \App\Models\Subject::find($subjectId);
+                            $gradesToInsert[] = [
+                                'academic_record_id' => $record->id,
+                                'subject_id'         => $subjectId,
+                                'subject_name'       => $subject?->subject_name ?? $subjectName,
+                                'score'              => null,
+                                'remarks'            => 'IP',
+                                'created_at'         => $now,
+                                'updated_at'         => $now,
+                            ];
+                        } elseif ($subjectName) {
+                            $gradesToInsert[] = [
+                                'academic_record_id' => $record->id,
+                                'subject_id'         => null,
+                                'subject_name'       => $subjectName,
+                                'score'              => null,
+                                'remarks'            => 'IP',
+                                'created_at'         => $now,
+                                'updated_at'         => $now,
+                            ];
+                        }
                     }
                 }
-            }
 
-            $created[] = $record->load('grades.subject');
-        }
+                // Batch insert grades for better performance
+                if (!empty($gradesToInsert)) {
+                    Grade::insert($gradesToInsert);
+                }
+
+                $created[] = $record->load('grades.subject');
+            }
+        });
 
         return response()->json([
             'message'         => count($created) . ' academic record(s) created.',

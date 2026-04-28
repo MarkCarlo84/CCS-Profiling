@@ -1,7 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
-import { FileDown, FileSpreadsheet, X, FileText, Loader2 } from 'lucide-react';
+import { FileDown, FileSpreadsheet, X, FileText, Loader2, AlertCircle } from 'lucide-react';
 
 /**
  * Standardized PDF/Print Header that is hidden on screen and revealed during export.
@@ -60,188 +60,305 @@ export function PrintHeader({ title, subtitle, count, filters }) {
 export function ExportButtons({ printRef, data, flattenFn, filenamePrefix = 'Export', groupByKey = null, onBeforePdf = null, onAfterPdf = null }) {
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [pdfGenerating, setPdfGenerating] = useState(false);
+    const [toast, setToast] = useState(null);
 
-    // PDF — generate directly from data using jsPDF + autoTable (no DOM capture)
+    const showToast = (msg, type = 'error') => {
+        setToast({ msg, type });
+        setTimeout(() => setToast(null), 3500);
+    };
+
+    // PDF — generate individual report pages with proper formatting
     const handlePdfDownload = useCallback(async () => {
-        if (!printRef.current) return;
         setPdfGenerating(true);
         try {
             const { jsPDF } = await import('jspdf');
-            const autoTable = (await import('jspdf-autotable')).default;
 
-            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
+            const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
             const filename = `CCS_${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.pdf`;
             const dateStr = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
 
-            // Collect all rows from the pdf-only tables inside printRef
-            const tables = printRef.current.querySelectorAll('.pdf-only table');
-
-            if (tables.length === 0) {
-                // Fallback: use flattenFn on data array
-                const rows = (typeof data === 'function' ? [] : (data || [])).map((item, i) => flattenFn(item, i));
-                if (rows.length > 0) {
-                    const cols = Object.keys(rows[0]);
-                    // Header
-                    doc.setFontSize(14); doc.setFont('helvetica', 'bold');
-                    doc.text('CCS Comprehensive Profiling System', 14, 14);
-                    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-                    doc.text(`${filenamePrefix.replace(/_/g, ' ')} · ${rows.length} record(s) · Generated ${dateStr}`, 14, 20);
-                    autoTable(doc, {
-                        head: [cols],
-                        body: rows.map(r => cols.map(c => r[c] ?? '')),
-                        startY: 26,
-                        styles: { fontSize: 8, cellPadding: 2 },
-                        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: 'bold' },
-                        alternateRowStyles: { fillColor: [255, 247, 237] },
-                    });
-                }
-            } else {
-                // Header page
-                doc.setFontSize(14); doc.setFont('helvetica', 'bold');
-                doc.text('CCS Comprehensive Profiling System', 14, 14);
-                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
-                doc.text(`${filenamePrefix.replace(/_/g, ' ')} · Generated ${dateStr}`, 14, 20);
-
-                let isFirst = true;
-                tables.forEach(table => {
-                    // Get section heading from sibling h2
-                    const section = table.closest('.pdf-only');
-                    const heading = section?.querySelector('h2')?.textContent?.trim() || '';
-
-                    const thead = table.querySelector('thead');
-                    const tbody = table.querySelector('tbody');
-                    if (!thead || !tbody) return;
-
-                    const cols = Array.from(thead.querySelectorAll('th')).map(th => th.textContent.trim());
-                    const rows = Array.from(tbody.querySelectorAll('tr')).map(tr =>
-                        Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
-                    );
-
-                    if (!isFirst) doc.addPage();
-                    isFirst = false;
-
-                    if (heading) {
-                        doc.setFontSize(11); doc.setFont('helvetica', 'bold');
-                        doc.setTextColor(249, 115, 22);
-                        doc.text(heading, 14, 28);
-                        doc.setTextColor(0, 0, 0);
-                    }
-
-                    autoTable(doc, {
-                        head: [cols],
-                        body: rows,
-                        startY: heading ? 32 : 26,
-                        styles: { fontSize: 8, cellPadding: 2 },
-                        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: 'bold' },
-                        alternateRowStyles: { fillColor: [255, 247, 237] },
-                        didDrawPage: (d) => {
-                            // Page number footer
-                            doc.setFontSize(7); doc.setTextColor(150);
-                            doc.text(`Page ${d.pageNumber}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 5);
-                            doc.setTextColor(0);
-                        },
-                    });
-                });
+            // Get data
+            const rawData = typeof data === 'function' ? await data() : (data || []);
+            
+            console.log('PDF Export - Raw data count:', rawData.length); // Debug log
+            
+            if (rawData.length === 0) {
+                showToast('No data available to export to PDF.');
+                return;
             }
 
+            // Generate individual report pages
+            rawData.forEach((report, index) => {
+                console.log(`Processing report ${index + 1}:`, report.title); // Debug log
+                
+                if (index > 0) {
+                    doc.addPage();
+                }
+
+                // Header
+                doc.setFontSize(16);
+                doc.setFont('helvetica', 'bold');
+                doc.text('CCS Comprehensive Profiling System', 105, 20, { align: 'center' });
+                
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text(report.title || 'Faculty Report', 105, 30, { align: 'center' });
+
+                // Report metadata table
+                const metadataY = 45;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+
+                // Get faculty name properly - handle both direct properties and nested objects
+                const facultyName = report['Faculty Name'] || 
+                                  report.faculty_name || 
+                                  (report.faculty ? `${report.faculty.first_name} ${report.faculty.last_name}` : '—');
+                const department = report['Department'] || 
+                                 report.department || 
+                                 (report.faculty?.department || '—');
+                const reportType = report['Report Type'] || report.report_type || '—';
+                const reportDate = report['Report Date'] || report.report_date || '—';
+                const status = report['Status'] || report.status || '—';
+                const subjectStudent = report['Subject/Student'] || report.subject_student || '—';
+
+                // Table headers and data
+                const tableData = [
+                    ['Report Type', reportType, 'Date', reportDate],
+                    ['Prepared By', facultyName, 'Status', status],
+                    ['Department', department, 'Subject/Student', subjectStudent]
+                ];
+
+                // Draw metadata table
+                let currentY = metadataY;
+                tableData.forEach(row => {
+                    // Left column
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(row[0], 20, currentY);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(String(row[1]), 55, currentY);
+                    
+                    // Right column
+                    doc.setFont('helvetica', 'bold');
+                    doc.text(row[2], 110, currentY);
+                    doc.setFont('helvetica', 'normal');
+                    doc.text(String(row[3]), 140, currentY);
+                    
+                    currentY += 8;
+                });
+
+                // Content section
+                const contentY = currentY + 10;
+                doc.setFontSize(12);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Report Content:', 20, contentY);
+
+                // Content box
+                const contentBoxY = contentY + 8;
+                const contentBoxHeight = 150;
+                doc.setDrawColor(200, 200, 200);
+                doc.rect(20, contentBoxY, 170, contentBoxHeight);
+
+                // Content text - handle both flattened and original data
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                const content = report['Content'] || report.content || 'No content available.';
+                
+                // Split content into lines that fit within the box
+                const maxWidth = 160; // Box width minus padding
+                const lines = doc.splitTextToSize(content, maxWidth);
+                
+                let textY = contentBoxY + 8;
+                const lineHeight = 5;
+                
+                lines.forEach(line => {
+                    if (textY + lineHeight > contentBoxY + contentBoxHeight - 5) {
+                        // If text exceeds box, add "..." and stop
+                        doc.text('...', 25, textY);
+                        return;
+                    }
+                    doc.text(line, 25, textY);
+                    textY += lineHeight;
+                });
+
+                // Signature section
+                const signatureY = 250;
+                doc.setFontSize(10);
+                doc.setFont('helvetica', 'normal');
+                doc.text('Prepared by:', 20, signatureY);
+                
+                // Signature line
+                doc.line(120, signatureY + 15, 190, signatureY + 15);
+                doc.setFontSize(9);
+                doc.text('Signature over Printed Name', 120, signatureY + 20);
+
+                // Footer
+                doc.setFontSize(8);
+                doc.setTextColor(150);
+                doc.text(`Generated on ${dateStr}`, 20, 285);
+                doc.text(`Page ${index + 1} of ${rawData.length}`, 170, 285);
+                doc.setTextColor(0);
+            });
+
+            console.log(`PDF generated with ${rawData.length} pages`); // Debug log
             doc.save(filename);
+            showToast(`PDF downloaded successfully! (${rawData.length} reports)`, 'success');
+        } catch (err) {
+            console.error('PDF export error:', err);
+            showToast('PDF export failed: ' + (err?.message || String(err)));
         } finally {
             setPdfGenerating(false);
         }
-    }, [printRef, filenamePrefix, data, flattenFn]);
+    }, [data, filenamePrefix]);
 
     const handleExcelExport = useCallback(async () => {
-        let exportData = data;
-        if (typeof data === 'function') {
-            setPdfGenerating(true); // Reuse loading state for UI
-            try {
-                exportData = await data();
-            } finally {
-                setPdfGenerating(false);
+        try {
+            let exportData = data;
+            if (typeof data === 'function') {
+                setPdfGenerating(true);
+                try { exportData = await data(); }
+                finally { setPdfGenerating(false); }
             }
-        }
 
-        if (!exportData || exportData.length === 0) return;
-        
-        const wb = new ExcelJS.Workbook();
-        
-        const addSheet = (sheetName, items) => {
-            // Clean sheet name (Excel limits to 31 chars and disallows some special chars)
-            const cleanName = String(sheetName).replace(/[\[\]\*\\\?\:\/]/g, '').substring(0, 31) || 'Report';
-            const ws = wb.addWorksheet(cleanName);
-            const rows = items.map(flattenFn);
-            if (rows.length === 0) return;
-            
-            // Set columns
-            const columns = Object.keys(rows[0]).map(k => ({
-                header: k,
-                key: k,
-                width: Math.max(k.length + 5, 16)
-            }));
-            ws.columns = columns;
-            
-            // Add rows
-            rows.forEach(r => ws.addRow(r));
-            
-            // Style Header Row
-            const headerRow = ws.getRow(1);
-            headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
-            headerRow.fill = {
-                type: 'pattern',
-                pattern: 'solid',
-                fgColor: { argb: 'FFEA580C' } // Orange matching PDF headers
-            };
-            headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
-            headerRow.height = 25;
-            
-            // Style Data Rows
-            ws.eachRow((row, rowNumber) => {
-                if (rowNumber > 1) {
-                    row.font = { color: { argb: 'FF334155' } };
-                    row.alignment = { vertical: 'middle', wrapText: true };
-                }
-                // Add Borders to all rows
-                row.eachCell(cell => {
-                    if (rowNumber === 1) {
-                        cell.border = {
-                            top: {style:'thin', color: {argb:'FFC2410C'}},
-                            left: {style:'thin', color: {argb:'FFC2410C'}},
-                            bottom: {style:'thin', color: {argb:'FFC2410C'}},
-                            right: {style:'thin', color: {argb:'FFC2410C'}}
-                        };
+            if (!exportData || exportData.length === 0) {
+                showToast('No data available to export.');
+                return;
+            }
+
+            const wb = new ExcelJS.Workbook();
+
+            const addSheet = (sheetName, items) => {
+                const cleanName = String(sheetName).replace(/[\[\]\*\\\?\:\/]/g, '').substring(0, 31) || 'Report';
+                const ws = wb.addWorksheet(cleanName);
+                const rows = items.map((item, i) => {
+                    const flattened = flattenFn(item, i);
+                    // Truncate content for better Excel readability
+                    if (flattened['Content'] && flattened['Content'].length > 200) {
+                        flattened['Content'] = flattened['Content'].substring(0, 197) + '...';
+                    }
+                    return flattened;
+                });
+                if (rows.length === 0) return;
+
+                // Custom column widths with special handling for Content
+                const columns = Object.keys(rows[0]).map(k => {
+                    if (k === 'Content') {
+                        return { header: k, key: k, width: 50 }; // Wider for content
+                    } else if (k === 'Report Title') {
+                        return { header: k, key: k, width: 30 };
+                    } else if (k === 'Faculty Name' || k === 'Department') {
+                        return { header: k, key: k, width: 20 };
                     } else {
-                        cell.border = {
-                            top: {style:'thin', color: {argb:'FFE2E8F0'}},
-                            left: {style:'thin', color: {argb:'FFE2E8F0'}},
-                            bottom: {style:'thin', color: {argb:'FFE2E8F0'}},
-                            right: {style:'thin', color: {argb:'FFE2E8F0'}}
-                        };
+                        const maxLen = rows.reduce((max, r) => Math.max(max, r[k] == null ? 0 : String(r[k]).length), 0);
+                        return { header: k, key: k, width: Math.min(Math.max(k.length + 2, maxLen + 2, 12), 25) };
                     }
                 });
-            });
-        };
+                ws.columns = columns;
 
-        if (groupByKey) {
-            const groups = exportData.reduce((acc, item) => {
-                const key = item[groupByKey] || 'Other';
-                if (!acc[key]) acc[key] = [];
-                acc[key].push(item);
-                return acc;
-            }, {});
-            Object.entries(groups).forEach(([key, items]) => {
-                addSheet(key, items);
-            });
-        } else {
-            addSheet('Report', exportData);
+                rows.forEach(r => ws.addRow(r));
+
+                // Header row style
+                const headerRow = ws.getRow(1);
+                headerRow.font = { bold: true, color: { argb: 'FFFFFFFF' } };
+                headerRow.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFEA580C' } };
+                headerRow.alignment = { vertical: 'middle', horizontal: 'center' };
+                headerRow.height = 25;
+                headerRow.eachCell(cell => {
+                    cell.border = {
+                        top: { style: 'thin', color: { argb: 'FFC2410C' } },
+                        left: { style: 'thin', color: { argb: 'FFC2410C' } },
+                        bottom: { style: 'thin', color: { argb: 'FFC2410C' } },
+                        right: { style: 'thin', color: { argb: 'FFC2410C' } },
+                    };
+                });
+
+                // Data rows style with special handling for Content column
+                ws.eachRow((row, rowNumber) => {
+                    if (rowNumber === 1) return; // Skip header
+                    
+                    row.font = { color: { argb: 'FF334155' } };
+                    
+                    // Set row height for better content visibility
+                    const contentCell = row.getCell('Content');
+                    if (contentCell && contentCell.value && String(contentCell.value).length > 50) {
+                        row.height = 60; // Taller rows for content
+                    } else {
+                        row.height = 20; // Standard height
+                    }
+                    
+                    row.eachCell((cell, colNumber) => {
+                        const val = cell.value;
+                        const columnKey = ws.columns[colNumber - 1]?.key;
+                        
+                        if (columnKey === 'Content') {
+                            // Special formatting for Content column
+                            cell.alignment = { 
+                                vertical: 'top', 
+                                horizontal: 'left', 
+                                wrapText: true 
+                            };
+                        } else {
+                            const isShort = val == null || String(val).length <= 3;
+                            cell.alignment = { 
+                                vertical: 'middle', 
+                                horizontal: isShort ? 'center' : 'left', 
+                                wrapText: false 
+                            };
+                        }
+                        
+                        cell.border = {
+                            top: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                            left: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                            bottom: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                            right: { style: 'thin', color: { argb: 'FFE2E8F0' } },
+                        };
+                    });
+                });
+            };
+
+            if (groupByKey) {
+                const groups = exportData.reduce((acc, item) => {
+                    const key = item[groupByKey] || 'Other';
+                    if (!acc[key]) acc[key] = [];
+                    acc[key].push(item);
+                    return acc;
+                }, {});
+                Object.entries(groups).forEach(([key, items]) => addSheet(key, items));
+            } else {
+                addSheet('Report', exportData);
+            }
+
+            const buffer = await wb.xlsx.writeBuffer();
+            const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+            saveAs(blob, `CCS_${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+            showToast('Excel file downloaded successfully!', 'success');
+        } catch (err) {
+            console.error('Excel export error:', err);
+            showToast('Excel export failed: ' + (err?.message || String(err)));
         }
-
-        const buffer = await wb.xlsx.writeBuffer();
-        const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-        saveAs(blob, `CCS_${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.xlsx`);
     }, [data, flattenFn, filenamePrefix, groupByKey]);
 
     return (
         <>
+            {/* Toast notification */}
+            {toast && (
+                <div style={{
+                    position: 'fixed', bottom: 24, right: 24, zIndex: 9999,
+                    display: 'flex', alignItems: 'center', gap: 10,
+                    background: toast.type === 'error' ? '#fef2f2' : '#f0fdf4',
+                    border: `1px solid ${toast.type === 'error' ? '#fecaca' : '#bbf7d0'}`,
+                    borderRadius: 12, padding: '12px 16px',
+                    boxShadow: '0 8px 24px rgba(0,0,0,.12)',
+                    fontSize: '.875rem', fontWeight: 600,
+                    color: toast.type === 'error' ? '#dc2626' : '#16a34a',
+                    maxWidth: 360,
+                }}>
+                    <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                    <span>{toast.msg}</span>
+                    <button onClick={() => setToast(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'inherit', padding: 0, marginLeft: 4, display: 'flex' }}>
+                        <X size={14} />
+                    </button>
+                </div>
+            )}
             <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 <button
                     className="btn btn-primary"

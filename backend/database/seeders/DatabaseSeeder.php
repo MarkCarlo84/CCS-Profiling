@@ -25,7 +25,10 @@ class DatabaseSeeder extends Seeder
         $this->command->info('  Password: Admin1234');
 
         $this->call(SubjectSeeder::class);
+        $this->call(EligibilityCriteriaSeeder::class);
         $this->call(StudentBulkSeeder::class);
         $this->call(DemoSeeder::class);
+        $this->call(FacultyReportsSeeder::class);
+        $this->call(FacultyEvaluationsSeeder::class);
     }
 }

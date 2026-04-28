@@ -497,8 +497,22 @@ export default function StudentDataMap() {
                                         <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{deptStudents.length} students</span>
                                     </div>
                                     <div className="card-body" style={{ padding: 0 }}>
+                                        {/* Desktop table */}
                                         <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                                            <table style={{ minWidth: 700 }}>
+                                            <table style={{ minWidth: 780, tableLayout: 'fixed', width: '100%' }}>
+                                                <colgroup>
+                                                    <col style={{ width: '3%' }} />
+                                                    <col style={{ width: '10%' }} />
+                                                    <col style={{ width: '16%' }} />
+                                                    <col style={{ width: '5%' }} />
+                                                    <col style={{ width: '7%' }} />
+                                                    <col style={{ width: '8%' }} />
+                                                    <col style={{ width: '14%' }} />
+                                                    <col style={{ width: '14%' }} />
+                                                    <col style={{ width: '12%' }} />
+                                                    <col style={{ width: '11%' }} />
+                                                    <col style={{ width: '7%' }} />
+                                                </colgroup>
                                                 <thead>
                                                     <tr>
                                                         <th>#</th><th>Student ID</th><th>Full Name</th>
@@ -511,15 +525,41 @@ export default function StudentDataMap() {
                                                     {paginated.map((stu, idx) => (
                                                         <tr key={stu.id}>
                                                             <td>{(page - 1) * pageSize + idx + 1}</td>
-                                                            <td><strong style={{ color: '#f97316', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong></td>
-                                                            <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
+                                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                                <strong style={{ color: '#f97316', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong>
+                                                            </td>
+                                                            <td style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</td>
                                                             <td>{stu.age || '—'}</td>
                                                             <td>{stu.gender || '—'}</td>
-                                                            <td>{stu.section ? <span style={{ fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa', fontSize: '.78rem' }}>{fmtSection(stu)}</span> : '—'}</td>
-                                                            <td style={{ fontSize: '.75rem' }}>{stu.guardian_name || '—'}</td>
-                                                            <td style={{ minWidth: 140 }}>{stu.affiliations?.length > 0 ? stu.affiliations.map(a => <div key={a.id} style={{ fontSize: '.75rem', marginBottom: 2 }}><strong>{a.role || 'Member'}</strong> — {a.name}</div>) : '—'}</td>
-                                                            <td style={{ minWidth: 110 }}>{stu.skills?.length > 0 ? <div className="tags">{stu.skills.map(sk => <SkillTag key={sk.id} skill={sk} />)}</div> : '—'}</td>
-                                                            <td style={{ minWidth: 110 }}>{stu.violations?.length > 0 ? stu.violations.map(v => <div key={v.id} style={{ fontSize: '.75rem', marginBottom: 2 }}><Badge value={v.severity_level} /> {v.violation_type}</div>) : <span style={{ color: '#16a34a', fontSize: '.75rem' }}>No violations</span>}</td>
+                                                            <td>{stu.section ? <span style={{ fontWeight: 700, padding: '2px 8px', borderRadius: 999, background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa', fontSize: '.75rem', whiteSpace: 'nowrap' }}>{fmtSection(stu)}</span> : '—'}</td>
+                                                            <td style={{ fontSize: '.75rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{stu.guardian_name || '—'}</td>
+                                                            <td>
+                                                                {stu.affiliations?.length > 0 ? (
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                                                                        {stu.affiliations.slice(0, 2).map(a => (
+                                                                            <span key={a.id} style={{ fontSize: '.7rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{a.name}</span>
+                                                                        ))}
+                                                                        {stu.affiliations.length > 2 && <span style={{ fontSize: '.7rem', color: '#78716c' }}>+{stu.affiliations.length - 2}</span>}
+                                                                    </div>
+                                                                ) : <span style={{ color: '#a8a29e', fontSize: '.75rem' }}>—</span>}
+                                                            </td>
+                                                            <td>
+                                                                {stu.skills?.length > 0 ? (
+                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
+                                                                        {stu.skills.slice(0, 2).map(sk => (
+                                                                            <span key={sk.id} style={{ fontSize: '.7rem', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 4, padding: '1px 6px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 90 }}>{sk.skill_name}</span>
+                                                                        ))}
+                                                                        {stu.skills.length > 2 && <span style={{ fontSize: '.7rem', color: '#78716c' }}>+{stu.skills.length - 2}</span>}
+                                                                    </div>
+                                                                ) : <span style={{ color: '#a8a29e', fontSize: '.75rem' }}>—</span>}
+                                                            </td>
+                                                            <td>
+                                                                {stu.violations?.filter(v => !v.is_resolved).length > 0 ? (
+                                                                    <span style={{ fontSize: '.75rem', fontWeight: 700, color: '#dc2626', background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 6, padding: '2px 8px', whiteSpace: 'nowrap' }}>
+                                                                        {stu.violations.filter(v => !v.is_resolved).length} active
+                                                                    </span>
+                                                                ) : <span style={{ color: '#16a34a', fontSize: '.75rem', fontWeight: 600 }}>None</span>}
+                                                            </td>
                                                             <td className="no-print">
                                                                 <div style={{ display: 'flex', gap: 6 }}>
                                                                     <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit Student"><Pencil size={13} /></button>
@@ -530,6 +570,36 @@ export default function StudentDataMap() {
                                                     ))}
                                                 </tbody>
                                             </table>
+                                        </div>
+                                        {/* Mobile card list */}
+                                        <div className="subjects-card-list">
+                                            {paginated.map((stu, idx) => (
+                                                <div key={stu.id} style={{ padding: '12px 14px', borderTop: idx > 0 ? '1px solid var(--border)' : 'none' }}>
+                                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
+                                                        <div style={{ flex: 1, minWidth: 0 }}>
+                                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+                                                                <strong style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong>
+                                                                {stu.gender && <span style={{ fontSize: '.72rem', color: '#78716c' }}>{stu.gender}</span>}
+                                                                {stu.age && <span style={{ fontSize: '.72rem', color: '#78716c' }}>· {stu.age} yrs</span>}
+                                                                {stu.section && <span style={{ fontSize: '.72rem', fontWeight: 700, color: '#f97316', background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 999, padding: '1px 7px' }}>{fmtSection(stu)}</span>}
+                                                            </div>
+                                                            <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 4 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div>
+                                                            {stu.guardian_name && <div style={{ fontSize: '.75rem', color: '#78716c', marginBottom: 4 }}>Guardian: {stu.guardian_name}</div>}
+                                                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                                                                {stu.affiliations?.length > 0 && <span style={{ fontSize: '.7rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>{stu.affiliations.length} affiliation{stu.affiliations.length > 1 ? 's' : ''}</span>}
+                                                                {stu.skills?.length > 0 && <span style={{ fontSize: '.7rem', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>{stu.skills.length} skill{stu.skills.length > 1 ? 's' : ''}</span>}
+                                                                {stu.violations?.filter(v => !v.is_resolved).length > 0
+                                                                    ? <span style={{ fontSize: '.7rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>{stu.violations.filter(v => !v.is_resolved).length} violation{stu.violations.filter(v => !v.is_resolved).length > 1 ? 's' : ''}</span>
+                                                                    : <span style={{ fontSize: '.7rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>No violations</span>}
+                                                            </div>
+                                                        </div>
+                                                        <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                                                            <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit"><Pencil size={13} /></button>
+                                                            <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(stu.id)} title="Delete"><Trash2 size={13} /></button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            ))}
                                         </div>
                                     </div>
                                     {totalPages > 1 && (() => {

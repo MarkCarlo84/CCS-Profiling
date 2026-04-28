@@ -29,6 +29,7 @@ export default function AffiliationsMap() {
     const [loading, setLoading] = useState(true);
     const [loadingCategory, setLoadingCategory] = useState(null);
     const [search, setSearch] = useState('');
+    const [typeFilter, setTypeFilter] = useState(''); // New filter
     const [isPdfMode, setIsPdfMode] = useState(false);
     const [pdfData, setPdfData] = useState([]);
 
@@ -46,7 +47,7 @@ export default function AffiliationsMap() {
 
     const load = useCallback((pagesMap = pages) => {
         setLoading(true);
-        getAffiliations({ search: debouncedSearch, ...buildPageParams(pagesMap) })
+        getAffiliations({ search: debouncedSearch, ...(typeFilter ? { type: typeFilter } : {}), ...buildPageParams(pagesMap) })
             .then(r => {
                 const data = r.data;
                 setGrouped(data);
@@ -59,15 +60,15 @@ export default function AffiliationsMap() {
                 });
             })
             .finally(() => setLoading(false));
-    }, [debouncedSearch]);
+    }, [debouncedSearch, typeFilter]);
 
-    useEffect(() => { setPages({}); load({}); }, [debouncedSearch]);
+    useEffect(() => { setPages({}); load({}); }, [debouncedSearch, typeFilter]);
 
-        const goToPage = (type, page) => {
+    const goToPage = (type, page) => {
         const next = { ...pages, [type]: page };
         setPages(next);
         setLoadingCategory(type);
-        getAffiliations({ search: debouncedSearch, ...buildPageParams(next) })
+        getAffiliations({ search: debouncedSearch, ...(typeFilter ? { type: typeFilter } : {}), ...buildPageParams(next) })
             .then(r => setGrouped(r.data))
             .finally(() => setLoadingCategory(null));
     };
@@ -86,7 +87,7 @@ export default function AffiliationsMap() {
     );
 
     const fetchFullData = async () => {
-        const res = await getAffiliations({ search: debouncedSearch, limit: 99999 });
+        const res = await getAffiliations({ search: debouncedSearch, ...(typeFilter ? { type: typeFilter } : {}), limit: 99999 });
         const all = Object.entries(res.data).flatMap(([type, cat]) => 
             (cat.data || []).map(a => ({ ...a, _type: type }))
         );
@@ -114,6 +115,19 @@ export default function AffiliationsMap() {
                     <Search size={15} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                     <input type="text" placeholder="Search organization name…" value={search} onChange={e => setSearch(e.target.value)} style={{ paddingLeft: 36 }} />
                 </div>
+                <select value={typeFilter} onChange={e => setTypeFilter(e.target.value)}>
+                    <option value="">All Categories</option>
+                    <option value="Civic">Civic</option>
+                    <option value="Sports">Sports</option>
+                    <option value="Cultural">Cultural</option>
+                    <option value="Academic">Academic</option>
+                    <option value="Religious">Religious</option>
+                    <option value="Professional">Professional</option>
+                    <option value="Political">Political</option>
+                    <option value="Environmental">Environmental</option>
+                    <option value="Technology">Technology</option>
+                    <option value="Other">Other</option>
+                </select>
                 <div style={{ flex: 1 }} />
                 <ExportButtons 
                     printRef={printRef} 
@@ -129,9 +143,9 @@ export default function AffiliationsMap() {
             <div ref={printRef} style={{ background: '#fff' }}>
                 <PrintHeader 
                     title="Affiliations Map" 
-                    subtitle="All student organizational affiliations" 
+                    subtitle={typeFilter ? `${typeFilter} Affiliations` : 'All student organizational affiliations'} 
                     count={totalCount} 
-                    filters={{ search }} 
+                    filters={{ search, ...(typeFilter ? { category: typeFilter } : {}) }} 
                 />
 
                 {loading ? (

@@ -7,61 +7,167 @@ use App\Models\Student;
 use App\Models\Faculty;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\DB;
+use App\Services\CacheService;
 
 class ReportController extends Controller
 {
     /**
      * Advanced student query for report generation.
+     * Optimized with pagination, selective eager loading, and efficient filtering.
      */
     public function students(Request $request): JsonResponse
     {
-        $query = Student::with(['affiliations', 'violations', 'academicRecords.grades', 'skills', 'nonAcademicHistories']);
+        // Determine what relationships to load based on request
+        $with = [];
+        $needsSkills = $request->filled(['skill', 'skill_level', 'certification']);
+        $needsAffiliations = $request->filled(['affiliation', 'affiliation_type']);
+        $needsViolations = $request->filled(['has_violation', 'violation_severity']);
+        $needsActivities = $request->filled('activity_category');
+        $needsAcademics = $request->boolean('include_academics', false);
 
-        if ($request->filled('status'))          $query->where('status', $request->status);
-        if ($request->filled('gender'))          $query->where('gender', $request->gender);
-        if ($request->filled('department'))      $query->where('department', $request->department);
+        if ($needsSkills || $request->boolean('include_skills', true)) {
+            $with[] = 'skills';
+        }
+        if ($needsAffiliations || $request->boolean('include_affiliations', true)) {
+            $with[] = 'affiliations';
+        }
+        if ($needsViolations || $request->boolean('include_violations', true)) {
+            $with[] = 'violations';
+        }
+        if ($needsActivities || $request->boolean('include_activities', false)) {
+            $with[] = 'nonAcademicHistories';
+        }
+        if ($needsAcademics) {
+            $with[] = 'academicRecords.grades';
+        }
 
-        if ($request->filled('skill')) {
-            $skill = $request->skill;
-            $query->whereHas('skills', fn($q) => $q->where('skill_name', 'like', "%$skill%"));
+        $query = Student::query();
+
+        // Apply direct filters first (most efficient)
+        if ($request->filled('status')) {
+            $query->where('status', $request->status);
         }
-        if ($request->filled('skill_level')) {
-            $lvl = $request->skill_level;
-            $query->whereHas('skills', fn($q) => $q->where('skill_level', $lvl));
+        if ($request->filled('gender')) {
+            $query->where('gender', $request->gender);
         }
-        if ($request->filled('certification')) {
-            $query->whereHas('skills', fn($q) => $q->where('certification', true));
-        }
-        if ($request->filled('affiliation')) {
-            $org = $request->affiliation;
-            $query->whereHas('affiliations', fn($q) => $q->where('name', 'like', "%$org%"));
-        }
-        if ($request->filled('affiliation_type')) {
-            $type = $request->affiliation_type;
-            $query->whereHas('affiliations', fn($q) => $q->where('type', $type));
-        }
-        if ($request->filled('has_violation')) {
-            $request->has_violation === 'true' || $request->has_violation === '1'
-                ? $query->whereHas('violations')
-                : $query->whereDoesntHave('violations');
-        }
-        if ($request->filled('violation_severity')) {
-            $sev = $request->violation_severity;
-            $query->whereHas('violations', fn($q) => $q->where('severity_level', $sev));
-        }
-        if ($request->filled('activity_category')) {
-            $cat = $request->activity_category;
-            $query->whereHas('nonAcademicHistories', fn($q) => $q->where('category', 'like', "%$cat%"));
+        if ($request->filled('department')) {
+            $query->where('department', $request->department);
         }
         if ($request->filled('search')) {
             $s = $request->search;
-            $query->where(fn($q) => $q->where('first_name', 'like', "%$s%")
-                ->orWhere('last_name', 'like', "%$s%")
-                ->orWhere('student_id', 'like', "%$s%"));
+            $query->where(function($q) use ($s) {
+                $q->where('first_name', 'like', "%$s%")
+                  ->orWhere('last_name', 'like', "%$s%")
+                  ->orWhere('student_id', 'like', "%$s%");
+            });
         }
 
-        $students = $query->orderBy('last_name')->get();
-        return response()->json(['count' => $students->count(), 'students' => $students]);
+        // Apply relationship filters using exists subqueries (more efficient than whereHas)
+        if ($request->filled('skill')) {
+            $skill = $request->skill;
+            $query->whereExists(function($q) use ($skill) {
+                $q->select(DB::raw(1))
+                  ->from('skills')
+                  ->whereColumn('skills.student_id', 'students.id')
+                  ->where('skill_name', 'like', "%$skill%");
+            });
+        }
+        if ($request->filled('skill_level')) {
+            $lvl = $request->skill_level;
+            $query->whereExists(function($q) use ($lvl) {
+                $q->select(DB::raw(1))
+                  ->from('skills')
+                  ->whereColumn('skills.student_id', 'students.id')
+                  ->where('skill_level', $lvl);
+            });
+        }
+        if ($request->filled('certification')) {
+            $query->whereExists(function($q) {
+                $q->select(DB::raw(1))
+                  ->from('skills')
+                  ->whereColumn('skills.student_id', 'students.id')
+                  ->where('certification', true);
+            });
+        }
+        if ($request->filled('affiliation')) {
+            $org = $request->affiliation;
+            $query->whereExists(function($q) use ($org) {
+                $q->select(DB::raw(1))
+                  ->from('affiliations')
+                  ->whereColumn('affiliations.student_id', 'students.id')
+                  ->where('name', 'like', "%$org%");
+            });
+        }
+        if ($request->filled('affiliation_type')) {
+            $type = $request->affiliation_type;
+            $query->whereExists(function($q) use ($type) {
+                $q->select(DB::raw(1))
+                  ->from('affiliations')
+                  ->whereColumn('affiliations.student_id', 'students.id')
+                  ->where('type', $type);
+            });
+        }
+        if ($request->filled('has_violation')) {
+            $hasViolation = $request->has_violation === 'true' || $request->has_violation === '1';
+            if ($hasViolation) {
+                $query->whereExists(function($q) {
+                    $q->select(DB::raw(1))
+                      ->from('violations')
+                      ->whereColumn('violations.student_id', 'students.id');
+                });
+            } else {
+                $query->whereNotExists(function($q) {
+                    $q->select(DB::raw(1))
+                      ->from('violations')
+                      ->whereColumn('violations.student_id', 'students.id');
+                });
+            }
+        }
+        if ($request->filled('violation_severity')) {
+            $sev = $request->violation_severity;
+            $query->whereExists(function($q) use ($sev) {
+                $q->select(DB::raw(1))
+                  ->from('violations')
+                  ->whereColumn('violations.student_id', 'students.id')
+                  ->where('severity_level', $sev);
+            });
+        }
+        if ($request->filled('activity_category')) {
+            $cat = $request->activity_category;
+            $query->whereExists(function($q) use ($cat) {
+                $q->select(DB::raw(1))
+                  ->from('non_academic_histories')
+                  ->whereColumn('non_academic_histories.student_id', 'students.id')
+                  ->where('category', 'like', "%$cat%");
+            });
+        }
+
+        // Apply eager loading only after filtering
+        if (!empty($with)) {
+            $query->with($with);
+        }
+
+        // Implement pagination with reasonable defaults
+        $perPage = min((int) $request->input('per_page', 50), 200);
+        $students = $query->orderBy('last_name')->paginate($perPage);
+
+        // Maintain backward compatibility with existing frontend
+        if ($request->boolean('paginated', false)) {
+            return response()->json($students);
+        } else {
+            // Return in original format for existing frontend code
+            return response()->json([
+                'count' => $students->total(),
+                'students' => $students->items(),
+                'pagination' => [
+                    'current_page' => $students->currentPage(),
+                    'last_page' => $students->lastPage(),
+                    'per_page' => $students->perPage(),
+                    'total' => $students->total(),
+                ]
+            ]);
+        }
     }
 
     /**
@@ -85,75 +191,71 @@ class ReportController extends Controller
     }
 
     /**
-     * Dashboard summary stats (diagram-aligned).
+     * Dashboard summary stats (diagram-aligned) - now cached.
      */
     public function summary(): JsonResponse
     {
-        return response()->json([
-            'total_faculty'   => Faculty::count(),
-            'total_students'  => Student::count(),
-            'active_students' => Student::where('status', 'active')->count(),
-            'total_subjects'  => \App\Models\Subject::count(),
-            'total_violations'=> \App\Models\Violation::count(),
-            'by_gender'       => Student::selectRaw('gender, count(*) as count')
-                                    ->groupBy('gender')->pluck('count', 'gender'),
-        ]);
+        return response()->json(\App\Services\CacheService::getDashboardSummary());
     }
 
     /**
      * GET /api/reports/presets
-     * Returns distinct skills and activity categories for dynamic preset buttons.
+     * Returns distinct skills and activity categories for dynamic preset buttons - now cached.
      */
     public function presets(): JsonResponse
     {
-        $skills = \App\Models\Skill::select('skill_name')
-            ->distinct()
-            ->orderBy('skill_name')
-            ->pluck('skill_name');
-
-        $affiliations = \App\Models\Affiliation::select('name')
-            ->whereNotNull('name')
-            ->distinct()
-            ->orderBy('name')
-            ->pluck('name');
-
-        return response()->json([
-            'skills'       => $skills,
-            'affiliations' => $affiliations,
-        ]);
+        return response()->json(\App\Services\CacheService::getReportPresets());
     }
+    /**
+     * Optimized search with selective loading and proper limits.
+     */
     public function search(Request $request): JsonResponse
     {
         $q = $request->get('q', '');
 
         if (strlen(trim($q)) < 2) {
-            return response()->json(['query' => $q, 'total' => 0, 'students' => [], 'faculties' => [], 'courses' => [], 'events' => []]);
+            return response()->json([
+                'query' => $q, 
+                'total' => 0, 
+                'students' => [], 
+                'faculties' => [], 
+                'courses' => [], 
+                'events' => []
+            ]);
         }
 
-        $students = Student::with(['violations', 'skills', 'affiliations', 'nonAcademicHistories', 'academicRecords.grades.subject'])
-            ->where(fn($query) => $query
-                ->where('first_name', 'like', "%$q%")
-                ->orWhere('last_name', 'like', "%$q%")
-                ->orWhere('student_id', 'like', "%$q%")
-                ->orWhere('email', 'like', "%$q%"))
+        // Use minimal eager loading for search results
+        $students = Student::select(['id', 'student_id', 'first_name', 'last_name', 'email', 'department', 'status'])
+            ->where(function($query) use ($q) {
+                $query->where('first_name', 'like', "%$q%")
+                      ->orWhere('last_name', 'like', "%$q%")
+                      ->orWhere('student_id', 'like', "%$q%")
+                      ->orWhere('email', 'like', "%$q%");
+            })
             ->limit(20)->get();
 
-        $faculties = Faculty::where(fn($query) => $query
-            ->where('first_name', 'like', "%$q%")
-            ->orWhere('last_name', 'like', "%$q%")
-            ->orWhere('faculty_id', 'like', "%$q%")
-            ->orWhere('department', 'like', "%$q%"))
+        $faculties = Faculty::select(['id', 'faculty_id', 'first_name', 'last_name', 'department', 'position'])
+            ->where(function($query) use ($q) {
+                $query->where('first_name', 'like', "%$q%")
+                      ->orWhere('last_name', 'like', "%$q%")
+                      ->orWhere('faculty_id', 'like', "%$q%")
+                      ->orWhere('department', 'like', "%$q%");
+            })
             ->limit(20)->get();
 
-        $courses = \App\Models\Course::with('department')
-            ->where(fn($query) => $query
-                ->where('name', 'like', "%$q%")
-                ->orWhere('code', 'like', "%$q%"))
+        $courses = \App\Models\Course::select(['id', 'name', 'code', 'department_id'])
+            ->with(['department:id,name'])
+            ->where(function($query) use ($q) {
+                $query->where('name', 'like', "%$q%")
+                      ->orWhere('code', 'like', "%$q%");
+            })
             ->limit(20)->get();
 
-        $events = \App\Models\Event::where(fn($query) => $query
-            ->where('title', 'like', "%$q%")
-            ->orWhere('venue', 'like', "%$q%"))
+        $events = \App\Models\Event::select(['id', 'title', 'venue', 'event_date', 'max_participants'])
+            ->where(function($query) use ($q) {
+                $query->where('title', 'like', "%$q%")
+                      ->orWhere('venue', 'like', "%$q%");
+            })
             ->limit(20)->get();
 
         return response()->json([

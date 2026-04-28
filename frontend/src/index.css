@@ -73,6 +73,21 @@ h3 {
   background-color: #f1f5f9;
 }
 
+/* ===================== PDF EXPORT STYLES ===================== */
+.pdf-only {
+  display: none;
+}
+
+/* Spin animation for loading indicators */
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 /* Print Specific Rules for Tables */
 @media print {
   * {
@@ -94,5 +109,15 @@ h3 {
   .report-table tbody tr {
     page-break-inside: avoid;
     page-break-after: auto;
+  }
+
+  /* Hide elements that shouldn't appear in print */
+  .no-print {
+    display: none !important;
+  }
+
+  /* Show PDF-only elements during print */
+  .pdf-only {
+    display: block !important;
   }
 }

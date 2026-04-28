@@ -35,7 +35,7 @@ export const facultyRecordViolation = (facultyId, studentId, data) => api.post(`
 export const facultyUpdateStudentRecord = (facultyId, studentId, data) => api.patch(`/faculties/${facultyId}/update-student/${studentId}`, data);
 
 // ── Students ──────────────────────────────────────────────────────────────────
-export const getStudents = (params = {}) => api.get('/students', { params });
+export const getStudents = (params = {}) => api.get('/students', { params: { ...params, with_details: true } });
 export const getStudent = (id) => api.get(`/students/${id}`);
 export const getSectionCapacity = (department, year_level) => api.get('/students/section-capacity', { params: { department, year_level } });
 export const createStudent = (data) => api.post('/students', data);

@@ -18,19 +18,27 @@ class StudentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        // Only eager-load heavy relationships when explicitly requested
-        $with = ['academicRecords'];
+        // Selective eager loading based on request parameters
+        $with = [];
+        
+        // Only load relationships when needed
         if ($request->boolean('with_details')) {
             $with = ['violations', 'affiliations', 'academicRecords.grades', 'skills', 'nonAcademicHistories'];
+        } elseif ($request->boolean('with_basic_relations')) {
+            $with = ['violations', 'affiliations'];
         }
 
-        $query = Student::with($with);
+        $query = Student::query();
 
+        // Apply filters
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
         if ($request->filled('gender')) {
             $query->where('gender', $request->gender);
+        }
+        if ($request->filled('department')) {
+            $query->where('department', $request->department);
         }
         if ($request->filled('search')) {
             $s = $request->search;
@@ -40,17 +48,16 @@ class StudentController extends Controller
                   ->orWhere('student_id', 'like', "%$s%");
             });
         }
-        if ($request->filled('department')) {
-            $query->where('department', $request->department);
+
+        // Apply eager loading after filtering
+        if (!empty($with)) {
+            $query->with($with);
         }
 
-        // Support pagination when per_page is passed; otherwise return all (for client-side pages)
-        if ($request->filled('per_page')) {
-            $perPage = min((int) $request->input('per_page'), 200);
-            return response()->json($query->orderBy('last_name')->paginate($perPage));
-        }
-
-        return response()->json($query->orderBy('last_name')->get());
+        // Always use pagination with sensible defaults
+        $perPage = min((int) $request->input('per_page', 20), 200);
+        
+        return response()->json($query->orderBy('last_name')->paginate($perPage));
     }
 
     public function store(Request $request): JsonResponse
@@ -123,7 +130,17 @@ class StudentController extends Controller
 
     public function show(Student $student): JsonResponse
     {
-        return response()->json($student->load(['violations', 'affiliations', 'academicRecords.grades.subject', 'skills', 'nonAcademicHistories']));
+        // Load relationships selectively based on what's typically needed
+        return response()->json($student->load([
+            'violations:id,student_id,violation_type,severity_level,date_reported',
+            'affiliations:id,student_id,name,type,position',
+            'academicRecords' => function($query) {
+                $query->select('id', 'student_id', 'school_year', 'semester', 'year_level', 'gpa')
+                      ->with(['grades:id,academic_record_id,subject_id,subject_name,score,remarks']);
+            },
+            'skills:id,student_id,skill_name,skill_level,certification',
+            'nonAcademicHistories:id,student_id,activity_name,category,date_participated'
+        ]));
     }
 
     public function update(Request $request, Student $student): JsonResponse
