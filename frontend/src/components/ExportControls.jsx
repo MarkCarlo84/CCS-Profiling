@@ -61,51 +61,94 @@ export function ExportButtons({ printRef, data, flattenFn, filenamePrefix = 'Exp
     const [showSaveModal, setShowSaveModal] = useState(false);
     const [pdfGenerating, setPdfGenerating] = useState(false);
 
-    // PDF download — uses callbacks so parent can switch React state before capture
+    // PDF — generate directly from data using jsPDF + autoTable (no DOM capture)
     const handlePdfDownload = useCallback(async () => {
         if (!printRef.current) return;
         setPdfGenerating(true);
-
-        // 1. If parent provided a React-state callback, use it and wait for repaint
-        if (onBeforePdf) {
-            await onBeforePdf();
-            // Wait 2 frames so React re-renders & browser repaints before capture
-            await new Promise(r => setTimeout(r, 300));
-        } else {
-            // Fallback: direct DOM toggle + repaint wait
-            const toHide = printRef.current.querySelectorAll('.pdf-hide');
-            const toShow = printRef.current.querySelectorAll('.pdf-only');
-            toHide.forEach(el => { el.style.display = 'none'; });
-            toShow.forEach(el => { el.style.display = 'block'; });
-            await new Promise(r => setTimeout(r, 300));
-        }
-
         try {
-            const html2pdf = (await import('html2pdf.js')).default;
+            const { jsPDF } = await import('jspdf');
+            const autoTable = (await import('jspdf-autotable')).default;
+
+            const doc = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' });
             const filename = `CCS_${filenamePrefix}_${new Date().toISOString().slice(0, 10)}.pdf`;
-            await html2pdf()
-                .set({
-                    margin: [8, 6, 8, 6],
-                    filename,
-                    image: { type: 'jpeg', quality: 0.98 },
-                    html2canvas: { scale: 2, useCORS: true, logging: false, scrollX: 0, scrollY: 0 },
-                    jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' },
-                    pagebreak: { mode: ['css', 'legacy'] },
-                })
-                .from(printRef.current)
-                .save();
-        } finally {
-            if (onAfterPdf) {
-                onAfterPdf();
+            const dateStr = new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' });
+
+            // Collect all rows from the pdf-only tables inside printRef
+            const tables = printRef.current.querySelectorAll('.pdf-only table');
+
+            if (tables.length === 0) {
+                // Fallback: use flattenFn on data array
+                const rows = (typeof data === 'function' ? [] : (data || [])).map((item, i) => flattenFn(item, i));
+                if (rows.length > 0) {
+                    const cols = Object.keys(rows[0]);
+                    // Header
+                    doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+                    doc.text('CCS Comprehensive Profiling System', 14, 14);
+                    doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                    doc.text(`${filenamePrefix.replace(/_/g, ' ')} · ${rows.length} record(s) · Generated ${dateStr}`, 14, 20);
+                    autoTable(doc, {
+                        head: [cols],
+                        body: rows.map(r => cols.map(c => r[c] ?? '')),
+                        startY: 26,
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: 'bold' },
+                        alternateRowStyles: { fillColor: [255, 247, 237] },
+                    });
+                }
             } else {
-                const toHide = printRef.current.querySelectorAll('.pdf-hide');
-                const toShow = printRef.current.querySelectorAll('.pdf-only');
-                toHide.forEach(el => { el.style.display = ''; });
-                toShow.forEach(el => { el.style.display = 'none'; });
+                // Header page
+                doc.setFontSize(14); doc.setFont('helvetica', 'bold');
+                doc.text('CCS Comprehensive Profiling System', 14, 14);
+                doc.setFontSize(9); doc.setFont('helvetica', 'normal');
+                doc.text(`${filenamePrefix.replace(/_/g, ' ')} · Generated ${dateStr}`, 14, 20);
+
+                let isFirst = true;
+                tables.forEach(table => {
+                    // Get section heading from sibling h2
+                    const section = table.closest('.pdf-only');
+                    const heading = section?.querySelector('h2')?.textContent?.trim() || '';
+
+                    const thead = table.querySelector('thead');
+                    const tbody = table.querySelector('tbody');
+                    if (!thead || !tbody) return;
+
+                    const cols = Array.from(thead.querySelectorAll('th')).map(th => th.textContent.trim());
+                    const rows = Array.from(tbody.querySelectorAll('tr')).map(tr =>
+                        Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim())
+                    );
+
+                    if (!isFirst) doc.addPage();
+                    isFirst = false;
+
+                    if (heading) {
+                        doc.setFontSize(11); doc.setFont('helvetica', 'bold');
+                        doc.setTextColor(249, 115, 22);
+                        doc.text(heading, 14, 28);
+                        doc.setTextColor(0, 0, 0);
+                    }
+
+                    autoTable(doc, {
+                        head: [cols],
+                        body: rows,
+                        startY: heading ? 32 : 26,
+                        styles: { fontSize: 8, cellPadding: 2 },
+                        headStyles: { fillColor: [249, 115, 22], textColor: 255, fontStyle: 'bold' },
+                        alternateRowStyles: { fillColor: [255, 247, 237] },
+                        didDrawPage: (d) => {
+                            // Page number footer
+                            doc.setFontSize(7); doc.setTextColor(150);
+                            doc.text(`Page ${d.pageNumber}`, doc.internal.pageSize.width - 20, doc.internal.pageSize.height - 5);
+                            doc.setTextColor(0);
+                        },
+                    });
+                });
             }
+
+            doc.save(filename);
+        } finally {
             setPdfGenerating(false);
         }
-    }, [printRef, filenamePrefix, onBeforePdf, onAfterPdf]);
+    }, [printRef, filenamePrefix, data, flattenFn]);
 
     const handleExcelExport = useCallback(async () => {
         let exportData = data;

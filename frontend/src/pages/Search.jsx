@@ -1,6 +1,7 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { searchAll } from '../api';
 import { Search, GraduationCap, Users, BookMarked, CalendarRange, X, Loader2 } from 'lucide-react';
+import { ExportButtons, PrintHeader } from '../components/ExportControls';
 
 const TABS = [
     { key: 'all', label: 'All', Icon: Search },
@@ -217,6 +218,18 @@ function FacultyQuickModal({ f, onClose }) {
     );
 }
 
+const flattenSearchResult = (item) => ({
+    '#': item._idx,
+    'Type': item._type,
+    'ID': item._id || '—',
+    'Name': item._name || '—',
+    'Department': item.department || item.department?.code || '—',
+    'Email': item.email || '—',
+    'Contact': item.contact_number || '—',
+    'Status / Position': item.status || item.position || '—',
+    'Extra': item._extra || '—',
+});
+
 export default function SearchPage() {
     const [query, setQuery] = useState('');
     const [results, setResults] = useState(null);
@@ -225,6 +238,7 @@ export default function SearchPage() {
     const [timer, setTimer] = useState(null);
     const [viewingStudent, setViewingStudent] = useState(null);
     const [viewingFaculty, setViewingFaculty] = useState(null);
+    const printRef = useRef(null);
 
     const runSearch = async (q) => {
         if (!q.trim()) { setResults(null); return; }
@@ -252,6 +266,17 @@ export default function SearchPage() {
         events: results.events?.length ?? 0,
     } : {};
     const totalCount = Object.values(counts).reduce((a, b) => a + b, 0);
+
+    const getExportData = () => {
+        if (!results) return [];
+        const rows = [];
+        let idx = 1;
+        (results.students || []).forEach(s => rows.push({ _idx: idx++, _type: 'Student', _id: s.student_id, _name: `${s.last_name}, ${s.first_name}`, department: s.department, email: s.email, contact_number: s.contact_number, status: s.status, _extra: s.gender }));
+        (results.faculties || []).forEach(f => rows.push({ _idx: idx++, _type: 'Faculty', _id: f.faculty_id, _name: `${f.last_name}, ${f.first_name}`, department: f.department, email: f.email, contact_number: f.contact_number, position: f.position, _extra: '' }));
+        (results.courses || []).forEach(c => rows.push({ _idx: idx++, _type: 'Course', _id: c.code, _name: c.name, department: c.department?.code ?? '—', email: '', contact_number: '', status: c.type, _extra: `${c.units} units` }));
+        (results.events || []).forEach(e => rows.push({ _idx: idx++, _type: 'Event', _id: '', _name: e.title, department: '', email: '', contact_number: '', status: e.status, _extra: e.venue ?? '—' }));
+        return rows;
+    };
 
     const visible = (key) => {
         if (!results) return null;
@@ -297,7 +322,8 @@ export default function SearchPage() {
 
             {/* Tabs */}
             {results && (
-                <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
                     {TABS.map(({ key, label, Icon }) => {
                         const cnt = key === 'all' ? totalCount : (counts[key] ?? 0);
                         const color = tabColor[key];
@@ -319,6 +345,15 @@ export default function SearchPage() {
                             </button>
                         );
                     })}
+                    </div>
+                    {totalCount > 0 && (
+                        <ExportButtons
+                            printRef={printRef}
+                            data={getExportData}
+                            flattenFn={flattenSearchResult}
+                            filenamePrefix={`Global_Search_${query.replace(/\s+/g, '_')}`}
+                        />
+                    )}
                 </div>
             )}
 
@@ -335,7 +370,13 @@ export default function SearchPage() {
 
             {/* Results */}
             {results && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                <div ref={printRef} style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+                    <PrintHeader
+                        title="Global Search"
+                        subtitle={`Query: "${query}"`}
+                        count={totalCount}
+                        filters={{ search: query }}
+                    />
                     {/* Students */}
                     {(activeTab === 'all' || activeTab === 'students') && results.students?.length > 0 && (
                         <div className="card">

@@ -283,7 +283,6 @@ export default function StudentDataMap() {
     const pageSize = 10;
     const [sectionCapacity, setSectionCapacity] = useState(null);
     const [capacityLoading, setCapacityLoading] = useState(false);
-    const [isPdfMode, setIsPdfMode] = useState(false);
 
     const debouncedSearch = useDebounce(filters.search, 250);
 
@@ -394,189 +393,6 @@ export default function StudentDataMap() {
     const getDeptPage = (dept) => deptPages[dept] || 1;
     const setDeptPage = (dept, p) => setDeptPages(prev => ({ ...prev, [dept]: p }));
 
-    const renderDeptTable = (dept, deptStudents) => {
-        const label = DEPT_LABELS[dept] || dept;
-        const page = getDeptPage(dept);
-        const totalPages = Math.ceil(deptStudents.length / pageSize);
-        const paginated = deptStudents.slice((page - 1) * pageSize, page * pageSize);
-
-        return (
-            <div key={dept} className="card pdf-hide" style={{ marginBottom: 28, pageBreakInside: 'auto' }}>
-                <div className="card-header no-print" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fff' }}>
-                    <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <Building size={17} strokeWidth={2} />{label}
-                    </h2>
-                    <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{deptStudents.length} students</span>
-                </div>
-                <div className="card-body" style={{ padding: 0 }}>
-
-                    {/* Screen View: Paginated & Cards */}
-                    <div>
-                    <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-                        <table style={{ minWidth: 700 }}>
-                            <thead>
-                                <tr>
-                                    <th>#</th><th>Student ID</th><th>Full Name</th>
-                                    <th>Age</th><th>Gender</th><th>Section</th><th>Guardian</th>
-                                    <th>Affiliations</th><th>Skills</th>
-                                    <th>Violations</th><th className="no-print">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {paginated.map((stu, idx) => (
-                                    <tr key={stu.id}>
-                                        <td>{(page - 1) * pageSize + idx + 1}</td>
-                                        <td><strong style={{ color: '#f97316', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong></td>
-                                        <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
-                                        <td>{stu.age || '—'}</td>
-                                        <td>{stu.gender || '—'}</td>
-                                        <td>
-                                            {stu.section
-                                                ? <span style={{ fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa', fontSize: '.78rem' }}>{fmtSection(stu)}</span>
-                                                : '—'}
-                                        </td>
-                                        <td style={{ fontSize: '.75rem' }}>{stu.guardian_name || '—'}</td>
-                                        <td style={{ minWidth: 140 }}>
-                                            {stu.affiliations?.length > 0
-                                                ? stu.affiliations.map(a => (
-                                                    <div key={a.id} style={{ fontSize: '.75rem', marginBottom: 2 }}>
-                                                        <strong>{a.role || 'Member'}</strong> — {a.name}
-                                                    </div>
-                                                ))
-                                                : '—'}
-                                        </td>
-                                        <td style={{ minWidth: 110 }}>
-                                            {stu.skills?.length > 0
-                                                ? <div className="tags">{stu.skills.map(sk => <SkillTag key={sk.id} skill={sk} />)}</div>
-                                                : '—'}
-                                        </td>
-                                        <td style={{ minWidth: 110 }}>
-                                            {stu.violations?.length > 0
-                                                ? stu.violations.map(v => (
-                                                    <div key={v.id} style={{ fontSize: '.75rem', marginBottom: 2 }}>
-                                                        <Badge value={v.severity_level} /> {v.violation_type}
-                                                    </div>
-                                                ))
-                                                : <span style={{ color: '#16a34a', fontSize: '.75rem' }}>No violations</span>}
-                                        </td>
-                                        <td className="no-print">
-                                            <div style={{ display: 'flex', gap: 6 }}>
-                                                <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit Student"><Pencil size={13} /></button>
-                                                <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(stu.id)} title="Delete Student"><Trash2 size={13} /></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* Mobile: card list */}
-                    <div className="subjects-card-list">
-                        {paginated.map((stu, idx) => (
-                            <div key={stu.id} style={{
-                                padding: '12px 14px',
-                                borderTop: idx > 0 ? '1px solid var(--border)' : 'none',
-                            }}>
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 10 }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        {/* ID + name row */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
-                                            <strong
-                                                style={{ color: '#f97316', fontSize: '.82rem', fontFamily: 'monospace', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }}
-                                                onClick={() => setViewing(stu)}
-                                            >
-                                                {stu.student_id || `STU-${stu.id}`}
-                                            </strong>
-                                            {stu.gender && <span style={{ fontSize: '.72rem', color: '#78716c' }}>{stu.gender}</span>}
-                                            {stu.age && <span style={{ fontSize: '.72rem', color: '#78716c' }}>· {stu.age} yrs</span>}
-                                        </div>
-                                        <div style={{ fontWeight: 700, fontSize: '.875rem', color: '#1c1917', marginBottom: 2 }}>
-                                            {stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}
-                                        </div>
-                                        {stu.guardian_name && (
-                                            <div style={{ fontSize: '.75rem', color: '#78716c', marginBottom: 4 }}>
-                                                Guardian: {stu.guardian_name}
-                                            </div>
-                                        )}
-                                        {/* Tags row */}
-                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, marginTop: 4 }}>
-                                            {stu.affiliations?.length > 0 && (
-                                                <span style={{ fontSize: '.7rem', background: '#eff6ff', color: '#2563eb', border: '1px solid #bfdbfe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
-                                                    {stu.affiliations.length} affiliation{stu.affiliations.length > 1 ? 's' : ''}
-                                                </span>
-                                            )}
-                                            {stu.skills?.length > 0 && (
-                                                <span style={{ fontSize: '.7rem', background: '#f5f3ff', color: '#7c3aed', border: '1px solid #ddd6fe', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
-                                                    {stu.skills.length} skill{stu.skills.length > 1 ? 's' : ''}
-                                                </span>
-                                            )}
-                                            {stu.violations?.length > 0 ? (
-                                                <span style={{ fontSize: '.7rem', background: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
-                                                    {stu.violations.length} violation{stu.violations.length > 1 ? 's' : ''}
-                                                </span>
-                                            ) : (
-                                                <span style={{ fontSize: '.7rem', background: '#f0fdf4', color: '#16a34a', border: '1px solid #bbf7d0', borderRadius: 5, padding: '1px 7px', fontWeight: 600 }}>
-                                                    No violations
-                                                </span>
-                                            )}
-                                        </div>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                        <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit"><Pencil size={13} /></button>
-                                        <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(stu.id)} title="Delete"><Trash2 size={13} /></button>
-                                    </div>
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                    </div>
-
-                </div>
-                {totalPages > 1 && (() => {
-                    const GROUP = 10;
-                    const groupIndex = Math.floor((page - 1) / GROUP);
-                    const groupStart = groupIndex * GROUP + 1;
-                    const groupEnd = Math.min(groupStart + GROUP - 1, totalPages);
-                    const pageNums = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
-                    const hasPrevGroup = groupStart > 1;
-                    const hasNextGroup = groupEnd < totalPages;
-                    return (
-                        <div className="pdf-hide" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0', flexWrap: 'wrap' }}>
-                            <button onClick={() => setDeptPage(dept, groupStart - GROUP)} disabled={!hasPrevGroup} style={{ ...pageBtn, opacity: !hasPrevGroup ? 0.4 : 1 }}>‹</button>
-                            {pageNums.map(p => (
-                                <button key={p} onClick={() => setDeptPage(dept, p)}
-                                    style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}
-                                >{p}</button>
-                            ))}
-                            <button onClick={() => setDeptPage(dept, groupEnd + 1)} disabled={!hasNextGroup} style={{ ...pageBtn, opacity: !hasNextGroup ? 0.4 : 1 }}>›</button>
-                            <select
-                                value={Math.floor((page - 1) / 10) * 10 + 10}
-                                onChange={e => {
-                                    const val = Number(e.target.value);
-                                    setDeptPage(dept, val - 9); // jump to first page of that group
-                                }}
-                                style={{ marginLeft: 8, padding: '4px 8px', borderRadius: 6, border: '1px solid #e7e5e4', fontSize: '.82rem', color: '#78716c', cursor: 'pointer', background: '#fff' }}
-                            >
-                                {Array.from({ length: Math.ceil(totalPages / 10) }, (_, i) => {
-                                    const groupEnd = Math.min((i + 1) * 10, totalPages);
-                                    const startRecord = i * 10 * pageSize + 1;
-                                    const endRecord = Math.min(groupEnd * pageSize, deptStudents.length);
-                                    return (
-                                        <option key={i} value={groupEnd}>{startRecord}–{endRecord}</option>
-                                    );
-                                })}
-                            </select>
-                            <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 4 }}>
-                                {(page - 1) * pageSize + 1}–{Math.min(page * pageSize, deptStudents.length)} of {deptStudents.length}
-                            </span>
-                        </div>
-                    );
-                })()}
-            </div>
-        );
-    };
-
     return (
         <div>
             <div className="page-header no-print">
@@ -649,93 +465,132 @@ export default function StudentDataMap() {
                     flattenFn={flattenStudent} 
                     filenamePrefix={filters.department ? `Students_${filters.department}` : 'Students_All'} 
                     groupByKey="department"
-                    onBeforePdf={() => setIsPdfMode(true)}
-                    onAfterPdf={() => setIsPdfMode(false)}
                 />
             </div>
 
+            {/* printRef — same pattern as FacultyDataMap: normal flow, pdf-hide on screen, pdf-only on print */}
             <div ref={printRef} style={{ background: '#fff' }}>
-                <PrintHeader 
-                    title="Student Data Map" 
-                    subtitle={filters.department || 'All Departments'} 
-                    count={students.length} 
-                    filters={filters} 
+                <PrintHeader
+                    title="Student Data Map"
+                    subtitle={filters.department || 'All Departments'}
+                    count={students.length}
+                    filters={filters}
                 />
-                
+
                 {loading && !(allStudents?.length) ? (
                     <SkeletonTable />
                 ) : students.length > 0 ? (
-                    <>
-                        {/* Screen cards — hidden when generating PDF */}
-                        {!isPdfMode && Object.keys(grouped).sort().map(dept => renderDeptTable(dept, grouped[dept]))}
-
-                        {/* PDF-only full print section — rendered when isPdfMode is true */}
-                        {isPdfMode && (
-                            <div>
-                                {['IT', 'CS'].map(dept => {
-                                    const deptStudents = (grouped[dept] || [])
-                                        .slice()
-                                        .sort((a, b) => (a.last_name || '').localeCompare(b.last_name || ''));
-                                    if (deptStudents.length === 0) return null;
-                                    const label = DEPT_LABELS[dept] || dept;
-                                    const PRINT_PAGE = 10;
-                                    const pageChunks = [];
-                                    for (let i = 0; i < deptStudents.length; i += PRINT_PAGE) {
-                                        pageChunks.push(deptStudents.slice(i, i + PRINT_PAGE));
-                                    }
-                                    return (
-                                        <div key={dept}>
-                                            {pageChunks.map((chunk, pageIdx) => (
-                                                <div key={pageIdx} style={{ pageBreakAfter: pageIdx < pageChunks.length - 1 ? 'always' : 'auto', marginBottom: 32 }}>
-                                                    <div style={{
-                                                        background: 'linear-gradient(135deg,#f97316,#ea580c)',
-                                                        color: '#fff', padding: '10px 16px',
-                                                        fontWeight: 800, fontSize: '1rem',
-                                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                                    }}>
-                                                        <span>{label} Department</span>
-                                                        <span style={{ fontSize: '.82rem', opacity: .85 }}>
-                                                            Page {pageIdx + 1} of {pageChunks.length} &nbsp;·&nbsp; {deptStudents.length} students total
-                                                        </span>
-                                                    </div>
-                                                    <table className="report-table" style={{ marginTop: 0 }}>
-                                                        <thead>
-                                                            <tr>
-                                                                <th>#</th>
-                                                                <th>Student ID</th>
-                                                                <th>Full Name</th>
-                                                                <th>Age</th>
-                                                                <th>Gender</th>
-                                                                <th>Section</th>
-                                                                <th>Violations</th>
-                                                                <th>Affiliations</th>
-                                                                <th>Skills</th>
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {chunk.map((stu, idx) => (
-                                                                <tr key={stu.id}>
-                                                                    <td>{pageIdx * PRINT_PAGE + idx + 1}</td>
-                                                                    <td>{stu.student_id || `STU-${stu.id}`}</td>
-                                                                    <td>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</td>
-                                                                    <td>{stu.age || '—'}</td>
-                                                                    <td>{stu.gender || '—'}</td>
-                                                                    <td>{fmtSection(stu) || '—'}</td>
-                                                                    <td>{stu.violations?.filter(v => !v.is_resolved).length || 0}</td>
-                                                                    <td>{stu.affiliations?.length || 0}</td>
-                                                                    <td>{stu.skills?.length || 0}</td>
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            ))}
+                    Object.keys(grouped).sort().map(dept => {
+                        const deptStudents = grouped[dept];
+                        const label = DEPT_LABELS[dept] || dept;
+                        const page = getDeptPage(dept);
+                        const totalPages = Math.ceil(deptStudents.length / pageSize);
+                        const paginated = deptStudents.slice((page - 1) * pageSize, page * pageSize);
+                        return (
+                            <div key={dept} className="card" style={{ marginBottom: 28 }}>
+                                {/* SCREEN VIEW */}
+                                <div className="pdf-hide">
+                                    <div className="card-header" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fff' }}>
+                                        <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
+                                            <Building size={17} strokeWidth={2} />{label}
+                                        </h2>
+                                        <span className="badge" style={{ background: 'rgba(255,255,255,.2)', color: '#fff' }}>{deptStudents.length} students</span>
+                                    </div>
+                                    <div className="card-body" style={{ padding: 0 }}>
+                                        <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+                                            <table style={{ minWidth: 700 }}>
+                                                <thead>
+                                                    <tr>
+                                                        <th>#</th><th>Student ID</th><th>Full Name</th>
+                                                        <th>Age</th><th>Gender</th><th>Section</th><th>Guardian</th>
+                                                        <th>Affiliations</th><th>Skills</th>
+                                                        <th>Violations</th><th className="no-print">Actions</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {paginated.map((stu, idx) => (
+                                                        <tr key={stu.id}>
+                                                            <td>{(page - 1) * pageSize + idx + 1}</td>
+                                                            <td><strong style={{ color: '#f97316', cursor: 'pointer', textDecoration: 'underline', textUnderlineOffset: 3 }} onClick={() => setViewing(stu)}>{stu.student_id || `STU-${stu.id}`}</strong></td>
+                                                            <td><div style={{ fontWeight: 600 }}>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</div></td>
+                                                            <td>{stu.age || '—'}</td>
+                                                            <td>{stu.gender || '—'}</td>
+                                                            <td>{stu.section ? <span style={{ fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: '#fff7ed', color: '#f97316', border: '1px solid #fed7aa', fontSize: '.78rem' }}>{fmtSection(stu)}</span> : '—'}</td>
+                                                            <td style={{ fontSize: '.75rem' }}>{stu.guardian_name || '—'}</td>
+                                                            <td style={{ minWidth: 140 }}>{stu.affiliations?.length > 0 ? stu.affiliations.map(a => <div key={a.id} style={{ fontSize: '.75rem', marginBottom: 2 }}><strong>{a.role || 'Member'}</strong> — {a.name}</div>) : '—'}</td>
+                                                            <td style={{ minWidth: 110 }}>{stu.skills?.length > 0 ? <div className="tags">{stu.skills.map(sk => <SkillTag key={sk.id} skill={sk} />)}</div> : '—'}</td>
+                                                            <td style={{ minWidth: 110 }}>{stu.violations?.length > 0 ? stu.violations.map(v => <div key={v.id} style={{ fontSize: '.75rem', marginBottom: 2 }}><Badge value={v.severity_level} /> {v.violation_type}</div>) : <span style={{ color: '#16a34a', fontSize: '.75rem' }}>No violations</span>}</td>
+                                                            <td className="no-print">
+                                                                <div style={{ display: 'flex', gap: 6 }}>
+                                                                    <button style={iconBtnStyle} onClick={() => openEdit(stu)} title="Edit Student"><Pencil size={13} /></button>
+                                                                    <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(stu.id)} title="Delete Student"><Trash2 size={13} /></button>
+                                                                </div>
+                                                            </td>
+                                                        </tr>
+                                                    ))}
+                                                </tbody>
+                                            </table>
                                         </div>
-                                    );
-                                })}
+                                    </div>
+                                    {totalPages > 1 && (() => {
+                                        const GROUP = 10;
+                                        const groupIndex = Math.floor((page - 1) / GROUP);
+                                        const groupStart = groupIndex * GROUP + 1;
+                                        const groupEnd = Math.min(groupStart + GROUP - 1, totalPages);
+                                        const pageNums = Array.from({ length: groupEnd - groupStart + 1 }, (_, i) => groupStart + i);
+                                        return (
+                                            <div className="no-print" style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, padding: '12px 0', flexWrap: 'wrap' }}>
+                                                <button onClick={() => setDeptPage(dept, groupStart - GROUP)} disabled={groupStart <= 1} style={{ ...pageBtn, opacity: groupStart <= 1 ? 0.4 : 1 }}>‹</button>
+                                                {pageNums.map(p => (
+                                                    <button key={p} onClick={() => setDeptPage(dept, p)} style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}>{p}</button>
+                                                ))}
+                                                <button onClick={() => setDeptPage(dept, groupEnd + 1)} disabled={groupEnd >= totalPages} style={{ ...pageBtn, opacity: groupEnd >= totalPages ? 0.4 : 1 }}>›</button>
+                                                <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 4 }}>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, deptStudents.length)} of {deptStudents.length}</span>
+                                            </div>
+                                        );
+                                    })()}
+                                </div>
+
+                                {/* PDF-ONLY VIEW */}
+                                <div className="pdf-only" style={{ display: 'none', padding: '20px 0' }}>
+                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1c1917', borderBottom: '2px solid #f97316', paddingBottom: '6px', marginBottom: '12px' }}>
+                                        <Building size={18} strokeWidth={2.5} style={{ verticalAlign: 'text-bottom', marginRight: '6px', color: '#f97316' }} />
+                                        {label} ({deptStudents.length} students)
+                                    </h2>
+                                    <table className="report-table">
+                                        <thead>
+                                            <tr>
+                                                <th style={{ width: '4%' }}>#</th>
+                                                <th style={{ width: '12%' }}>Student ID</th>
+                                                <th style={{ width: '22%' }}>Full Name</th>
+                                                <th style={{ width: '5%' }}>Age</th>
+                                                <th style={{ width: '8%' }}>Gender</th>
+                                                <th style={{ width: '8%' }}>Section</th>
+                                                <th style={{ width: '8%' }}>Violations</th>
+                                                <th style={{ width: '8%' }}>Affiliations</th>
+                                                <th style={{ width: '8%' }}>Skills</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {deptStudents.slice().sort((a, b) => (a.last_name || '').localeCompare(b.last_name || '')).map((stu, idx) => (
+                                                <tr key={stu.id}>
+                                                    <td>{idx + 1}</td>
+                                                    <td><strong>{stu.student_id || `STU-${stu.id}`}</strong></td>
+                                                    <td>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</td>
+                                                    <td>{stu.age || '—'}</td>
+                                                    <td>{stu.gender || '—'}</td>
+                                                    <td>{fmtSection(stu) || '—'}</td>
+                                                    <td>{stu.violations?.filter(v => !v.is_resolved).length || 0}</td>
+                                                    <td>{stu.affiliations?.length || 0}</td>
+                                                    <td>{stu.skills?.length || 0}</td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
-                        )}
-                    </>
+                        );
+                    })
                 ) : (
                     <div className="card">
                         <div className="card-body" style={{ textAlign: 'center', padding: '40px 20px' }}>
