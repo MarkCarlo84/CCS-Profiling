@@ -704,8 +704,10 @@ export function ExportButtons({ printRef, data, flattenFn, filenamePrefix = 'Exp
                                  filenamePrefix.includes('Affiliations') || 
                                  filenamePrefix.includes('Histories') || 
                                  filenamePrefix.includes('Criteria') ||
-                                 /^Report_(students|faculties)$/i.test(filenamePrefix) ||
-                                 rawData.length > 1;
+                                 filenamePrefix.includes('Global_Search') ||
+                                 filenamePrefix.startsWith('Students_') ||
+                                 filenamePrefix.startsWith('Faculty_') ||
+                                 /^Report_(students|faculties)$/i.test(filenamePrefix);
             
             // Use landscape for table reports, portrait for individual profiles
             const orientation = isTableReport ? 'landscape' : 'portrait';

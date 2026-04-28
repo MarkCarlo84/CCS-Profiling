@@ -223,7 +223,7 @@ const flattenSearchResult = (item) => ({
     'Type': item._type,
     'ID': item._id || '—',
     'Name': item._name || '—',
-    'Department': item.department || item.department?.code || '—',
+    'Department': item.department || '—',
     'Email': item.email || '—',
     'Contact': item.contact_number || '—',
     'Status / Position': item.status || item.position || '—',

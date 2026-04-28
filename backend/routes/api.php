@@ -235,6 +235,7 @@ Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin')->group(functi
     Route::delete('users/{user}',[AuthController::class, 'deleteUser']);
     // Faculty reports (read-only)
     Route::get('faculty-reports',                            [TeacherReportController::class, 'adminIndex']);
+    Route::patch('faculty-reports/{report}/confirm',         [TeacherReportController::class, 'adminConfirm']);
     // Faculty evaluation summary
     Route::get('faculty-evaluations',                        [FacultyEvaluationController::class, 'adminIndex']);
     Route::get('faculty-evaluations/summary',                [FacultyEvaluationController::class, 'adminSummary']);

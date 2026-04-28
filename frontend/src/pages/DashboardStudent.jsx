@@ -459,7 +459,7 @@ export default function DashboardStudent() {
                     {profile.affiliations?.length ? profile.affiliations.map((a, i) => (
                         <div key={a.id} style={{ padding: '8px 0', borderBottom: i < profile.affiliations.length - 1 ? '1px solid #f5f5f4' : 'none' }}>
                             <div style={{ fontWeight: 700, fontSize: 13, color: '#18120e' }}>{a.name}</div>
-                            <div style={{ fontSize: 12, color: '#78716c' }}>{a.role} · {a.type} · Joined {a.date_joined}</div>
+                            <div style={{ fontSize: 12, color: '#78716c' }}>{a.role} · {a.type} · Joined {a.date_joined ? new Date(a.date_joined).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—'}</div>
                         </div>
                     )) : <p style={{ color: '#a8a29e', fontSize: 13 }}>No affiliations recorded yet.</p>}
                 </SectionCard>

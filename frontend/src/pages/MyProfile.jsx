@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '../AuthContext';
 import api from '../api';
-import { UserCircle, Phone, Mail, MapPin, ShieldAlert, Zap, Network, Trophy, BookOpen } from 'lucide-react';
+import { UserCircle, Phone, Mail, MapPin, ShieldAlert, Zap, Network, Trophy, BookOpen, Pencil, X, Check } from 'lucide-react';
 
 const fmt = d => d ? new Date(d).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' }) : '—';
 
@@ -27,10 +27,83 @@ function Section({ label, color = '#f97316', children }) {
     );
 }
 
+function EditModal({ profile, onClose, onSave }) {
+    const [form, setForm] = useState({
+        contact_number: profile.contact_number || '',
+        email: profile.email || '',
+        address: profile.address || '',
+        guardian_name: profile.guardian_name || '',
+    });
+    const [saving, setSaving] = useState(false);
+    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        setSaving(true);
+        setError('');
+        try {
+            const res = await api.patch('/student/profile', form);
+            onSave(res.data);
+            onClose();
+        } catch (err) {
+            setError(err?.response?.data?.message || 'Failed to save changes.');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const field = (label, key, type = 'text') => (
+        <div style={{ marginBottom: 14 }}>
+            <label style={{ display: 'block', fontSize: '.78rem', fontWeight: 700, color: '#64748b', marginBottom: 5 }}>{label}</label>
+            <input
+                type={type}
+                value={form[key]}
+                onChange={e => setForm(f => ({ ...f, [key]: e.target.value }))}
+                style={{ width: '100%', padding: '9px 12px', border: '1.5px solid #e2e8f0', borderRadius: 8, fontSize: '.875rem', outline: 'none', fontFamily: 'Inter,sans-serif', boxSizing: 'border-box' }}
+                onFocus={e => e.target.style.borderColor = '#f97316'}
+                onBlur={e => e.target.style.borderColor = '#e2e8f0'}
+            />
+        </div>
+    );
+
+    return (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20 }}>
+            <div style={{ background: '#fff', borderRadius: 20, padding: '28px 32px', width: '100%', maxWidth: 440, boxShadow: '0 24px 64px rgba(0,0,0,.18)', position: 'relative' }}>
+                <button onClick={onClose} style={{ position: 'absolute', top: 16, right: 16, background: '#f5f5f4', border: 'none', borderRadius: 8, width: 32, height: 32, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                    <X size={16} color="#78716c" />
+                </button>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20 }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: '#fff7ed', border: '1px solid #fed7aa', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Pencil size={18} color="#f97316" />
+                    </div>
+                    <div>
+                        <div style={{ fontWeight: 800, fontSize: '1rem', color: '#1c1917' }}>Edit Contact Info</div>
+                        <div style={{ fontSize: '.75rem', color: '#78716c' }}>Update your personal contact details</div>
+                    </div>
+                </div>
+                <form onSubmit={handleSubmit}>
+                    {field('Email Address', 'email', 'email')}
+                    {field('Contact Number', 'contact_number')}
+                    {field('Address', 'address')}
+                    {field('Guardian Name', 'guardian_name')}
+                    {error && <p style={{ color: '#dc2626', fontSize: '.8rem', marginBottom: 12 }}>{error}</p>}
+                    <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 4 }}>
+                        <button type="button" onClick={onClose} className="btn btn-outline" disabled={saving}>Cancel</button>
+                        <button type="submit" className="btn btn-primary" disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <Check size={14} /> {saving ? 'Saving…' : 'Save Changes'}
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 export default function MyProfile() {
     const { user } = useAuth();
     const [profile, setProfile] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [editing, setEditing] = useState(false);
 
     useEffect(() => {
         api.get('/student/profile')
@@ -53,6 +126,14 @@ export default function MyProfile() {
     return (
         <div style={{ maxWidth: 760, margin: '0 auto', padding: '24px 16px' }}>
 
+            {editing && (
+                <EditModal
+                    profile={profile}
+                    onClose={() => setEditing(false)}
+                    onSave={updated => setProfile(prev => ({ ...prev, ...updated }))}
+                />
+            )}
+
             {/* Header card */}
             <div style={{ background: 'linear-gradient(135deg,#f97316,#ea580c)', borderRadius: 20, padding: '28px 28px 24px', marginBottom: 24, position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', top: -30, right: -30, width: 160, height: 160, borderRadius: '50%', background: 'rgba(255,255,255,.07)' }} />
@@ -60,7 +141,7 @@ export default function MyProfile() {
                     <div style={{ width: 72, height: 72, borderRadius: '50%', background: 'rgba(255,255,255,.25)', border: '3px solid rgba(255,255,255,.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         <span style={{ color: '#fff', fontWeight: 800, fontSize: '1.4rem' }}>{initials}</span>
                     </div>
-                    <div>
+                    <div style={{ flex: 1 }}>
                         <div style={{ fontWeight: 800, fontSize: '1.4rem', color: '#fff' }}>{fullName}</div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
                             <span style={{ fontSize: '.8rem', color: 'rgba(255,255,255,.85)', fontFamily: 'monospace', fontWeight: 600 }}>{profile.student_id}</span>
@@ -73,6 +154,12 @@ export default function MyProfile() {
                             <span style={{ fontSize: '.75rem', fontWeight: 700, padding: '2px 10px', borderRadius: 999, background: 'rgba(255,255,255,.2)', color: '#fff', textTransform: 'capitalize' }}>{profile.status === 'graduated' ? 'Alumni' : profile.status}</span>
                         </div>
                     </div>
+                    <button
+                        onClick={() => setEditing(true)}
+                        style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 16px', borderRadius: 10, background: 'rgba(255,255,255,.2)', border: '1.5px solid rgba(255,255,255,.4)', color: '#fff', fontWeight: 700, fontSize: '.8rem', cursor: 'pointer', flexShrink: 0, fontFamily: 'Inter,sans-serif' }}
+                    >
+                        <Pencil size={13} /> Edit Profile
+                    </button>
                 </div>
 
                 {/* Quick stats */}

@@ -1,12 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { getAllFacultyReports } from '../api';
-import { FileText, Search, Printer, ChevronLeft, Users, Download } from 'lucide-react';
+import { getAllFacultyReports, confirmFacultyReport } from '../api';
+import { FileText, Search, Printer, ChevronLeft, Users, CheckCircle, Clock } from 'lucide-react';
 import { ExportButtons, PrintHeader } from '../components/ExportControls';
 
 const STATUS_STYLE = {
-    draft:     { bg: '#fef9c3', color: '#854d0e' },
-    submitted: { bg: '#dcfce7', color: '#166534' },
+    submitted:  { bg: '#dcfce7', color: '#166534' },
+    confirmed:  { bg: '#dbeafe', color: '#1e40af' },
 };
 
 function PrintView({ report }) {
@@ -58,8 +58,9 @@ export default function AdminFacultyReports() {
     const [reports, setReports] = useState([]);
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
-    const [filterStatus, setFilterStatus] = useState('');
+    const [tab, setTab] = useState('submitted'); // 'submitted' | 'confirmed'
     const [viewing, setViewing] = useState(null);
+    const [confirming, setConfirming] = useState(false);
     const printRef = useRef();
 
     const handlePrint = useReactToPrint({
@@ -74,19 +75,35 @@ export default function AdminFacultyReports() {
             .finally(() => setLoading(false));
     }, []);
 
+    const handleConfirm = async () => {
+        if (!viewing) return;
+        setConfirming(true);
+        try {
+            await confirmFacultyReport(viewing.id);
+            const updated = { ...viewing, status: 'confirmed' };
+            setReports(prev => prev.map(r => r.id === viewing.id ? updated : r));
+            setViewing(updated);
+            setTab('confirmed');
+        } finally {
+            setConfirming(false);
+        }
+    };
+
     const filtered = reports.filter(r => {
+        if (r.status !== tab) return false;
         const q = search.toLowerCase();
-        const matchSearch = !q ||
+        return !q ||
             r.title?.toLowerCase().includes(q) ||
             r.faculty?.last_name?.toLowerCase().includes(q) ||
             r.faculty?.first_name?.toLowerCase().includes(q) ||
             r.subject_student?.toLowerCase().includes(q) ||
             r.report_type?.toLowerCase().includes(q);
-        const matchStatus = !filterStatus || r.status === filterStatus;
-        return matchSearch && matchStatus;
     });
 
-    // ── Print/detail view ──
+    const submittedCount = reports.filter(r => r.status === 'submitted').length;
+    const confirmedCount = reports.filter(r => r.status === 'confirmed').length;
+
+    // ── Detail view ──
     if (viewing) {
         return (
             <div>
@@ -95,9 +112,27 @@ export default function AdminFacultyReports() {
                         <button className="btn btn-outline" onClick={() => setViewing(null)}>
                             <ChevronLeft size={15} /> Back to Reports
                         </button>
-                        <button className="btn btn-primary" onClick={handlePrint}>
-                            <Printer size={14} /> Print
-                        </button>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            {viewing.status === 'submitted' && (
+                                <button
+                                    className="btn btn-primary"
+                                    style={{ background: '#2563eb', borderColor: '#2563eb', display: 'flex', alignItems: 'center', gap: 6 }}
+                                    onClick={handleConfirm}
+                                    disabled={confirming}
+                                >
+                                    <CheckCircle size={14} />
+                                    {confirming ? 'Confirming…' : 'Confirm Report'}
+                                </button>
+                            )}
+                            {viewing.status === 'confirmed' && (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.85rem', fontWeight: 700, color: '#1e40af', background: '#dbeafe', border: '1px solid #bfdbfe', borderRadius: 8, padding: '6px 14px' }}>
+                                    <CheckCircle size={14} /> Confirmed
+                                </span>
+                            )}
+                            <button className="btn btn-primary" onClick={handlePrint}>
+                                <Printer size={14} /> Print
+                            </button>
+                        </div>
                     </div>
                 </div>
                 <div className="card">
@@ -123,29 +158,56 @@ export default function AdminFacultyReports() {
                             </p>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <ExportButtons
-                            printRef={printRef}
-                            data={filtered}
-                            flattenFn={(report) => ({
-                                'Report Title': report.title,
-                                'Report Type': report.report_type || '—',
-                                'Faculty Name': report.faculty ? `${report.faculty.first_name} ${report.faculty.last_name}` : '—',
-                                'Department': report.faculty?.department || '—',
-                                'Subject/Student': report.subject_student || '—',
-                                'Status': report.status,
-                                'Report Date': report.report_date || '—',
-                                'Content': report.content,
-                                'Created': new Date(report.created_at).toLocaleDateString(),
-                            })}
-                            filenamePrefix="Faculty_Reports"
-                            groupByKey="status"
-                        />
-                    </div>
+                    <ExportButtons
+                        printRef={printRef}
+                        data={filtered}
+                        flattenFn={(report) => ({
+                            'Report Title': report.title,
+                            'Report Type': report.report_type || '—',
+                            'Faculty Name': report.faculty ? `${report.faculty.first_name} ${report.faculty.last_name}` : '—',
+                            'Department': report.faculty?.department || '—',
+                            'Subject/Student': report.subject_student || '—',
+                            'Status': report.status,
+                            'Report Date': report.report_date || '—',
+                            'Content': report.content,
+                            'Created': new Date(report.created_at).toLocaleDateString(),
+                        })}
+                        filenamePrefix="Faculty_Reports"
+                        groupByKey="status"
+                    />
                 </div>
             </div>
 
-            <div className="filter-bar">
+            {/* Tabs */}
+            <div style={{ display: 'flex', gap: 4, marginBottom: 20, borderBottom: '2px solid #f1f5f9', paddingBottom: 0 }}>
+                <button onClick={() => setTab('submitted')} style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
+                    fontWeight: 700, fontSize: '.875rem', fontFamily: 'Inter,sans-serif',
+                    color: tab === 'submitted' ? '#f97316' : '#78716c',
+                    borderBottom: tab === 'submitted' ? '2px solid #f97316' : '2px solid transparent',
+                    marginBottom: -2,
+                }}>
+                    <Clock size={15} />
+                    Submitted Reports
+                    <span style={{ background: tab === 'submitted' ? '#fff7ed' : '#f5f5f4', color: tab === 'submitted' ? '#f97316' : '#a8a29e', borderRadius: 999, padding: '1px 8px', fontSize: 11, fontWeight: 800 }}>{submittedCount}</span>
+                </button>
+                <button onClick={() => setTab('confirmed')} style={{
+                    display: 'flex', alignItems: 'center', gap: 7,
+                    padding: '10px 18px', border: 'none', background: 'none', cursor: 'pointer',
+                    fontWeight: 700, fontSize: '.875rem', fontFamily: 'Inter,sans-serif',
+                    color: tab === 'confirmed' ? '#2563eb' : '#78716c',
+                    borderBottom: tab === 'confirmed' ? '2px solid #2563eb' : '2px solid transparent',
+                    marginBottom: -2,
+                }}>
+                    <CheckCircle size={15} />
+                    Confirmed Reports
+                    <span style={{ background: tab === 'confirmed' ? '#dbeafe' : '#f5f5f4', color: tab === 'confirmed' ? '#2563eb' : '#a8a29e', borderRadius: 999, padding: '1px 8px', fontSize: 11, fontWeight: 800 }}>{confirmedCount}</span>
+                </button>
+            </div>
+
+            {/* Search */}
+            <div className="filter-bar" style={{ marginBottom: 16 }}>
                 <div style={{ position: 'relative' }}>
                     <Search size={15} color="#f97316" style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)' }} />
                     <input
@@ -155,11 +217,6 @@ export default function AdminFacultyReports() {
                         style={{ paddingLeft: 36, border: '1px solid #fde8d0', borderRadius: 8, padding: '8px 12px 8px 36px', fontSize: '.875rem', outline: 'none', fontFamily: "'Inter',sans-serif", minWidth: 280 }}
                     />
                 </div>
-                <select value={filterStatus} onChange={e => setFilterStatus(e.target.value)}>
-                    <option value="">All Status</option>
-                    <option value="draft">Draft</option>
-                    <option value="submitted">Submitted</option>
-                </select>
             </div>
 
             {loading ? (
@@ -167,19 +224,21 @@ export default function AdminFacultyReports() {
             ) : filtered.length === 0 ? (
                 <div className="empty">
                     <FileText size={40} color="#fed7aa" />
-                    <p style={{ marginTop: 10 }}>{reports.length === 0 ? 'No faculty reports yet.' : 'No reports match your search.'}</p>
+                    <p style={{ marginTop: 10 }}>
+                        {tab === 'submitted' ? 'No submitted reports yet.' : 'No confirmed reports yet.'}
+                    </p>
                 </div>
             ) : (
                 <div ref={printRef}>
-                    <PrintHeader 
+                    <PrintHeader
                         title="Faculty Reports"
-                        subtitle="Administrative View"
+                        subtitle={tab === 'submitted' ? 'Submitted Reports' : 'Confirmed Reports'}
                         count={filtered.length}
-                        filters={{ search, status: filterStatus }}
+                        filters={{ search, status: tab }}
                     />
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                         {filtered.map(r => {
-                            const st = STATUS_STYLE[r.status] ?? STATUS_STYLE.draft;
+                            const st = STATUS_STYLE[r.status] ?? STATUS_STYLE.submitted;
                             const f = r.faculty;
                             return (
                                 <div key={r.id} className="card" style={{ cursor: 'pointer' }} onClick={() => setViewing(r)}>

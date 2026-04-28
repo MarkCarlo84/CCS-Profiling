@@ -40,7 +40,7 @@ class FacultyReportsSeeder extends Seeder
                 'report_type' => 'General Report',
                 'subject_student' => 'Computer Laboratory 1',
                 'content' => 'Monthly maintenance report for Computer Laboratory 1. All 30 workstations have been inspected and tested. Issues identified: 3 computers with slow boot times requiring SSD upgrades, 2 monitors with display flickering, and 1 keyboard with non-functional keys. Network connectivity is stable with average speed of 50 Mbps. Software updates completed for all development environments including Visual Studio, Eclipse, and database management systems. Recommended budget allocation for hardware replacements: PHP 45,000.',
-                'status' => 'draft',
+                'status' => 'submitted',
             ],
             [
                 'title' => 'Research Project Progress Update',
@@ -54,7 +54,7 @@ class FacultyReportsSeeder extends Seeder
                 'report_type' => 'Academic Report',
                 'subject_student' => 'BSCS Program',
                 'content' => 'Comprehensive review of the Bachelor of Science in Computer Science curriculum based on industry feedback and student performance analysis. Key findings: need to strengthen cybersecurity courses, update programming languages to include modern frameworks, and increase hands-on project requirements. Industry partners suggest adding courses on cloud computing, DevOps, and agile methodologies. Proposed changes would better align graduates with current market demands and improve employability rates.',
-                'status' => 'draft',
+                'status' => 'submitted',
             ],
             [
                 'title' => 'Student Violation Documentation',
@@ -75,7 +75,7 @@ class FacultyReportsSeeder extends Seeder
                 'report_type' => 'Progress Report',
                 'subject_student' => 'OJT Students Batch 2026',
                 'content' => 'Evaluation report for the On-the-Job Training program for Computer Science students. 25 students were deployed to various IT companies and government agencies. Performance feedback from industry partners indicates 88% satisfaction rate with student preparedness and technical skills. Areas for improvement include communication skills and project management capabilities. Recommendations include pre-OJT seminars on professional communication and basic project management principles.',
-                'status' => 'draft',
+                'status' => 'submitted',
             ],
             [
                 'title' => 'Technology Infrastructure Assessment',
@@ -89,7 +89,7 @@ class FacultyReportsSeeder extends Seeder
                 'report_type' => 'General Report',
                 'subject_student' => 'Computer Science Society',
                 'content' => 'Activity report for the Computer Science Society for the first semester of AY 2025-2026. Successfully organized 5 major events including Programming Competition, Tech Talk Series, and Industry Night. Total participation reached 300+ students across all activities. Budget utilization: 95% of allocated funds used effectively. Challenges faced include venue scheduling conflicts and low attendance for technical workshops. Recommendations for next semester include better marketing strategies and collaboration with industry partners for more engaging content.',
-                'status' => 'draft',
+                'status' => 'submitted',
             ],
         ];
 

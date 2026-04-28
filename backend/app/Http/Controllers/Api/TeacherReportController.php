@@ -92,8 +92,16 @@ class TeacherReportController extends Controller
     public function adminIndex(): JsonResponse
     {
         $reports = Report::with('faculty:id,first_name,last_name,department,position')
+            ->whereIn('status', ['submitted', 'confirmed'])
             ->orderBy('created_at', 'desc')
             ->get();
         return response()->json($reports);
+    }
+
+    /** PATCH /api/admin/faculty-reports/{report}/confirm */
+    public function adminConfirm(Report $report): JsonResponse
+    {
+        $report->update(['status' => 'confirmed']);
+        return response()->json($report);
     }
 }

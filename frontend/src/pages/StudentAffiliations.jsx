@@ -133,7 +133,7 @@ export default function StudentAffiliations() {
                                 </div>
                                 <div style={{ marginTop: 12, display: 'flex', flexDirection: 'column', gap: 4 }}>
                                     {a.role && <div style={{ fontSize: '.82rem', color: '#44403c' }}><span style={{ color: '#78716c' }}>Role: </span>{a.role}</div>}
-                                    {a.date_joined && <div style={{ fontSize: '.82rem', color: '#44403c' }}><span style={{ color: '#78716c' }}>Joined: </span>{a.date_joined}</div>}
+                                    {a.date_joined && <div style={{ fontSize: '.82rem', color: '#44403c' }}><span style={{ color: '#78716c' }}>Joined: </span>{new Date(a.date_joined).toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</div>}
                                 </div>
                             </div>
                         </div>
