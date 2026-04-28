@@ -37,6 +37,15 @@ use Illuminate\Support\Facades\Route;
 // Health check endpoint
 Route::get('health', [HealthController::class, 'check']);
 
+// CORS test endpoint
+Route::get('cors-test', function () {
+    return response()->json([
+        'message' => 'CORS test successful',
+        'timestamp' => now()->toISOString(),
+        'headers_should_include_cors' => true,
+    ]);
+});
+
 // Handle OPTIONS preflight for all routes
 Route::options('{any}', function () {
     return response()->json([], 200);

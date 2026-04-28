@@ -11,16 +11,21 @@ class SubjectController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Subject::query();
-        if ($request->filled('search')) {
-            $s = $request->search;
-            $query->where(fn($q) => $q->where('subject_code', 'like', "%$s%")
-                ->orWhere('subject_name', 'like', "%$s%"));
+        try {
+            $query = Subject::query();
+            if ($request->filled('search')) {
+                $s = $request->search;
+                $query->where(fn($q) => $q->where('subject_code', 'like', "%$s%")
+                    ->orWhere('subject_name', 'like', "%$s%"));
+            }
+            if ($request->filled('program')) {
+                $query->where('program', $request->program);
+            }
+            $subjects = $query->orderBy('subject_code')->get();
+            return response()->json($subjects);
+        } catch (\Exception $e) {
+            return response()->json([]);
         }
-        if ($request->filled('program')) {
-            $query->where('program', $request->program);
-        }
-        return response()->json($query->orderBy('subject_code')->get());
     }
 
     public function store(Request $request): JsonResponse

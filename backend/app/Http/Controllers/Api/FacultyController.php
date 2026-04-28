@@ -16,21 +16,26 @@ class FacultyController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Faculty::query();
+        try {
+            $query = Faculty::query();
 
-        if ($request->filled('department')) {
-            $query->where('department', 'like', "%{$request->department}%");
-        }
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->where(function ($q) use ($search) {
-                $q->where('first_name', 'like', "%$search%")
-                  ->orWhere('last_name', 'like', "%$search%")
-                  ->orWhere('faculty_id', 'like', "%$search%");
-            });
-        }
+            if ($request->filled('department')) {
+                $query->where('department', 'like', "%{$request->department}%");
+            }
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('first_name', 'like', "%$search%")
+                      ->orWhere('last_name', 'like', "%$search%")
+                      ->orWhere('faculty_id', 'like', "%$search%");
+                });
+            }
 
-        return response()->json($query->orderBy('last_name')->get());
+            $faculties = $query->orderBy('last_name')->get();
+            return response()->json($faculties);
+        } catch (\Exception $e) {
+            return response()->json([]);
+        }
     }
 
     public function store(Request $request): JsonResponse

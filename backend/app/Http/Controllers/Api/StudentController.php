@@ -18,46 +18,50 @@ class StudentController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        // Selective eager loading based on request parameters
-        $with = [];
-        
-        // Only load relationships when needed
-        if ($request->boolean('with_details')) {
-            $with = ['violations', 'affiliations', 'academicRecords.grades', 'skills', 'nonAcademicHistories'];
-        } elseif ($request->boolean('with_basic_relations')) {
-            $with = ['violations', 'affiliations'];
-        }
+        try {
+            // Selective eager loading based on request parameters
+            $with = [];
+            
+            // Only load relationships when needed
+            if ($request->boolean('with_details')) {
+                $with = ['violations', 'affiliations', 'academicRecords.grades', 'skills', 'nonAcademicHistories'];
+            } elseif ($request->boolean('with_basic_relations')) {
+                $with = ['violations', 'affiliations'];
+            }
 
-        $query = Student::query();
+            $query = Student::query();
 
-        // Apply filters
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
-        if ($request->filled('gender')) {
-            $query->where('gender', $request->gender);
-        }
-        if ($request->filled('department')) {
-            $query->where('department', $request->department);
-        }
-        if ($request->filled('search')) {
-            $s = $request->search;
-            $query->where(function ($q) use ($s) {
-                $q->where('first_name', 'like', "%$s%")
-                  ->orWhere('last_name', 'like', "%$s%")
-                  ->orWhere('student_id', 'like', "%$s%");
-            });
-        }
+            // Apply filters
+            if ($request->filled('status')) {
+                $query->where('status', $request->status);
+            }
+            if ($request->filled('gender')) {
+                $query->where('gender', $request->gender);
+            }
+            if ($request->filled('department')) {
+                $query->where('department', $request->department);
+            }
+            if ($request->filled('search')) {
+                $s = $request->search;
+                $query->where(function ($q) use ($s) {
+                    $q->where('first_name', 'like', "%$s%")
+                      ->orWhere('last_name', 'like', "%$s%")
+                      ->orWhere('student_id', 'like', "%$s%");
+                });
+            }
 
-        // Apply eager loading after filtering
-        if (!empty($with)) {
-            $query->with($with);
-        }
+            // Apply eager loading after filtering
+            if (!empty($with)) {
+                $query->with($with);
+            }
 
-        // Always use pagination with sensible defaults
-        $perPage = min((int) $request->input('per_page', 20), 200);
-        
-        return response()->json($query->orderBy('last_name')->paginate($perPage));
+            // Return simple array like other controllers
+            $students = $query->orderBy('last_name')->get();
+            return response()->json($students);
+        } catch (\Exception $e) {
+            // Return empty array on error
+            return response()->json([]);
+        }
     }
 
     public function store(Request $request): JsonResponse

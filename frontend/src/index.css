@@ -47,30 +47,37 @@ h3 {
   margin-top: 10px;
   background-color: #ffffff;
   color: #334155;
+  border: 1px solid #d1d5db;
 }
 
 .report-table th,
 .report-table td {
-  border: 1px solid #e2e8f0;
-  padding: 10px 14px;
+  border: 1px solid #d1d5db;
+  padding: 8px 12px;
   text-align: left;
+  vertical-align: middle;
 }
 
 .report-table th {
-  background-color: #f8fafc;
-  font-weight: 700;
-  color: #0f172a;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  letter-spacing: 0.05em;
+  background: linear-gradient(135deg, #f97316, #fb923c);
+  font-weight: 600;
+  color: #ffffff;
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  border-color: #ea580c;
 }
 
 .report-table tbody tr:nth-child(even) {
-  background-color: #f8fafc;
+  background-color: #ffffff;
+}
+
+.report-table tbody tr:nth-child(odd) {
+  background-color: #fefefe;
 }
 
 .report-table tbody tr:hover {
-  background-color: #f1f5f9;
+  background-color: #fff7ed;
 }
 
 /* ===================== PDF EXPORT STYLES ===================== */
@@ -99,16 +106,33 @@ h3 {
     font-size: 10pt;
     width: 100%;
     page-break-inside: auto;
+    border: 1px solid #d1d5db;
   }
   
   .report-table th,
   .report-table td {
-    padding: 8px 12px;
+    padding: 6px 10px;
+    border: 1px solid #d1d5db;
+  }
+  
+  .report-table th {
+    background: linear-gradient(135deg, #f97316, #fb923c) !important;
+    color: #ffffff !important;
+    font-weight: 600 !important;
+    border-color: #ea580c !important;
   }
   
   .report-table tbody tr {
     page-break-inside: avoid;
     page-break-after: auto;
+  }
+
+  .report-table tbody tr:nth-child(even) {
+    background-color: #ffffff !important;
+  }
+
+  .report-table tbody tr:nth-child(odd) {
+    background-color: #fefefe !important;
   }
 
   /* Hide elements that shouldn't appear in print */

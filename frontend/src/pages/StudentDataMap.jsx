@@ -288,7 +288,7 @@ export default function StudentDataMap() {
 
     const printRef = useRef(null);
 
-    const { data: allStudents = [], loading, refetch } = useQuery('students', getStudents);
+    const { data: allStudents = [], loading, error, refetch } = useQuery('students', getStudents);
 
     const loadData = () => {
         clearCache('students');
@@ -298,17 +298,22 @@ export default function StudentDataMap() {
     useEffect(() => setDeptPages({}), [filters]);
 
     // Client-side filtering with debounced search
-    const students = useMemo(() => (allStudents ?? []).filter(s => {
-        const matchStatus = !filters.status || s.status === filters.status;
-        const matchGender = !filters.gender || s.gender === filters.gender;
-        const matchDept = !filters.department || s.department === filters.department;
-        const q = debouncedSearch.toLowerCase();
-        const matchSearch = !q ||
-            (s.first_name || '').toLowerCase().includes(q) ||
-            (s.last_name || '').toLowerCase().includes(q) ||
-            (s.student_id || '').toLowerCase().includes(q);
-        return matchStatus && matchGender && matchDept && matchSearch;
-    }), [allStudents, filters.status, filters.gender, filters.department, debouncedSearch]);
+    const students = useMemo(() => {
+        // Ensure allStudents is an array before filtering
+        const studentsArray = Array.isArray(allStudents) ? allStudents : [];
+        
+        return studentsArray.filter(s => {
+            const matchStatus = !filters.status || s.status === filters.status;
+            const matchGender = !filters.gender || s.gender === filters.gender;
+            const matchDept = !filters.department || s.department === filters.department;
+            const q = debouncedSearch.toLowerCase();
+            const matchSearch = !q ||
+                (s.first_name || '').toLowerCase().includes(q) ||
+                (s.last_name || '').toLowerCase().includes(q) ||
+                (s.student_id || '').toLowerCase().includes(q);
+            return matchStatus && matchGender && matchDept && matchSearch;
+        });
+    }, [allStudents, filters.status, filters.gender, filters.department, debouncedSearch]);
 
     const openAdd = () => { setForm(emptyStudent); setModal('add'); setSectionCapacity(null); };
 
@@ -395,6 +400,27 @@ export default function StudentDataMap() {
 
     return (
         <div>
+            {/* Error Display */}
+            {error && (
+                <div style={{
+                    background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 12,
+                    padding: '12px 16px', margin: '16px', color: '#dc2626',
+                    display: 'flex', alignItems: 'center', gap: 8
+                }}>
+                    <span>⚠️</span>
+                    <div>
+                        <strong>Error loading students:</strong> {error.message || String(error)}
+                        <button 
+                            onClick={() => refetch(true)} 
+                            style={{ marginLeft: 12, padding: '4px 8px', fontSize: '0.8rem' }}
+                            className="btn btn-outline"
+                        >
+                            Retry
+                        </button>
+                    </div>
+                </div>
+            )}
+            
             <div className="page-header no-print">
                 <div className="table-page-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
                     <div>
@@ -479,6 +505,14 @@ export default function StudentDataMap() {
 
                 {loading && !(allStudents?.length) ? (
                     <SkeletonTable />
+                ) : error ? (
+                    <div className="empty">
+                        <span style={{ fontSize: '2rem', marginBottom: 8 }}>⚠️</span>
+                        <p>Unable to load student data</p>
+                        <button onClick={() => refetch(true)} className="btn btn-outline">
+                            Try Again
+                        </button>
+                    </div>
                 ) : students.length > 0 ? (
                     Object.keys(grouped).sort().map(dept => {
                         const deptStudents = grouped[dept];

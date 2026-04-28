@@ -25,9 +25,13 @@ class CacheService
     public static function getFacultyList(): \Illuminate\Support\Collection
     {
         return Cache::remember('faculty_list', self::CACHE_DURATION['medium'], function () {
-            return Faculty::select('id', 'faculty_id', 'first_name', 'last_name', 'department', 'position')
-                ->orderBy('last_name')
-                ->get();
+            try {
+                return Faculty::select('id', 'faculty_id', 'first_name', 'last_name', 'department', 'position')
+                    ->orderBy('last_name')
+                    ->get();
+            } catch (\Exception $e) {
+                return collect([]);
+            }
         });
     }
 
@@ -49,7 +53,11 @@ class CacheService
     public static function getDepartments(): \Illuminate\Support\Collection
     {
         return Cache::remember('departments_list', self::CACHE_DURATION['daily'], function () {
-            return Department::select('id', 'name', 'code')->get();
+            try {
+                return Department::select('id', 'name', 'code')->get();
+            } catch (\Exception $e) {
+                return collect([]);
+            }
         });
     }
 
@@ -59,16 +67,29 @@ class CacheService
     public static function getDashboardSummary(): array
     {
         return Cache::remember('dashboard_summary', self::CACHE_DURATION['short'], function () {
-            return [
-                'total_faculty' => Faculty::count(),
-                'total_students' => \App\Models\Student::count(),
-                'active_students' => \App\Models\Student::where('status', 'active')->count(),
-                'total_subjects' => Subject::count(),
-                'total_violations' => \App\Models\Violation::count(),
-                'by_gender' => \App\Models\Student::selectRaw('gender, count(*) as count')
-                    ->groupBy('gender')
-                    ->pluck('count', 'gender'),
-            ];
+            try {
+                return [
+                    'total_faculty' => Faculty::count() ?? 0,
+                    'total_students' => \App\Models\Student::count() ?? 0,
+                    'active_students' => \App\Models\Student::where('status', 'active')->count() ?? 0,
+                    'total_subjects' => Subject::count() ?? 0,
+                    'total_violations' => \App\Models\Violation::count() ?? 0,
+                    'by_gender' => \App\Models\Student::selectRaw('gender, count(*) as count')
+                        ->groupBy('gender')
+                        ->pluck('count', 'gender')
+                        ->toArray() ?: [],
+                ];
+            } catch (\Exception $e) {
+                // Return safe defaults if database queries fail
+                return [
+                    'total_faculty' => 0,
+                    'total_students' => 0,
+                    'active_students' => 0,
+                    'total_subjects' => 0,
+                    'total_violations' => 0,
+                    'by_gender' => [],
+                ];
+            }
         });
     }
 
@@ -78,17 +99,26 @@ class CacheService
     public static function getReportPresets(): array
     {
         return Cache::remember('report_presets', self::CACHE_DURATION['medium'], function () {
-            return [
-                'skills' => \App\Models\Skill::select('skill_name')
-                    ->distinct()
-                    ->orderBy('skill_name')
-                    ->pluck('skill_name'),
-                'affiliations' => \App\Models\Affiliation::select('name')
-                    ->whereNotNull('name')
-                    ->distinct()
-                    ->orderBy('name')
-                    ->pluck('name'),
-            ];
+            try {
+                return [
+                    'skills' => \App\Models\Skill::select('skill_name')
+                        ->distinct()
+                        ->orderBy('skill_name')
+                        ->pluck('skill_name')
+                        ->toArray() ?: [],
+                    'affiliations' => \App\Models\Affiliation::select('name')
+                        ->whereNotNull('name')
+                        ->distinct()
+                        ->orderBy('name')
+                        ->pluck('name')
+                        ->toArray() ?: [],
+                ];
+            } catch (\Exception $e) {
+                return [
+                    'skills' => [],
+                    'affiliations' => [],
+                ];
+            }
         });
     }
 

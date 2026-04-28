@@ -355,7 +355,7 @@ export default function Reports() {
                         <div className="card-body" style={{ padding: 0 }}>
                             <div className="table-wrap">
                                 {resultType === 'students' ? (
-                                    <table>
+                                    <table className="report-table">
                                         <thead>
                                             <tr>
                                                 <th>#</th><th>Student ID</th><th>Name</th><th>Gender</th>
@@ -383,7 +383,7 @@ export default function Reports() {
                                         </tbody>
                                     </table>
                                 ) : (
-                                    <table>
+                                    <table className="report-table">
                                         <thead>
                                             <tr><th>#</th><th>Faculty ID</th><th>Name</th><th>Department</th><th>Position</th><th>Contact</th></tr>
                                         </thead>

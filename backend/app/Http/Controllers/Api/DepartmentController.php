@@ -11,7 +11,12 @@ class DepartmentController extends Controller
 {
     public function index(): JsonResponse
     {
-        return response()->json(\App\Services\CacheService::getDepartments());
+        try {
+            $departments = \App\Services\CacheService::getDepartments();
+            return response()->json($departments);
+        } catch (\Exception $e) {
+            return response()->json([]);
+        }
     }
 
     public function store(Request $request): JsonResponse

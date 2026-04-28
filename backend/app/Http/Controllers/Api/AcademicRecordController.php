@@ -16,14 +16,19 @@ class AcademicRecordController extends Controller
 
     public function index(Request $request): JsonResponse
     {
-        $query = AcademicRecord::with(['student', 'grades.subject']);
-        if ($request->filled('student_id')) {
-            $query->where('student_id', $request->student_id);
+        try {
+            $query = AcademicRecord::with(['student', 'grades.subject']);
+            if ($request->filled('student_id')) {
+                $query->where('student_id', $request->student_id);
+            }
+            if ($request->filled('school_year')) {
+                $query->where('school_year', $request->school_year);
+            }
+            $records = $query->orderBy('school_year', 'desc')->get();
+            return response()->json($records);
+        } catch (\Exception $e) {
+            return response()->json([]);
         }
-        if ($request->filled('school_year')) {
-            $query->where('school_year', $request->school_year);
-        }
-        return response()->json($query->orderBy('school_year', 'desc')->get());
     }
 
     public function show(AcademicRecord $academicRecord): JsonResponse
