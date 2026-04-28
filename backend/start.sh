@@ -34,9 +34,6 @@ EOF
 echo "==> Starting php-fpm..."
 php-fpm -D
 
-echo "==> Starting nginx on port $APP_PORT (background)..."
-nginx -g "daemon off;" &
-
 echo "==> Running migrations..."
 php artisan migrate --force
 
@@ -62,6 +59,9 @@ if php artisan cache:warmup; then
 else
     echo "==> Cache warmup failed, continuing without cache warmup..."
 fi
+
+echo "==> Starting nginx on port $APP_PORT..."
+nginx -g "daemon off;" &
 
 echo "==> App ready. Keeping nginx in foreground..."
 wait
