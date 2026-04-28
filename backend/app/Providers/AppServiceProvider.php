@@ -34,23 +34,43 @@ class AppServiceProvider extends ServiceProvider
      */
     private function setupQueryCaching(): void
     {
-        // Cache department list (rarely changes)
-        Cache::remember('departments_list', 3600, function () {
-            return \App\Models\Department::select('id', 'name', 'code')->get();
-        });
+        // Skip caching during migrations or if tables don't exist yet
+        if (app()->runningInConsole() && (app()->runningUnitTests() || $this->isMigrating())) {
+            return;
+        }
 
-        // Cache subject curriculum (changes per semester)
-        Cache::remember('subjects_by_program', 1800, function () {
-            return \App\Models\Subject::select('id', 'subject_name', 'year_level', 'semester', 'program', 'units')
-                ->get()
-                ->groupBy(['program', 'year_level', 'semester']);
-        });
+        try {
+            // Cache department list (rarely changes)
+            Cache::remember('departments_list', 3600, function () {
+                return \App\Models\Department::select('id', 'name', 'code')->get();
+            });
 
-        // Cache faculty list for dropdowns
-        Cache::remember('faculty_list', 1800, function () {
-            return \App\Models\Faculty::select('id', 'faculty_id', 'first_name', 'last_name', 'department')
-                ->orderBy('last_name')
-                ->get();
-        });
+            // Cache subject curriculum (changes per semester)
+            Cache::remember('subjects_by_program', 1800, function () {
+                return \App\Models\Subject::select('id', 'subject_name', 'year_level', 'semester', 'program', 'units')
+                    ->get()
+                    ->groupBy(['program', 'year_level', 'semester']);
+            });
+
+            // Cache faculty list for dropdowns
+            Cache::remember('faculty_list', 1800, function () {
+                return \App\Models\Faculty::select('id', 'faculty_id', 'first_name', 'last_name', 'department')
+                    ->orderBy('last_name')
+                    ->get();
+            });
+        } catch (\Exception $e) {
+            // Silently fail during migrations or when tables don't exist
+            // This prevents deployment failures when database isn't ready
+        }
+    }
+
+    /**
+     * Check if we're currently running migrations
+     */
+    private function isMigrating(): bool
+    {
+        return in_array('migrate', $_SERVER['argv'] ?? []) || 
+               in_array('migrate:fresh', $_SERVER['argv'] ?? []) ||
+               in_array('migrate:refresh', $_SERVER['argv'] ?? []);
     }
 }
