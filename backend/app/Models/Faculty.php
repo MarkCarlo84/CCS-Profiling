@@ -9,7 +9,7 @@ use App\Models\Subject;
 class Faculty extends Model
 {
     protected $fillable = [
-        'faculty_id', 'first_name', 'last_name', 'department',
+        'faculty_id', 'first_name', 'middle_name', 'last_name', 'department',
         'position', 'email', 'contact_number',
     ];
 

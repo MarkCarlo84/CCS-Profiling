@@ -1,10 +1,10 @@
 import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useReactToPrint } from 'react-to-print';
-import { getFaculties, createFaculty, updateFaculty, deleteFaculty, getEligibilityCriteria, facultyCreateReport } from '../api';
+import { getFaculties, createFaculty, updateFaculty, deleteFaculty } from '../api';
 import { useQuery, clearCache } from '../hooks/useQuery';
 import { useDebounce } from '../hooks/useDebounce';
 import { SkeletonTable } from '../components/SkeletonLoader';
-import { Users, Search, Building, Plus, Pencil, Trash2, X, Check, FileText, GraduationCap, AlertCircle, BookOpen } from 'lucide-react';
+import { Users, Search, Building, Plus, Pencil, Trash2, X, Check, AlertCircle, BookOpen } from 'lucide-react';
 import { ExportButtons, PrintHeader } from '../components/ExportControls';
 
 function flattenFaculty(f, i) {
@@ -30,185 +30,6 @@ function Modal({ title, onClose, children }) {
                     <button onClick={onClose} style={iconBtnStyle}><X size={16} /></button>
                 </div>
                 {children}
-            </div>
-        </div>
-    );
-}
-
-function ReportModal({ faculty, onClose }) {
-    const [criteria, setCriteria] = useState([]);
-    const [selectedCriteria, setSelectedCriteria] = useState('');
-    const [report, setReport] = useState(null);
-    const [loading, setLoading] = useState(false);
-    const [fetching, setFetching] = useState(true);
-    const [error, setError] = useState('');
-    const reportRef = useRef();
-
-    const handlePrint = useReactToPrint({
-        contentRef: reportRef,
-        documentTitle: `Eligibility Report - ${faculty.first_name} ${faculty.last_name}`,
-        pageStyle: `@page { size: A4; margin: 15mm 12mm; } body { font-family: Arial, sans-serif; }`,
-    });
-
-    useEffect(() => {
-        getEligibilityCriteria()
-            .then(r => setCriteria(r.data))
-            .finally(() => setFetching(false));
-    }, []);
-
-    const handleGenerate = async () => {
-        if (!selectedCriteria) return;
-        setLoading(true);
-        setError('');
-        setReport(null);
-        try {
-            const res = await facultyCreateReport(faculty.id, selectedCriteria);
-            setReport(res.data);
-        } catch (err) {
-            setError(err.response?.data?.message || 'Failed to generate report.');
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const crit = criteria.find(c => c.id === parseInt(selectedCriteria));
-
-    return (
-        <div style={overlay}>
-            <div style={{ ...modalCard, maxWidth: 680, maxHeight: '90vh', overflowY: 'auto' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-                    <div>
-                        <h2 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 800, color: '#1c1917' }}>Create Eligibility Report</h2>
-                        <p style={{ margin: '2px 0 0', fontSize: '.8rem', color: '#78716c' }}>
-                            Faculty: {faculty.first_name} {faculty.last_name}
-                        </p>
-                    </div>
-                    <button onClick={onClose} style={iconBtnStyle}><X size={16} /></button>
-                </div>
-
-                {/* Criteria selector */}
-                <div style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
-                    <select
-                        value={selectedCriteria}
-                        onChange={e => { setSelectedCriteria(e.target.value); setReport(null); }}
-                        style={{ ...iStyle, flex: 1 }}
-                        disabled={fetching}
-                    >
-                        <option value="">{fetching ? 'Loading criteria…' : '— Select Eligibility Criteria —'}</option>
-                        {criteria.map(c => (
-                            <option key={c.id} value={c.id}>
-                                {c.criteria_id || `Criteria #${c.id}`} — GPA ≤ {c.minimum_gpa}
-                                {c.required_skill ? `, Skill: ${c.required_skill}` : ''}
-                                {c.max_allowed_violations !== undefined ? `, Max Violations: ${c.max_allowed_violations}` : ''}
-                            </option>
-                        ))}
-                    </select>
-                    <button
-                        className="btn btn-primary"
-                        onClick={handleGenerate}
-                        disabled={!selectedCriteria || loading}
-                        style={{ whiteSpace: 'nowrap' }}
-                    >
-                        <FileText size={14} /> {loading ? 'Generating…' : 'Generate'}
-                    </button>
-                </div>
-
-                {error && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: '#fef2f2', border: '1px solid #fecaca', borderRadius: 10, padding: '8px 12px', color: '#dc2626', fontSize: '.82rem', marginBottom: 14 }}>
-                        <AlertCircle size={14} />{error}
-                    </div>
-                )}
-
-                {/* Report output */}
-                {report && (
-                    <>
-                        <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
-                            <button className="btn btn-outline" onClick={handlePrint}>
-                                <Printer size={14} /> Print Report
-                            </button>
-                        </div>
-                        <div ref={reportRef}>
-                            {/* Print header */}
-                            <div className="print-header">
-                                <h1>CCS COMPREHENSIVE PROFILING SYSTEM</h1>
-                                <p>Eligibility Report — Generated {new Date().toLocaleDateString('en-PH', { year: 'numeric', month: 'long', day: 'numeric' })}</p>
-                                <hr style={{ margin: '6px 0' }} />
-                            </div>
-
-                            {/* Summary card */}
-                            <div style={{ background: '#fff7ed', border: '1px solid #fed7aa', borderRadius: 12, padding: '14px 18px', marginBottom: 16 }}>
-                                <div style={{ fontWeight: 800, fontSize: '.95rem', color: '#ea580c', marginBottom: 8 }}>Report Summary</div>
-                                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 8, fontSize: '.82rem', color: '#44403c' }}>
-                                    <div><span style={{ color: '#78716c' }}>Faculty: </span><strong>{report.faculty}</strong></div>
-                                    <div><span style={{ color: '#78716c' }}>Criteria: </span><strong>{report.criteria?.criteria_id || `#${report.criteria?.id}`}</strong></div>
-                                    <div><span style={{ color: '#78716c' }}>Min GPA: </span><strong>{report.criteria?.minimum_gpa}</strong></div>
-                                    {report.criteria?.required_skill && <div><span style={{ color: '#78716c' }}>Required Skill: </span><strong>{report.criteria.required_skill}</strong></div>}
-                                    {report.criteria?.required_affiliation_type && <div><span style={{ color: '#78716c' }}>Affiliation: </span><strong>{report.criteria.required_affiliation_type}</strong></div>}
-                                    <div><span style={{ color: '#78716c' }}>Max Violations: </span><strong>{report.criteria?.max_allowed_violations}</strong></div>
-                                    <div><span style={{ color: '#78716c' }}>Eligible Students: </span><strong style={{ color: '#16a34a' }}>{report.eligible_students?.length ?? 0}</strong></div>
-                                </div>
-                            </div>
-
-                            {/* Students table */}
-                            {report.eligible_students?.length === 0 ? (
-                                <div className="empty" style={{ padding: '30px 0' }}>
-                                    <GraduationCap size={36} color="#fed7aa" />
-                                    <p style={{ marginTop: 8, color: '#78716c' }}>No students meet this criteria.</p>
-                                </div>
-                            ) : (
-                                <div className="card" style={{ pageBreakInside: 'avoid' }}>
-                                    <div className="card-header pdf-hide" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
-                                        <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
-                                            <GraduationCap size={16} /> Eligible Students ({report.eligible_students?.length})
-                                        </h2>
-                                    </div>
-                                    <div className="pdf-only" style={{ display: 'none', padding: '10px 0' }}>
-                                        <h2 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#1c1917', borderBottom: '2px solid #ea580c', paddingBottom: '4px', marginBottom: '8px' }}>
-                                            Eligible Students ({report.eligible_students?.length})
-                                        </h2>
-                                    </div>
-                                    <div className="card-body" style={{ padding: 0 }}>
-                                        <div className="table-wrap">
-                                            <table className="report-table">
-                                                <thead>
-                                                    <tr>
-                                                        <th>#</th>
-                                                        <th>Student ID</th>
-                                                        <th>Full Name</th>
-                                                        <th>Status</th>
-                                                        <th>Email</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody>
-                                                    {report.eligible_students.map((s, i) => (
-                                                        <tr key={s.id}>
-                                                            <td>{i + 1}</td>
-                                                            <td><strong>{s.student_id || `STU-${s.id}`}</strong></td>
-                                                            <td>{s.last_name}, {s.first_name}{s.middle_name ? ` ${s.middle_name[0]}.` : ''}</td>
-                                                            <td>
-                                                                <span className="pdf-hide" style={{
-                                                                    fontSize: '.72rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999,
-                                                                    background: s.status === 'active' ? '#dcfce7' : '#f1f5f9',
-                                                                    color: s.status === 'active' ? '#16a34a' : '#64748b',
-                                                                }}>
-                                                                    {s.status || 'active'}
-                                                                </span>
-                                                                <span className="pdf-only" style={{ display: 'none' }}>
-                                                                    {s.status || 'active'}
-                                                                </span>
-                                                            </td>
-                                                            <td>{s.email || '—'}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    </>
-                )}
             </div>
         </div>
     );
@@ -275,7 +96,6 @@ export default function FacultyDataMap() {
     const [form, setForm] = useState(emptyFaculty);
     const [saving, setSaving] = useState(false);
     const [saveError, setSaveError] = useState('');
-    const [reportFaculty, setReportFaculty] = useState(null);
     const [viewingFaculty, setViewingFaculty] = useState(null);
     const [deptPages, setDeptPages] = useState({});
     const PAGE_SIZE = 5;
@@ -478,7 +298,6 @@ export default function FacultyDataMap() {
                                                         <td>{fac.contact_number || '—'}</td>
                                                         <td className="no-print">
                                                             <div style={{ display: 'flex', gap: 6 }}>
-                                                                <button style={{ ...iconBtnStyle, color: '#2563eb' }} onClick={() => setReportFaculty(fac)} title="Create Report"><FileText size={13} /></button>
                                                                 <button style={iconBtnStyle} onClick={() => openEdit(fac)} title="Edit"><Pencil size={13} /></button>
                                                                 <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(fac.id)} title="Delete"><Trash2 size={13} /></button>
                                                             </div>
@@ -514,7 +333,6 @@ export default function FacultyDataMap() {
                                                         {fac.contact_number && <div style={{ fontSize: '.75rem', color: '#a8a29e' }}>{fac.contact_number}</div>}
                                                     </div>
                                                     <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
-                                                        <button style={{ ...iconBtnStyle, color: '#2563eb' }} onClick={() => setReportFaculty(fac)} title="Create Report"><FileText size={13} /></button>
                                                         <button style={iconBtnStyle} onClick={() => openEdit(fac)} title="Edit"><Pencil size={13} /></button>
                                                         <button style={{ ...iconBtnStyle, color: '#dc2626' }} onClick={() => handleDelete(fac.id)} title="Delete"><Trash2 size={13} /></button>
                                                     </div>
@@ -634,10 +452,6 @@ export default function FacultyDataMap() {
                 </Modal>
             )}
 
-            {/* Create Report Modal */}
-            {reportFaculty && (
-                <ReportModal faculty={reportFaculty} onClose={() => setReportFaculty(null)} />
-            )}
             {viewingFaculty && (
                 <FacultyDetailModal faculty={viewingFaculty} onClose={() => setViewingFaculty(null)} />
             )}

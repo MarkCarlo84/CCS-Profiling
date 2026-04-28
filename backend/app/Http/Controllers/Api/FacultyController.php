@@ -43,6 +43,7 @@ class FacultyController extends Controller
         $data = $request->validate([
             'faculty_id'     => 'nullable|string|max:50',
             'first_name'     => 'required|string|max:100',
+            'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'required|string|max:100',
             'department'     => 'nullable|string|max:100',
             'position'       => 'required|string|max:100',
@@ -97,6 +98,7 @@ class FacultyController extends Controller
         $data = $request->validate([
             'faculty_id'     => 'nullable|string|max:50',
             'first_name'     => 'sometimes|string|max:100',
+            'middle_name'    => 'nullable|string|max:100',
             'last_name'      => 'sometimes|string|max:100',
             'department'     => 'nullable|string|max:100',
             'position'       => 'sometimes|string|max:100',
