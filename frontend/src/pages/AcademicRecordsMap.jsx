@@ -77,11 +77,14 @@ export default function AcademicRecordsMap() {
 
     const load = () => {
         setLoading(true);
-        Promise.all([getAcademicRecords(), getSubjects()])
+        Promise.all([
+            getAcademicRecords({ department: activeProgram }),
+            getSubjects(),
+        ])
             .then(([r, s]) => { setRecords(r.data); setSubjects(s.data); })
             .finally(() => setLoading(false));
     };
-    useEffect(() => { load(); }, []);
+    useEffect(() => { load(); }, [activeProgram]);
 
     // ── Derived data ──────────────────────────────────────────────────────────
     const programRecords = records.filter(r => r.student?.department === activeProgram);

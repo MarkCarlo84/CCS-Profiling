@@ -18,12 +18,22 @@ class AcademicRecordController extends Controller
     {
         try {
             $query = AcademicRecord::with(['student', 'grades.subject']);
+
             if ($request->filled('student_id')) {
                 $query->where('student_id', $request->student_id);
             }
             if ($request->filled('school_year')) {
                 $query->where('school_year', $request->school_year);
             }
+            if ($request->filled('department')) {
+                $query->whereHas('student', fn($q) => $q->where('department', $request->department));
+            }
+
+            // Hard limit when no specific filter to prevent memory exhaustion
+            if (!$request->filled('student_id') && !$request->filled('school_year') && !$request->filled('department')) {
+                $query->limit(200);
+            }
+
             $records = $query->orderBy('school_year', 'desc')->get();
             return response()->json($records);
         } catch (\Exception $e) {
