@@ -121,31 +121,45 @@ class AuthController extends Controller
      */
     public function staffLogin(Request $request): JsonResponse
     {
-        $request->validate([
-            'identifier' => 'required|string',
-            'password'   => 'required|string',
-        ]);
-
-        $identifier = $request->identifier;
-
-        // Try email first
-        $user = User::where('email', $identifier)->whereIn('role', ['admin', 'teacher'])->first();
-
-        // If not found by email, try faculty_id (teachers only)
-        if (!$user) {
-            $faculty = Faculty::where('faculty_id', $identifier)->first();
-            if ($faculty) {
-                $user = User::where('faculty_id', $faculty->id)->where('role', 'teacher')->first();
-            }
-        }
-
-        if (!$user || !Hash::check($request->password, $user->password)) {
-            throw ValidationException::withMessages([
-                'identifier' => ['Invalid credentials. Please try again.'],
+        try {
+            $request->validate([
+                'identifier' => 'required|string',
+                'password'   => 'required|string',
             ]);
-        }
 
-        return $this->issueTokenOrOtp($user);
+            $identifier = $request->identifier;
+
+            // Try email first
+            $user = User::where('email', $identifier)->whereIn('role', ['admin', 'teacher'])->first();
+
+            // If not found by email, try faculty_id (teachers only)
+            if (!$user) {
+                $faculty = Faculty::where('faculty_id', $identifier)->first();
+                if ($faculty) {
+                    $user = User::where('faculty_id', $faculty->id)->where('role', 'teacher')->first();
+                }
+            }
+
+            if (!$user || !Hash::check($request->password, $user->password)) {
+                throw ValidationException::withMessages([
+                    'identifier' => ['Invalid credentials. Please try again.'],
+                ]);
+            }
+
+            return $this->issueTokenOrOtp($user);
+        } catch (ValidationException $e) {
+            throw $e;
+        } catch (\Exception $e) {
+            \Log::error('Staff login error: ' . $e->getMessage(), [
+                'identifier' => $request->identifier ?? 'not provided',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Login failed due to server error. Please try again later.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
+        }
     }
 
     /**
@@ -153,57 +167,79 @@ class AuthController extends Controller
      */
     private function issueTokenOrOtp(User $user): JsonResponse
     {
-        if ($user->must_verify_email) {
-            $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
+        try {
+            if ($user->must_verify_email) {
+                $otp = str_pad(random_int(0, 999999), 6, '0', STR_PAD_LEFT);
 
-            OtpVerification::where('email', $user->email)
-                ->where('action', 'first_login')
-                ->where('used', false)
-                ->delete();
+                OtpVerification::where('email', $user->email)
+                    ->where('action', 'first_login')
+                    ->where('used', false)
+                    ->delete();
 
-            OtpVerification::create([
-                'email'      => $user->email,
-                'otp'        => $otp,
-                'action'     => 'first_login',
-                'used'       => false,
-                'expires_at' => now()->addMinutes(10),
-            ]);
+                OtpVerification::create([
+                    'email'      => $user->email,
+                    'otp'        => $otp,
+                    'action'     => 'first_login',
+                    'used'       => false,
+                    'expires_at' => now()->addMinutes(10),
+                ]);
 
-            try {
-                $html = view('emails.otp', ['otp' => $otp, 'action' => 'first_login'])->render();
-                app(BrevoMailService::class)->send($user->email, $user->name, 'OTP: Verify Your New Account', $html);
-            } catch (\Exception $e) {
-                \Log::error('Login OTP email failed: ' . $e->getMessage());
-                return response()->json(['message' => 'Failed to send OTP email. Please try again later.'], 500);
+                try {
+                    $html = view('emails.otp', ['otp' => $otp, 'action' => 'first_login'])->render();
+                    app(BrevoMailService::class)->send($user->email, $user->name, 'OTP: Verify Your New Account', $html);
+                } catch (\Exception $e) {
+                    \Log::error('Login OTP email failed: ' . $e->getMessage());
+                    return response()->json(['message' => 'Failed to send OTP email. Please try again later.'], 500);
+                }
+
+                return response()->json([
+                    'must_verify' => true,
+                    'email'       => $user->email,
+                    'message'     => 'OTP sent to your email. Please verify to continue.',
+                ]);
+            }
+
+            $user->tokens()->delete();
+            $token = $user->createToken('ccs-profiling-token')->plainTextToken;
+
+            $profile = null;
+            if ($user->isTeacher() && $user->faculty_id) {
+                try {
+                    $profile = $user->faculty;
+                } catch (\Exception $e) {
+                    \Log::error('Failed to load faculty profile: ' . $e->getMessage());
+                    // Continue without profile
+                }
+            } elseif ($user->isStudent() && $user->student_id) {
+                try {
+                    $profile = $user->student;
+                } catch (\Exception $e) {
+                    \Log::error('Failed to load student profile: ' . $e->getMessage());
+                    // Continue without profile
+                }
             }
 
             return response()->json([
-                'must_verify' => true,
-                'email'       => $user->email,
-                'message'     => 'OTP sent to your email. Please verify to continue.',
+                'token' => $token,
+                'user'  => [
+                    'id'      => $user->id,
+                    'name'    => $user->name,
+                    'email'   => $user->email,
+                    'role'    => $user->role,
+                    'profile' => $profile,
+                ],
             ]);
+        } catch (\Exception $e) {
+            \Log::error('Token/OTP issuance failed: ' . $e->getMessage(), [
+                'user_id' => $user->id ?? 'unknown',
+                'trace' => $e->getTraceAsString()
+            ]);
+            
+            return response()->json([
+                'message' => 'Authentication failed due to server error.',
+                'error' => config('app.debug') ? $e->getMessage() : 'Internal server error'
+            ], 500);
         }
-
-        $user->tokens()->delete();
-        $token = $user->createToken('ccs-profiling-token')->plainTextToken;
-
-        $profile = null;
-        if ($user->isTeacher() && $user->faculty_id) {
-            $profile = $user->faculty;
-        } elseif ($user->isStudent() && $user->student_id) {
-            $profile = $user->student;
-        }
-
-        return response()->json([
-            'token' => $token,
-            'user'  => [
-                'id'      => $user->id,
-                'name'    => $user->name,
-                'email'   => $user->email,
-                'role'    => $user->role,
-                'profile' => $profile,
-            ],
-        ]);
     }
 
     /**
