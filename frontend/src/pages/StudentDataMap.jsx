@@ -523,7 +523,7 @@ export default function StudentDataMap() {
                         return (
                             <div key={dept} className="card" style={{ marginBottom: 28 }}>
                                 {/* SCREEN VIEW */}
-                                <div className="pdf-hide">
+                                <div>
                                     <div className="card-header" style={{ background: 'linear-gradient(135deg,#f97316,#fb923c)', color: '#fff' }}>
                                         <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                                             <Building size={17} strokeWidth={2} />{label}
@@ -649,51 +649,13 @@ export default function StudentDataMap() {
                                                     <button key={p} onClick={() => setDeptPage(dept, p)} style={{ ...pageBtn, background: page === p ? '#f97316' : '#fff', color: page === p ? '#fff' : '#78716c', borderColor: page === p ? '#f97316' : '#e7e5e4', fontWeight: page === p ? 700 : 500 }}>{p}</button>
                                                 ))}
                                                 <button onClick={() => setDeptPage(dept, groupEnd + 1)} disabled={groupEnd >= totalPages} style={{ ...pageBtn, opacity: groupEnd >= totalPages ? 0.4 : 1 }}>›</button>
-                                                <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 4 }}>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, deptStudents.length)} of {deptStudents.length}</span>
-                                            </div>
-                                        );
-                                    })()}
-                                </div>
-
-                                {/* PDF-ONLY VIEW */}
-                                <div className="pdf-only" style={{ display: 'none', padding: '20px 0' }}>
-                                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1c1917', borderBottom: '2px solid #f97316', paddingBottom: '6px', marginBottom: '12px' }}>
-                                        <Building size={18} strokeWidth={2.5} style={{ verticalAlign: 'text-bottom', marginRight: '6px', color: '#f97316' }} />
-                                        {label} ({deptStudents.length} students)
-                                    </h2>
-                                    <table className="report-table">
-                                        <thead>
-                                            <tr>
-                                                <th style={{ width: '4%' }}>#</th>
-                                                <th style={{ width: '12%' }}>Student ID</th>
-                                                <th style={{ width: '22%' }}>Full Name</th>
-                                                <th style={{ width: '5%' }}>Age</th>
-                                                <th style={{ width: '8%' }}>Gender</th>
-                                                <th style={{ width: '8%' }}>Section</th>
-                                                <th style={{ width: '8%' }}>Violations</th>
-                                                <th style={{ width: '8%' }}>Affiliations</th>
-                                                <th style={{ width: '8%' }}>Skills</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {deptStudents.slice().sort((a, b) => (a.last_name || '').localeCompare(b.last_name || '')).map((stu, idx) => (
-                                                <tr key={stu.id}>
-                                                    <td>{idx + 1}</td>
-                                                    <td><strong>{stu.student_id || `STU-${stu.id}`}</strong></td>
-                                                    <td>{stu.last_name}, {stu.first_name}{stu.middle_name ? ` ${stu.middle_name[0]}.` : ''}</td>
-                                                    <td>{stu.age || '—'}</td>
-                                                    <td>{stu.gender || '—'}</td>
-                                                    <td>{fmtSection(stu) || '—'}</td>
-                                                    <td>{stu.violations?.filter(v => !v.is_resolved).length || 0}</td>
-                                                    <td>{stu.affiliations?.length || 0}</td>
-                                                    <td>{stu.skills?.length || 0}</td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        );
+                                        <span style={{ fontSize: '.8rem', color: '#78716c', marginLeft: 4 }}>{(page - 1) * pageSize + 1}–{Math.min(page * pageSize, deptStudents.length)} of {deptStudents.length}</span>
+                                    </div>
+                                );
+                            })()}
+                        </div>
+                    </div>
+                );
                     })
                 ) : (
                     <div className="card">

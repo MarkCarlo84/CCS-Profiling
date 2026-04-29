@@ -268,7 +268,7 @@ export default function FacultyDataMap() {
                         return (
                         <div key={deptKey} className="card" style={{ marginBottom: 24, breakInside: 'auto' }}>
                             {/* ======================= SCREEN VIEW (PAGINATED) ======================= */}
-                            <div className="pdf-hide">
+                            <div>
                                 <div className="card-header" style={{ background: 'linear-gradient(135deg,#ea580c,#f97316)', color: '#fff' }}>
                                     <h2 style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: 8 }}>
                                         <Building size={17} strokeWidth={2} />{label}
@@ -356,38 +356,6 @@ export default function FacultyDataMap() {
                                         </span>
                                     </div>
                                 )}
-                            </div>
-
-                            {/* ======================= PRINT VIEW (ALL RECORDS) ======================= */}
-                            <div className="pdf-only" style={{ display: 'none', padding: '20px 0' }}>
-                                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#1c1917', borderBottom: '2px solid #ea580c', paddingBottom: '6px', marginBottom: '12px' }}>
-                                    <Building size={18} strokeWidth={2.5} style={{ verticalAlign: 'text-bottom', marginRight: '6px', color: '#ea580c' }} />
-                                    {label} ({members.length} faculty)
-                                </h2>
-                                <table className="report-table">
-                                    <thead>
-                                        <tr>
-                                            <th style={{ width: '4%' }}>#</th>
-                                            <th style={{ width: '15%' }}>Faculty ID</th>
-                                            <th style={{ width: '25%' }}>Full Name</th>
-                                            <th style={{ width: '20%' }}>Position</th>
-                                            <th style={{ width: '20%' }}>Email</th>
-                                            <th style={{ width: '16%' }}>Contact No.</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {members.map((fac, idx) => (
-                                            <tr key={fac.id}>
-                                                <td>{idx + 1}</td>
-                                                <td><strong>{fac.faculty_id || `FAC-${fac.id}`}</strong></td>
-                                                <td>{fac.last_name}, {fac.first_name}{fac.middle_name ? ` ${fac.middle_name[0]}.` : ''}</td>
-                                                <td>{fac.position}</td>
-                                                <td>{fac.email || '—'}</td>
-                                                <td>{fac.contact_number || '—'}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                         );

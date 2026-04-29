@@ -108,7 +108,7 @@ export default function EligibilityCriteriaMap() {
                     <div className="card">
                         <div className="card-body" style={{ padding: 0 }}>
                             {/* Screen view */}
-                            <div className="pdf-hide">
+                            <div>
                                 <div className="subjects-table-wrap" style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
                                     <table style={{ minWidth: 520 }}>
                                         <thead>
@@ -158,27 +158,6 @@ export default function EligibilityCriteriaMap() {
                                         </div>
                                     ))}
                                 </div>
-                            </div>
-
-                            {/* PDF-only view */}
-                            <div className="pdf-only" style={{ display: 'none' }}>
-                                <table className="report-table">
-                                    <thead>
-                                        <tr><th>#</th><th>Criteria ID</th><th>Min GPA</th><th>Required Skill</th><th>Affiliation Type</th><th>Max Violations</th></tr>
-                                    </thead>
-                                    <tbody>
-                                        {criteria.map((c, i) => (
-                                            <tr key={c.id}>
-                                                <td>{i + 1}</td>
-                                                <td><strong>{c.criteria_id || `EC-${c.id}`}</strong></td>
-                                                <td>{c.minimum_gpa != null ? parseFloat(c.minimum_gpa).toFixed(2) : '—'}</td>
-                                                <td>{c.required_skill || '—'}</td>
-                                                <td>{c.required_affiliation_type || '—'}</td>
-                                                <td>{c.max_allowed_violations ?? '—'}</td>
-                                            </tr>
-                                        ))}
-                                    </tbody>
-                                </table>
                             </div>
                         </div>
                     </div>
