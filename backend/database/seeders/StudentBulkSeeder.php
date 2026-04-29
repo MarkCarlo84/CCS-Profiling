@@ -147,13 +147,13 @@ class StudentBulkSeeder extends Seeder
         // No wrapping transaction — process bucket by bucket to avoid long locks
         $this->seedBulkStudents();
 
-        $this->command->info("✓ StudentBulkSeeder complete — 1000 students seeded");
+        $this->command->info("✓ StudentBulkSeeder complete — 200 students seeded");
     }
 
     private function seedBulkStudents(): void
     {
-        // Target 1000 students always
-        $targetCount = 1000;
+        // Target 200 students always
+        $targetCount = 200;
         
         // Skip if already seeded to prevent duplicate key errors on re-runs
         if (DB::table('students')->count() >= $targetCount) {
@@ -186,12 +186,12 @@ class StudentBulkSeeder extends Seeder
                 $studentRows  = [];
                 $userPayloads = [];
 
-                // 125 students per department/year group = 1000 total
-                $studentsPerGroup = 125;
+                // 25 students per department/year group = 200 total
+                $studentsPerGroup = 25;
 
                 // ── 1. Build student rows ─────────────────────────────────────
                 for ($i = 0; $i < $studentsPerGroup; $i++) {
-                    $section = ['A','B','C','D','E'][intdiv($i, 25)];
+                    $section = ['A','B','C','D','E'][min(intdiv($i, 5), 4)];
 
                     $counter = 200 + $generated + $i;
                     $sid = $prefix . '0' . $deptCode . str_pad($counter, 3, '0', STR_PAD_LEFT);
