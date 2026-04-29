@@ -10,6 +10,7 @@ use App\Models\Affiliation;
 use App\Models\Skill;
 use App\Models\AcademicRecord;
 use App\Services\BrevoMailService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -125,6 +126,7 @@ class StudentController extends Controller
             \Log::error('Student welcome email failed: ' . $e->getMessage());
         }
 
+        CacheService::invalidateOnDataChange('Student');
         return response()->json([
             'student' => $student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']),
             'user'    => [
@@ -173,12 +175,14 @@ class StudentController extends Controller
             'status'         => 'in:active,inactive,graduated,dropped,loa',
         ]);
         $student->update($data);
+        CacheService::invalidateOnDataChange('Student');
         return response()->json($student->load(['violations', 'affiliations', 'academicRecords', 'skills', 'nonAcademicHistories']));
     }
 
     public function destroy(Student $student): JsonResponse
     {
         $student->delete();
+        CacheService::invalidateOnDataChange('Student');
         return response()->json(['message' => 'Student deleted.']);
     }
 

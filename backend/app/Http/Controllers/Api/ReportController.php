@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\DB;
 use App\Services\CacheService;
+use Illuminate\Support\Facades\Artisan;
 
 class ReportController extends Controller
 {
@@ -242,6 +243,58 @@ class ReportController extends Controller
             ]);
         }
     }
+
+    /**
+     * POST /api/admin/reports/summary/refresh
+     * Force-clear the dashboard summary cache and return fresh live data.
+     * Admin only (enforced via route middleware).
+     */
+    public function refreshSummary(): JsonResponse
+    {
+        try {
+            CacheService::clearAll();
+            $summary = CacheService::getDashboardSummary();
+            return response()->json(array_merge($summary, ['refreshed_at' => now()->toISOString()]));
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Failed to refresh: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * POST /api/admin/reports/reseed-demo
+     * Runs DemoSeeder to restore missing faculty data on production.
+     * Safe to call when faculty count = 0 but students already exist.
+     * Admin only (enforced via route middleware).
+     */
+    public function reseedDemo(): JsonResponse
+    {
+        try {
+            $facultyBefore = Faculty::count();
+            $studentCount  = Student::count();
+
+            if ($facultyBefore >= 15) {
+                return response()->json([
+                    'message'       => 'Faculty data already exists. No action taken.',
+                    'faculty_count' => $facultyBefore,
+                ]);
+            }
+
+            Artisan::call('db:seed', ['--class' => 'DemoSeeder', '--force' => true]);
+            CacheService::clearAll();
+
+            $facultyAfter = Faculty::count();
+            return response()->json([
+                'message'        => 'DemoSeeder completed successfully.',
+                'faculty_before' => $facultyBefore,
+                'faculty_after'  => $facultyAfter,
+                'students'       => $studentCount,
+                'refreshed_at'   => now()->toISOString(),
+            ]);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Reseed failed: ' . $e->getMessage()], 500);
+        }
+    }
+
     /**
      * Optimized search with selective loading and proper limits.
      */

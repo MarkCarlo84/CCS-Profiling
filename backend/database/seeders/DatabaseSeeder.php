@@ -22,17 +22,35 @@ class DatabaseSeeder extends Seeder
 
         $this->command->info('✓ Admin user ready');
 
-        // Skip all heavy seeders if data already exists
+        // Skip all heavy seeders only if FULLY seeded (200 students + faculty exist)
         $studentCount = \Illuminate\Support\Facades\DB::table('students')->count();
-        if ($studentCount >= 100) {
-            $this->command->info("✓ Database already seeded ({$studentCount} students found) — skipping.");
+        $facultyCount = \Illuminate\Support\Facades\DB::table('faculties')->count();
+
+        if ($studentCount >= 200 && $facultyCount >= 15) {
+            $this->command->info("✓ Database already fully seeded ({$studentCount} students, {$facultyCount} faculty) — skipping.");
             return;
         }
 
+        // NOTE: If you need to re-seed from scratch, clear the students/faculties tables first
+
+        // Always seed subjects and eligibility criteria (idempotent)
         $this->call(SubjectSeeder::class);
         $this->call(EligibilityCriteriaSeeder::class);
-        $this->call(StudentBulkSeeder::class);
-        $this->call(DemoSeeder::class);
+
+        // Only seed students if not yet fully seeded
+        if ($studentCount < 200) {
+            $this->call(StudentBulkSeeder::class);
+        } else {
+            $this->command->info("✓ Students already seeded ({$studentCount} found) — skipping StudentBulkSeeder.");
+        }
+
+        // Only seed faculty if not yet seeded
+        if ($facultyCount < 15) {
+            $this->call(DemoSeeder::class);
+        } else {
+            $this->command->info("✓ Faculty already seeded ({$facultyCount} found) — skipping DemoSeeder.");
+        }
+
         $this->call(FacultyReportsSeeder::class);
         $this->call(FacultyEvaluationsSeeder::class);
     }

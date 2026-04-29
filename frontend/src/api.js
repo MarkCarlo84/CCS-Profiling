@@ -132,8 +132,10 @@ export const getDepartments = () => api.get('/departments');
 // ── Reports ───────────────────────────────────────────────────────────────────
 export const getReportStudents = (params = {}) => api.get('/reports/students', { params });
 export const getReportFaculties = (params = {}) => api.get('/reports/faculties', { params });
-export const getSummary = () => api.get('/reports/summary');
-export const getReportPresets = () => api.get('/reports/presets');
+export const getSummary          = () => api.get('/reports/summary');
+export const getReportPresets    = () => api.get('/reports/presets');
+export const refreshSummaryCache = () => api.post('/admin/reports/summary/refresh');
+export const reseedDemoData      = () => api.post('/admin/reports/reseed-demo');
 
 // ── Teacher Profile ───────────────────────────────────────────────────────────
 export const getTeacherProfile   = () => api.get('/teacher/profile');

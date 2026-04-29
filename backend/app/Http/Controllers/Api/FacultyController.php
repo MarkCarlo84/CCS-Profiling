@@ -8,6 +8,7 @@ use App\Models\Student;
 use App\Models\EligibilityCriteria;
 use App\Models\User;
 use App\Services\BrevoMailService;
+use App\Services\CacheService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
@@ -86,6 +87,9 @@ class FacultyController extends Controller
                 'role'  => $user->role,
             ],
         ], 201);
+
+        // Invalidate dashboard cache so stats update immediately
+        CacheService::invalidateOnDataChange('Faculty');
     }
 
     public function show(Faculty $faculty): JsonResponse
@@ -106,12 +110,14 @@ class FacultyController extends Controller
             'contact_number' => ['nullable', 'regex:/^09\d{9}$/'],
         ]);
         $faculty->update($data);
+        CacheService::invalidateOnDataChange('Faculty');
         return response()->json($faculty);
     }
 
     public function destroy(Faculty $faculty): JsonResponse
     {
         $faculty->delete();
+        CacheService::invalidateOnDataChange('Faculty');
         return response()->json(['message' => 'Faculty deleted.']);
     }
 

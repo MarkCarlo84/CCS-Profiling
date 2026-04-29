@@ -149,6 +149,12 @@ Route::prefix('reports')->group(function () {
     Route::get('presets',   [ReportController::class, 'presets']);
 });
 
+// Admin-only report utilities (cache refresh + emergency reseed)
+Route::middleware(['auth:sanctum', 'role:admin'])->prefix('admin/reports')->group(function () {
+    Route::post('summary/refresh', [ReportController::class, 'refreshSummary']);
+    Route::post('reseed-demo',     [ReportController::class, 'reseedDemo']);
+});
+
 // ── Cross-Module Comprehensive Search ─────────────────────────────────────────
 Route::get('/search', [ReportController::class, 'search']);
 
